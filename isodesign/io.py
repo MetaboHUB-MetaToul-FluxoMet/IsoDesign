@@ -20,8 +20,56 @@ N'hésite pas à ecrire un petit test au fur et a mesure que tu codes.
 
 """
 
+import pandas as pd 
+from pathlib import Path
+
+class IoGestion:
+    def __init__(self):
+        self.netw = []
+        self.tvar = []
+        self.mflux = []
+
+    def read_netw(self, data : str):
+        if isinstance(data, str):
+            chemin_data = Path(data).resolve()
+            if chemin_data.exists(): 
+                if chemin_data.suffix in [".netw"]:
+                    self.netw = pd.read_csv(data, sep='\t', skiprows=[0], header=None)
+                else:
+                    print(f"{chemin_data} is not in the good format\n Only .netw format is accepted")
+            else:
+                print(f"{chemin_data} doesn't exist.")
+        else:
+            print(f"The input file is not in right type.")
 
 
+
+    def read_tvar(self, data):
+        self.tvar = pd.read_csv(data, sep='\t')
+
+    def read_mflux(self,data):
+        self.mflux = pd.read_csv(data, sep='\t', skiprows=[0])
+
+    def __repr__(self) -> str:
+            return f"Données importées =\n fichier tvar \n {self.tvar} \n fichier mflux \n {self.mflux} \n fichier netw \n {self.netw}"
+    
+class InitMol:
+    def __init__(self, name_mol, num_carbon):
+        self.name_mol = name_mol
+        self.num_carbon = num_carbon
+
+    def __len__(self):
+        return self.num_carbon
+    
+    def __repr__(self) -> str:
+        return f"Nom de la molécule : {self.name_mol}, Nombre de carbone(s) associé(s) : {self.num_carbon}"
+    
+    
 if __name__ == "__main__":
     # Mettre ici tes tests
+    donnee = IoGestion()
+    donnee.read_netw("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
+    #print(donnee.netw)
+    #print(donnee.tvar)
+    #print(repr(donnee))
     pass
