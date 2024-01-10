@@ -44,21 +44,30 @@ class IoGestion:
 
 
     def read_tvar(self, data):
-        
             if isinstance(data, str):
                 chemin_data = Path(data).resolve()
                 if chemin_data.exists(): 
                     if chemin_data.suffix in [".netw"]:
                         self.tvar = pd.read_csv(data, sep='\t')
                 else:
-                    print(f"{chemin_data} is not in the good format\n Only .netw format is accepted")
+                    print(f"{chemin_data} is not in the good format\n Only .tvar format is accepted")
             else:
                 print(f"{chemin_data} doesn't exist.")
         else:
             print(f"The input file is not in right type.")
 
     def read_mflux(self,data):
-        self.mflux = pd.read_csv(data, sep='\t', skiprows=[0])
+            if isinstance(data, str):
+                chemin_data = Path(data).resolve()
+                if chemin_data.exists(): 
+                    if chemin_data.suffix in [".netw"]:
+                        self.mflux = pd.read_csv(data, sep='\t', skiprows=[0])
+                else:
+                    print(f"{chemin_data} is not in the good format\n Only .mflux format is accepted")
+            else:
+                print(f"{chemin_data} doesn't exist.")
+        else:
+            print(f"The input file is not in right type.")
 
     def __repr__(self) -> str:
             return f"Données importées =\n fichier tvar \n {self.tvar} \n fichier mflux \n {self.mflux} \n fichier netw \n {self.netw}"
