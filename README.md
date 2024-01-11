@@ -13,6 +13,8 @@ The method will be based on the same one used in the first version of [*IsoDesig
 * **GSM integration (second phase?)**: Integrating the use of Genome Scale Models and FBA to get predicted fluxes as input for IsoDesign2 could greatly enhance tracer design capabilities
 * **Cost as a scoring metric**
 
+![image](./_static/IsoDesignV2.jpg)
+
 Here is a description of the steps that are going to be included in IsoDesign:
 
 1. Initialize user parameters and launch the run
@@ -44,4 +46,5 @@ The tool will have multiple outputs:
 - **Sensitivity landscape**: cf plots made by IsoDesign v1 
 
 ## Interface
+
 
