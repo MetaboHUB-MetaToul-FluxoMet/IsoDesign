@@ -25,52 +25,30 @@ from pathlib import Path
 
 class IoGestion:
     def __init__(self):
-        self.netw = []
-        self.tvar = []
-        self.mflux = []
+        self.netw = None
+        self.tvar = None
+        self.mflux = None
 
-    def read_netw(self, data : str):
+    def read_file(self, data : str):
         if isinstance(data, str):
-            chemin_data = Path(data).resolve()
-            if chemin_data.exists(): 
-                if chemin_data.suffix in [".netw"]:
+            data_path = Path(data).resolve()
+            if data_path.exists(): 
+                if data_path.suffix in [".netw"]:
                     self.netw = pd.read_csv(data, sep='\t', skiprows=[0], header=None)
+                elif data_path.suffix in [".tvar"]:
+                    self.tvar = pd.read_csv(data, sep='\t')
+                elif data_path.suffix in [".mflux"]:
+                    self.mflux = pd.read_csv(data, sep='\t', skiprows=[0])
                 else:
-                    print(f"{chemin_data} is not in the good format\n Only .netw format is accepted")
+                    print(f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
             else:
-                print(f"{chemin_data} doesn't exist.")
+                print(f"{data_path} doesn't exist.")
         else:
             print(f"The input file is not in right type.")
 
-
-    def read_tvar(self, data):
-            if isinstance(data, str):
-                chemin_data = Path(data).resolve()
-                if chemin_data.exists(): 
-                    if chemin_data.suffix in [".netw"]:
-                        self.tvar = pd.read_csv(data, sep='\t')
-                else:
-                    print(f"{chemin_data} is not in the good format\n Only .tvar format is accepted")
-            else:
-                print(f"{chemin_data} doesn't exist.")
-        else:
-            print(f"The input file is not in right type.")
-
-    def read_mflux(self,data):
-            if isinstance(data, str):
-                chemin_data = Path(data).resolve()
-                if chemin_data.exists(): 
-                    if chemin_data.suffix in [".netw"]:
-                        self.mflux = pd.read_csv(data, sep='\t', skiprows=[0])
-                else:
-                    print(f"{chemin_data} is not in the good format\n Only .mflux format is accepted")
-            else:
-                print(f"{chemin_data} doesn't exist.")
-        else:
-            print(f"The input file is not in right type.")
 
     def __repr__(self) -> str:
-            return f"Données importées =\n fichier tvar \n {self.tvar} \n fichier mflux \n {self.mflux} \n fichier netw \n {self.netw}"
+            return f"Imported data\n\n tvar file \n {self.tvar} \n\n mflux file \n {self.mflux} \n\n netw file \n {self.netw}"
     
 class InitMol:
     def __init__(self, name_mol, num_carbon):
@@ -81,14 +59,17 @@ class InitMol:
         return self.num_carbon
     
     def __repr__(self) -> str:
-        return f"Nom de la molécule : {self.name_mol}, Nombre de carbone(s) associé(s) : {self.num_carbon}"
+        return f"Molecule name: {self.name_mol}, Number of associated carbon(s) : {self.num_carbon}"
     
     
 if __name__ == "__main__":
     # Mettre ici tes tests
     donnee = IoGestion()
-    donnee.read_netw("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
+    donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.netw")
+    donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.mflux")
+    donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
     #print(donnee.netw)
     #print(donnee.tvar)
-    #print(repr(donnee))
+    #print(donnee.mflux)
+    print(repr(donnee))
     pass
