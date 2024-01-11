@@ -30,21 +30,24 @@ class IoGestion:
         self.mflux = None
 
     def read_file(self, data : str):
-        if isinstance(data, str):
-            data_path = Path(data).resolve()
-            if data_path.exists(): 
-                if data_path.suffix in [".netw"]:
-                    self.netw = pd.read_csv(data, sep='\t', skiprows=[0], header=None)
-                elif data_path.suffix in [".tvar"]:
-                    self.tvar = pd.read_csv(data, sep='\t')
-                elif data_path.suffix in [".mflux"]:
-                    self.mflux = pd.read_csv(data, sep='\t', skiprows=[0])
+        try:
+            if isinstance(data, str):
+                data_path = Path(data).resolve()
+                if data_path.exists(): 
+                    if data_path.suffix in [".netw"]:
+                        self.netw = pd.read_csv(data, sep='\t', skiprows=[0], header=None)
+                    elif data_path.suffix in [".tvar"]:
+                        self.tvar = pd.read_csv(data, sep='\t')
+                    elif data_path.suffix in [".mflux"]:
+                        self.mflux = pd.read_csv(data, sep='\t', skiprows=[0])
+                    else:
+                        raise TypeError (f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
                 else:
-                    print(f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
+                    raise ValueError(f"{data_path} doesn't exist.")
             else:
-                print(f"{data_path} doesn't exist.")
-        else:
-            print(f"The input file is not in right type.")
+                raise TypeError(f"An input file is not in right type.")
+        except (TypeError, ValueError) as e:
+            print(f"An error occurred: {e}")    
 
 
     def __repr__(self) -> str:
@@ -68,8 +71,5 @@ if __name__ == "__main__":
     donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.netw")
     donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.mflux")
     donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
-    #print(donnee.netw)
-    #print(donnee.tvar)
-    #print(donnee.mflux)
     print(repr(donnee))
     pass
