@@ -33,20 +33,19 @@ class IoGestion:
         if isinstance(data, str):
             data_path = Path(data).resolve()
             if data_path.exists(): 
+                if data_path.suffix not in [".netw", ".tvar", ".mflux"]:
+                    raise TypeError (f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
                 if data_path.suffix == ".netw":
                     self.netw = pd.read_csv(data, sep='\t', skiprows=[0], header=None)
                 if data_path.suffix == ".tvar":
                     self.tvar = pd.read_csv(data, sep='\t')
                 if data_path.suffix == ".mflux":
                     self.mflux = pd.read_csv(data, sep='\t', skiprows=[0])
-                else:
-                    raise TypeError (f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
             else:
                 raise ValueError(f"{data_path} doesn't exist.")
         else:
             raise TypeError(f"{data} should be of type string and not {type(data)}")
-  
-
+        
 
     def __repr__(self) -> str:
             return f"Imported data\n\n tvar file \n {self.tvar} \n\n mflux file \n {self.mflux} \n\n netw file \n {self.netw}"
@@ -66,7 +65,7 @@ class InitMol:
 if __name__ == "__main__":
     # Mettre ici tes tests
     donnee = IoGestion()
-    donnee.read_file(1)
+    donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.netw")
     donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.mflux")
     donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
     print(donnee)
