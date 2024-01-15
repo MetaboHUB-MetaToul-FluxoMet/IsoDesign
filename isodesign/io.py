@@ -22,6 +22,7 @@ N'hésite pas à ecrire un petit test au fur et a mesure que tu codes.
 
 import pandas as pd 
 from pathlib import Path
+from itertools import product
 
 class IoGestion:
     def __init__(self):
@@ -50,23 +51,35 @@ class IoGestion:
     def __repr__(self) -> str:
             return f"Imported data\n\n tvar file \n {self.tvar} \n\n mflux file \n {self.mflux} \n\n netw file \n {self.netw}"
     
-class InitMol:
-    def __init__(self, name_mol, num_carbon):
+class Tracer:
+    def __init__(self, name_mol, labeling):
         self.name_mol = name_mol
-        self.num_carbon = num_carbon
+        self.labeling = labeling
+        self.num_carbon = None
 
     def __len__(self):
-        return self.num_carbon
-    
+        self.num_carbon = len(self.labeling)
+
     def __repr__(self) -> str:
         return f"Molecule name: {self.name_mol}, Number of associated carbon(s) : {self.num_carbon}"
-    
-    
+
+
+def run(num_mol, start, end, step):
+    fractions = []
+
+    for _ in range(num_mol):
+        fracs=[data for data in range(start,end,step)]
+        fractions.append(fracs)
+    print(fractions)
+        
+    comb = [i for i in list(product(*fractions)) if sum(i) == 100]
+    print(comb)
+
 if __name__ == "__main__":
     # Mettre ici tes tests
-    donnee = IoGestion()
-    donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.netw")
-    donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.mflux")
-    donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
-    print(donnee)
+    #donnee = IoGestion()
+    #donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.netw")
+    #donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.mflux")
+    #donnee.read_file("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
+    mol = run(3,0,100,10)
     pass
