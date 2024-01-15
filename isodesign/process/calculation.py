@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # mol_1 = intra_mol_comb(["Ace_U", "Ace_1"],0,100,10)
     # print(mol_1)
     mol = inter_mol_comb(["Gluc_U", "Gluc_1", "Gluc_23"], ["Ace_U", "Ace_1"], 0, 100, 10)
-    print(mol[:3])
+    print(mol)
     # print(mol_1)
     # Get for Acetate
     # mol_2 = comb_fraction(2,0,100,10)
