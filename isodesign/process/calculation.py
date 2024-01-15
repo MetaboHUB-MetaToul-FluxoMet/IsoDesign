@@ -21,11 +21,15 @@ def comb_fraction(num_mol, start, end, step):
     comb = [i for i in list(product(*fractions)) if sum(i) == 100]
     return comb
 
+def intra_mol_comb(mol, start, end, step):
+    return comb_fraction(len(mol), start, end, step)
+
 if __name__ == "__main__":
     # Get for Glucose
-    mol_1= comb_fraction(3,0,100,10)
+    mol_1= intra_mol_comb(["Ace_U", "Ace_1"],0,100,10)
     print(mol_1)
+    # print(mol_1)
     # Get for Acetate
-    
-    #mol2 = list_mol(["Gluc_U", "Ace_1"])
+    # mol_2 = comb_fraction(2,0,100,10)
+    # print(mol_2)
     pass
