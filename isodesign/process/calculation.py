@@ -42,7 +42,7 @@ def generate_frac_comb(molecules, step=10, start=0, end=100):
         all_fracs.append(fractions)
 
     # list containing all the combination inside a molecule family
-    mixes = [frac_list for frac_list in list(product(*all_fracs)) if sum(frac_list) == 100]
+    mixes = [frac_list for frac_list in product(*all_fracs) if sum(frac_list) == 100]
     return mixes
 
 
@@ -86,6 +86,8 @@ def generate_file(fam_mol1, fam_mol2, label_fam1, label_fam2):
 
 if __name__ == "__main__":
     # Get for Glucose
+    mix = generate_frac_comb(["Gluc_U", "Gluc_1", "Gluc_23"])
+    print(mix)
     final = generate_mixes_comb(["Ace_U", "Ace_1"], ["Gluc_U", "Gluc_1", "Gluc_23"])
     print(final)
     # print(mol_1)
