@@ -40,7 +40,7 @@ def _generate_frac_comb(molecules, step=10):
         all_fracs.append(fractions)
             
     # list containing all the combination inside a molecule family
-    mixes = [frac_list for frac_list in list(product(*all_fracs)) if sum(frac_list) == 100]
+    mixes = [frac_list for frac_list in product(*all_fracs) if sum(frac_list) == 100]
     return mixes
     
 def generate_mixes_comb(*args):
