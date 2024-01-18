@@ -86,8 +86,8 @@ def generate_file(carbon_source, carbon_source_2=None):
         combinations = generate_mixes_comb(carbon_source,
                                            carbon_source_2)  # list of tuple of tuple with all combinations for two mixes
 
-    df["Isotopomer"] = [labeling for labeling in tracer_labels]
-    df["Specie"] = [name for name in tracer_names]
+    df["Isotopomer"] = tracer_labels
+    df["Specie"] = tracer_names
 
     for pair in combinations:
         tmp_df = df.copy()
