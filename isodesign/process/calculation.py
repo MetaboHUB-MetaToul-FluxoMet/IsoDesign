@@ -56,51 +56,7 @@ def generate_mixes_comb(*args):
         return _generate_frac_comb(args[0])
     return list(product(*[_generate_frac_comb(mix) for mix in args]))
 
-
-def generate_file(carbon_source, carbon_source_2=None):
-    """ 
-    Generating .linp files in function of all combination for one or two mixe(s)
-
-    :param carbon_source: list of tracer molecules
-    :param carbon_source_2: list of tracer molecules
-
-    :return: Generate .linp files depending on the number of combination
-            Files containing dataframe with tracers features including the combinations
-            for all tracer mixes
-    """
-    df = pd.DataFrame({'Id': None,
-                       'Comment': None,
-                       'Specie': [],
-                       'Isotopomer': [],
-                       'Value': []})
-
-    tracer_labels = [tracer.labeling for tracer in carbon_source]
-    tracer_names = [tracer.name for tracer in carbon_source]  # list containing all the tracer names
-
-    combinations = generate_mixes_comb(carbon_source)  # list of tuple with all combinations for one mix
-
-    if carbon_source_2:
-        for trac2 in carbon_source_2:
-            tracer_labels.append(trac2.labeling)
-            tracer_names.append(trac2.name)
-        combinations = generate_mixes_comb(carbon_source,
-                                           carbon_source_2)  # list of tuple of tuple with all combinations for two mixes
-
-    df["Isotopomer"] = tracer_labels
-    df["Specie"] = tracer_names
-
-    for pair in combinations:
-        tmp_df = df.copy()
-        if carbon_source_2:
-            tmp_df["Value"] = pair[0] + pair[1]
-            tmp_df = tmp_df.loc[tmp_df["Value"] != 0]  # remove all row equals to 0
-            tmp_df.to_csv(fr"../test-data/output/test_{pair}.linp", sep="\t")
-        else:
-            tmp_df["Value"] = pair
-            tmp_df = tmp_df.loc[tmp_df["Value"] != 0]
-            tmp_df.to_csv(fr"../test-data/output/test_{pair}.linp", sep="\t")
-
-def generate_file_args(carbon_source, *args):
+def generate_file(carbon_source, *args):
     """
     Generating .linp files in function of all combination for one or two mixe(s)
 
@@ -129,8 +85,8 @@ def generate_file_args(carbon_source, *args):
                 tracer_names.append(tracer.name)
         combinations = generate_mixes_comb(carbon_source, *args)  # list of tuple of tuple with all combinations for two mixes
 
-    df["Isotopomer"] = [labeling for labeling in tracer_labels]
-    df["Specie"] = [name for name in tracer_names]
+    df["Isotopomer"] = tracer_labels
+    df["Specie"] = tracer_names
 
     for pair in combinations:
         tmp_df = df.copy()
@@ -167,7 +123,7 @@ if __name__ == "__main__":
     # print(generate_mixes_comb([gluc_u.name, gluc_1.name], [ace_u.name, ace_1.name]))
     # ace_U = Tracer("Ace_U", 11)
     # ace_1 = Tracer("Ace_1", 10)
-    generate_file_args([gluc_u, gluc_1], [ace_u, ace_1], [eth_1, eth_2])
+    generate_file([gluc_u, gluc_1], [ace_u, ace_1], [eth_1, eth_2])
     # Get for Acetate
     # mol_2 = comb_fraction(2,0,100,10)
     # print(mol_2)
