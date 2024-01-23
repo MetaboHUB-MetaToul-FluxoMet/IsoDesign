@@ -1,106 +1,87 @@
 """ Module for calculation """
 import os
-from itertools import product
-import pandas as pd
+from itertools import product, combinations
+import math
 
+import pandas as pd
+import numpy as np
 
 class Tracer:
     """ 
-    This class is for the initiation of tracers.
+    Class for the initiation of tracers.
+
     """
 
-    def __init__(self, name, labeling):
+    def __init__(self, name, labeling, step, lower_bound, upper_bound):
         self.name = name
         self.labeling = labeling
         self.num_carbon = len(self.labeling)
-
+        self.step = step
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
+        self.fraction = [fraction for fraction in range(self.lower_bound, self.upper_bound + self.step, self.step)]
+       
     def __len__(self):
-        """ 
-        Count the carbon number by using the labeling.
-        """
         return self.num_carbon
 
     def __repr__(self) -> str:
         return f"Molecule name: {self.name}, Number of associated carbon(s) : {self.num_carbon}"
-
-
-def _generate_frac_comb(molecules, step=10):
-    """
-    Generate combinations of different molecular tracers proportions
-
-    :param molecules: list of tracer molecules
-    :param step: step for proportions to test
     
-    :return: list of tuples containing proportions of each tracer in mix (sum must be equant to end param value)
-    """
-
-    all_fracs = []
-    for _ in range(len(molecules)):
-        fractions = [data for data in range(0, 100 + step, step)]
-        all_fracs.append(fractions)
-
-    # list containing all the combination inside a molecule family
-    mixes = [frac_list for frac_list in product(*all_fracs) if sum(frac_list) == 100]
-    return mixes
-
-
-def generate_mixes_comb(*args):
-    """ 
-    Generate cominations between two molecular mixes of tracers
+    @property
+    def lower_bound(self):
+        return self._lower_bound
     
-    :param args:list of mixes to combine together
+    @lower_bound.setter
+    def lower_bound(self, value):
+        if value < 0:
+            raise ValueError(f"{value} isn't correct. Use a positive value.")
+        self._lower_bound = value
 
-    :return: list of all combinations of the tracer mixes
-    """
-    if len(args) == 1:
-        return _generate_frac_comb(args[0])
-    return list(product(*[_generate_frac_comb(mix) for mix in args]))
+    @property
+    def upper_bound(self):
+        return self._upper_bound
+    
+    @upper_bound.setter
+    def upper_bound(self, value):
+        if value > 100:
+            raise ValueError(f"{value} isn't correct. Value must be less than 100.")
+        self._upper_bound = value
 
-def generate_file(carbon_source, *args):
-    """
-    Generating .linp files in function of all combination for one or two mixe(s)
+class Mix:
+    def __init__(self, tracers: dict):
+        """
+        :param tracers: dictionnary containing the different tracer 
+                        groups with gourp name as key and list of 
+                        tracers as value    
+        """
+        self.tracers = tracers
+        self.mixes = {}
 
-    :param carbon_source: list of tracer molecules
-    :param carbon_source_2: list of tracer molecules
+        # self.combination_mix = list(product(*[tracer.fraction for tracer in self.mix]))
+        
+    def mix_combination(self):
+        """
+        Generate combinations for one or more mix(es)
 
-    :return: Generate .linp files depending on the number of combination
-            Files containing dataframe with tracers features including the combinations
-            for all tracer mixes
-    """
-    df = pd.DataFrame({'Id': None,
-                       'Comment': None,
-                       'Specie': [],
-                       'Isotopomer': [],
-                       'Value': []})
+        :return:  list of tuples of tuples...
 
-    tracer_labels = [tracer.labeling for tracer in carbon_source]
-    tracer_names = [tracer.name for tracer in carbon_source]  # list containing all the tracer names
+        """
 
-    combinations = generate_mixes_comb(carbon_source)  # list of tuple with all combinations for one mix
+        for metabolite, tracer_mix in self.tracers.items():
+            prod = product(*[tracer.fraction for tracer in tracer_mix])
+            self.mixes.update({metabolite : [combination for combination in prod if math.fsum(combination) == 100]})
 
-    if args:
-        for arg in args:
-            for tracer in arg:
-                tracer_labels.append(tracer.labeling)
-                tracer_names.append(tracer.name)
-        combinations = generate_mixes_comb(carbon_source, *args)  # list of tuple of tuple with all combinations for two mixes
+        if len(self.mixes) > 1:
+            pass
 
-    df["Isotopomer"] = tracer_labels
-    df["Specie"] = tracer_names
-
-    for pair in combinations:
-        tmp_df = df.copy()
-        if args:
-            values = ()
-            for combination in pair:
-                values += combination
-            tmp_df["Value"] = values
-            tmp_df = tmp_df.loc[tmp_df["Value"] != 0]  # remove all row equals to 0
-            tmp_df.to_csv(fr"../test-data/output/test_{pair}.linp", sep="\t")
-        else:
-            tmp_df["Value"] = pair
-            tmp_df = tmp_df.loc[tmp_df["Value"] != 0]
-            tmp_df.to_csv(fr"../test-data/output/test_{pair}.linp", sep="\t")
+        # if len(self.tracers) > 1:
+        #     list_all_combination = [self.combination_mix]
+        #     for args in self.args:
+        #         list_all_combination.append(list(product(*[tracer.fraction for tracer in args])))
+        #     return list(product(*list_all_combination))
+        # else:
+        #     return self.combination_mix
+        
 
 if __name__ == "__main__":
     # Get for Glucose
@@ -111,19 +92,25 @@ if __name__ == "__main__":
     # #print(mol_1)
     # #mol = inter_mol_comb(["Gluc_U", "Gluc_1", "Gluc_23"], ["Ace_U", "Ace_1"], 10, 0,100)
     # #print(mol)
-    gluc_u = Tracer("Gluc_U", "111111")
-    gluc_1 = Tracer("Gluc_1", "100000")
-    gluc_23 = Tracer("Gluc_23", "011000")
-    ace_u = Tracer("Ace_U", "11")
-    ace_1 = Tracer("Ace_1", "10")
-    ace_1 = Tracer("Ace_1", "10")
-    eth_1 = Tracer("Eth_u", "11")
-    eth_2 = Tracer("Eth_1", "10")
-    # print(generate_mixes_comb([gluc_u.name,gluc_1.name, gluc_23.name], [ace_u.name, ace_1.name]))
+    gluc_u = Tracer("Gluc_U", "111111", 10, 30, 100)
+    #print(gluc_u.combination)
+    gluc_1 = Tracer("Gluc_1", "100000", 20, 20, 100)
+    gluc_23 = Tracer("Gluc_23", "011000", 10, 50, 100)
+    ace_u = Tracer("Ace_U", "11", 30, 0, 100)
+    ace_1 = Tracer("Ace_1", "10", 10,30,100)
+    #print(gluc_1.combination)
+    # tracers = {
+    #     "gluc": [gluc_u, gluc_1, gluc_23],
+    #     "ace": [ace_u, ace_1]
+    # }
+    # mix = Mix(tracers)
+    # mix.mix_combination()
+    #for key, value in mix.mixes.items():
+        #print(f"{key}: {value}")
     # print(generate_mixes_comb([gluc_u.name, gluc_1.name], [ace_u.name, ace_1.name]))
     # ace_U = Tracer("Ace_U", 11)
     # ace_1 = Tracer("Ace_1", 10)
-    generate_file([gluc_u, gluc_1], [ace_u, ace_1], [eth_1, eth_2])
+    #generate_file([gluc_u, gluc_1], [ace_u, ace_1], [eth_1, eth_2])
     # Get for Acetate
     # mol_2 = comb_fraction(2,0,100,10)
     # print(mol_2)
