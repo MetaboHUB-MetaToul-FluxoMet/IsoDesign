@@ -1,10 +1,9 @@
 """ Module for calculation """
-import os
 from itertools import product, combinations
 import math
 
 import pandas as pd
-import numpy as np
+
 
 class Tracer:
     """ 
@@ -51,19 +50,16 @@ class Mix:
     def __init__(self, tracers: dict):
         """
         :param tracers: dictionnary containing the different tracer 
-                        groups with gourp name as key and list of 
+                        groups with group name as key and list of 
                         tracers as value    
         """
         self.tracers = tracers
         self.mixes = {}
-
-        # self.combination_mix = list(product(*[tracer.fraction for tracer in self.mix]))
         
-    def mix_combination(self):
+    def tracer_mix_combination(self):
         """
-        Generate combinations for one or more mix(es)
-
-        :return:  list of tuples of tuples...
+        Generate combination inside a tracers group and 
+        combination between many tracers groups
 
         """
 
@@ -72,41 +68,23 @@ class Mix:
             self.mixes.update({metabolite : [combination for combination in prod if math.fsum(combination) == 100]})
 
         if len(self.mixes) > 1:
-            pass
-
-        # if len(self.tracers) > 1:
-        #     list_all_combination = [self.combination_mix]
-        #     for args in self.args:
-        #         list_all_combination.append(list(product(*[tracer.fraction for tracer in args])))
-        #     return list(product(*list_all_combination))
-        # else:
-        #     return self.combination_mix
-        
+            list_combinations = [combination for combination in self.mixes.values()]
+            self.mixes.update({"Tracers_mix_combinations" : list(product(*list_combinations))})
 
 if __name__ == "__main__":
-    # Get for Glucose
-    # final = generate_mixes_comb(["Ace_U", "Ace_1"], ["Gluc_U", "Gluc_1", "Gluc_23"])
-    # print(final)
-    # print(mol_1)
-    # print(mol_2)
-    # #print(mol_1)
-    # #mol = inter_mol_comb(["Gluc_U", "Gluc_1", "Gluc_23"], ["Ace_U", "Ace_1"], 10, 0,100)
-    # #print(mol)
     gluc_u = Tracer("Gluc_U", "111111", 10, 30, 100)
-    #print(gluc_u.combination)
     gluc_1 = Tracer("Gluc_1", "100000", 20, 20, 100)
-    gluc_23 = Tracer("Gluc_23", "011000", 10, 50, 100)
-    ace_u = Tracer("Ace_U", "11", 30, 0, 100)
-    ace_1 = Tracer("Ace_1", "10", 10,30,100)
-    #print(gluc_1.combination)
-    # tracers = {
-    #     "gluc": [gluc_u, gluc_1, gluc_23],
-    #     "ace": [ace_u, ace_1]
-    # }
-    # mix = Mix(tracers)
-    # mix.mix_combination()
-    #for key, value in mix.mixes.items():
-        #print(f"{key}: {value}")
+    gluc_23 = Tracer("Gluc_23", "011000", 10, 10, 100)
+    ace_u = Tracer("Ace_U", "11", 10, 0, 100)
+    ace_1 = Tracer("Ace_1", "10", 10,0,100)
+    tracers = {
+        "gluc": [gluc_u, gluc_1, gluc_23],
+        "ace": [ace_u, ace_1]
+    }
+    mix = Mix(tracers)
+    mix.tracer_mix_combination()
+    for key, value in mix.mixes.items():
+        print(f"{key}: {value}")
     # print(generate_mixes_comb([gluc_u.name, gluc_1.name], [ace_u.name, ace_1.name]))
     # ace_U = Tracer("Ace_U", 11)
     # ace_1 = Tracer("Ace_1", 10)
