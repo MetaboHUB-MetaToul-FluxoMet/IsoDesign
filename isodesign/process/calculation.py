@@ -1,6 +1,7 @@
 """ Module for calculation """
 from itertools import product, combinations
 import math
+from pathlib import Path
 
 import pandas as pd
 
@@ -36,7 +37,12 @@ class Tracer:
         return self.num_carbon
 
     def __repr__(self) -> str:
-        return f"Molecule name: {self.name},\nNumber of associated carbon(s) : {self.num_carbon}\nStep = {self.step}\nLower bound = {self.lower_bound}\n Upper bound = {self.upper_bound}\n Vector of fractions = {self.fraction}"
+        return f"Molecule name: {self.name},\
+        \nNumber of associated carbon(s) : {self.num_carbon},\
+        \nStep = {self.step},\
+        \nLower bound = {self.lower_bound},\
+        \nUpper bound = {self.upper_bound},\
+        \nVector of fractions = {self.fraction}"
     
     @property
     def lower_bound(self):
@@ -119,10 +125,42 @@ class Mix:
         
 
 class Process:
+    """
+    Class responsible of most of the processes... 
+    """
     def __init__(self):
+        self.files_name = None #store files names for the vmtf file
+        self.files_netw = None
+        self.files_tvar = None
+        self.files_mflux = None
         pass
 
-    def input_files(self):
+    def read_files(self, data: str):
+        """ 
+        Read tvar, mflux and netw files (csv or tsv)
+
+        :param data: str containing the path to the file
+
+        """
+        if not isinstance(data, str):
+            raise TypeError(f"{data} should be of type string and not {type(data)}")
+
+        data_path = Path(data).resolve()
+
+        if not data_path.exists():
+            raise ValueError(f"{data_path} doesn't exist.")
+        else:
+            if data_path.suffix not in [".netw", ".tvar", ".mflux"]:
+                raise TypeError (f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
+            if data_path.suffix == ".netw":
+                self.netw = pd.read_csv(data, sep='\t', skiprows=[0], header=None)
+            if data_path.suffix == ".tvar":
+                self.tvar = pd.read_csv(data, sep='\t')
+            if data_path.suffix == ".mflux":
+                self.mflux = pd.read_csv(data, sep='\t', skiprows=[0])
+
+
+    def check_files(self):
         pass
 
     def generate_files(self):
@@ -143,16 +181,12 @@ if __name__ == "__main__":
     }
     mix = Mix(tracers)
     mix.tracer_mix_combination()
-    print(mix.mixes)
-    print(mix.names)
-    #mix.tracer_mix_combination()
-    #print(mix.names)
+    print(gluc_u)
+    # print(mix.mixes)
+    # print(mix.names)
     # for key, value in mix.mixes.items():
     #     print(f"{key}: {value}")
     # print(generate_mixes_comb([gluc_u.name, gluc_1.name], [ace_u.name, ace_1.name]))
     # ace_U = Tracer("Ace_U", 11)
     # ace_1 = Tracer("Ace_1", 10)
-    #generate_file([gluc_u, gluc_1], [ace_u, ace_1], [eth_1, eth_2])
-    # Get for Acetate
-    # mol_2 = comb_fraction(2,0,100,10)
     # print(mol_2)
