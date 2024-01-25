@@ -45,6 +45,11 @@ The tool will have multiple outputs:
 - **Table of scores**: this table will reference for each label input tested the score in different category: total sum of SDs, sum of SDs on selected fluxes, Sum of SDs vs tracer price, etc...
 - **Sensitivity landscape**: cf plots made by IsoDesign v1 
 
+To handle the coordination of the different parts of the program, we will create a Process class that will handle most 
+of the steps initiated within the tool. Here is a visual description of the class:
+
+![image](./_static/Process%20class%20schema.jpg)
+
 ## Interface
 
 

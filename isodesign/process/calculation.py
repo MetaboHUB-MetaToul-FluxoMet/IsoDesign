@@ -1,113 +1,158 @@
 """ Module for calculation """
+from itertools import product, combinations
+import math
 
-from itertools import product
 import pandas as pd
 
 
 class Tracer:
     """ 
-    This class is for the initiation of tracers.
+    Class for the initiation of tracers.
+
     """
 
-    def __init__(self, name, labeling):
-        self.name = name
-        self.labeling = labeling
-        self.num_carbon = None
-
-    def __len__(self):
-        """ 
-        Count the carbon number by using the labeling.
+    def __init__(self, name, isotopomer, step, lower_bound, upper_bound):
         """
-        self.num_carbon = len(self.labeling)
+        :param name: tracer name
+        :param isotopomer: carbons labeling 
+        :param step: step for proportions to test
+        :param lower_bound: minimun proportion to test
+        :param upper_bound: maximum proportion to test 
+
+        :param self.num_carbon: carbon number from isotopomer count
+        :param self.fraction: list of possible fraction between 
+                            lower_bound and upper_bound depending 
+                            of the step value
+        """
+        self.name = name
+        self.isotopomer = isotopomer
+        self.num_carbon = len(self.isotopomer)
+        self.step = step
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
+        self.fraction = [fraction for fraction in range(self.lower_bound, self.upper_bound + self.step, self.step)]
+       
+    def __len__(self):
+        return self.num_carbon
 
     def __repr__(self) -> str:
-        return f"Molecule name: {self.name}, Number of associated carbon(s) : {self.num_carbon}"
-
-
-def intra_mol_comb(num_mol, step=10, start=0, end=100):
-    """
-    Building the intramolecular cominations. Default values :
-        * start: 0
-        * end: 100
-
-    :param num_mol: number of molecules into the family 
-    :param step: 
+        return f"Molecule name: {self.name},\nNumber of associated carbon(s) : {self.num_carbon}\nStep = {self.step}\nLower bound = {self.lower_bound}\n Upper bound = {self.upper_bound}\n Vector of fractions = {self.fraction}"
     
-    :return: list of tuple containing all the intramolecular combinations
-    """
-
-    all_fracs = [] #list containing list of fractions in function of the number of molecule 
-    for _ in range(len(num_mol)):
-        fractions=[data for data in range(start,end,step)] #list of fractions 
-        all_fracs.append(fractions) #adding list of fraction for a molecule in the fraction list 
-    intra_combi = [pair for pair in list(product(*all_fracs)) if sum(pair) == 100] #list containing all the combination inside a molecule family  
-    return intra_combi
-
-
-def inter_mol_comb(fam_mol1,fam_mol2, step=10, start=0, end=100):
-    """ 
-    Building the intermolecular combinations. Default values :
-        * start: 0
-        * end: 100 
+    @property
+    def lower_bound(self):
+        return self._lower_bound
     
-    :param fam_mol1: list of molecule names of the first molecule family   
-    :param fam_mol2: list of molecule names of the second molecule family
-    :param step: 
-
-    :return: list containing tuple which contain tuple with all the intermolecular combinations
-
-    Using the function intra_mol_comb for each molecule family to have the 
-    list of combination inside the molecule family. 
-    """
+    @lower_bound.setter
+    def lower_bound(self, value):
+        if not isinstance(value, int):
+            raise TypeError("Lower bound must be an integer")
+        if value < 0:
+            raise ValueError("Lower bound for a tracer proportion must be a positive number")
+        self._lower_bound = value
+            
+        
+    @property
+    def upper_bound(self):
+        return self._upper_bound
     
-    combi_family_1 = intra_mol_comb(fam_mol1) #intramolecular combination for the first family 
-    combi_family_2 = intra_mol_comb(fam_mol2) #intramolecular combination for the second family
-    intermol_combi = list(product(combi_family_1,combi_family_2)) #list containing all the combination
-    return intermol_combi
-
-def generate_file(fam_mol1, fam_mol2, label_fam1, label_fam2):
-    """ 
-    Generating .linp files in function of all combination between 2 molecule family. 
-
-    :param fam_mol1: list of molecule names of the 1st molecule family   
-    :param fam_mol2: list of molecule names of the 2nd molecule family
-    :param label_fam1: list of all labeling for the 1st molecule family
-    :param label_fam2: list of all labeling for the 2nd molecule family
-
-    :return: generate .linp files depending on the number of combination 
-            between molecules family. Files containing dataframe with tracers
-            features including all the combinations on the column "Value"
-    """
-
-    df = pd.DataFrame({'Id':None,
-                            'Comment':None,
-                            'Specie': [i for i in fam_mol1+fam_mol2],
-                            'Isotopomer' : [j for j in label_fam1+label_fam2],
-                            'Value':None}) 
+    @upper_bound.setter
+    def upper_bound(self, value):
+        if not isinstance(value, int):
+            raise TypeError("Upper bound must be an integer")
+        if value > 100:
+            raise ValueError("Proportions are given as a percentage and thus cannot be higher than 100%")
+        if hasattr(self, "lower_bound") and value < self.lower_bound:
+            raise ValueError("Upper bound must be greater than lower bound")
+        self._upper_bound = value
+            
+        
+    @property
+    def step(self):
+        return self._step
     
-    all_combi = inter_mol_comb(fam_mol1, fam_mol2) #list of all the combination
-    for pair in all_combi:
-        tmp_df = df.copy() #creation of a temporary file
-        tmp_df["Value"] = pair[0] + pair[1] #column "Value" take all the combinations values
-        tmp_df.to_csv(f"{pair}.linp", sep="\t") #generation the .linp files
+    @step.setter
+    def step(self, value):
+        if not isinstance(value, int):
+            raise TypeError("Step for proportions to test must be an integer")
+        if value <= 0 :
+            raise ValueError("Step for proportions to test must be greater than 0")
+        self._step = value
+
+
+class Mix:
+    def __init__(self, tracers: dict):
+        """
+        :param tracers: dictionnary containing the different tracer 
+                        groups with group name as key and list of 
+                        tracers as value   
+
+        :param self.mixes: list of all combinations inside a tracers group 
+                            and/or combination between many tracers groups 
+        :param self.names: list of all tracers names
+        """
+    
+        self.tracers = tracers
+        self.mixes = []
+        self.names = []
+
+    def tracer_mix_combination(self):
+        """
+        Generate combination inside a tracers group and/or 
+        combination between many tracers groups
+
+        """
+        intermediate_combination = [] #list containing lists of combinations inside a tracers mix
+        intermediate_name = [] #list containing lists of tracers names 
+
+        for metabolite, tracer_mix in self.tracers.items():
+            prod = product(*[tracer.fraction for tracer in tracer_mix])
+            intermediate_name.append([tracer.name for tracer in tracer_mix])
+            intermediate_combination.append(list(combination for combination in prod if math.fsum(combination) == 100))
+        
+        for names in intermediate_name:
+            self.names += names 
+
+        if len(self.tracers) > 1:
+            self.mixes += list(product(*intermediate_combination))
+        else:
+            self.mixes = intermediate_combination
+        
+
+class Process:
+    def __init__(self):
+        pass
+
+    def input_files(self):
+        pass
+
+    def generate_files(self):
+        pass
+
+    def influx_simulation(self):
+        pass
 
 if __name__ == "__main__":
-    # Get for Glucose
-    #mol_1 = intra_mol_comb(["Ace_U", "Ace_1"])
-    #print(mol_1)
-    #mol = inter_mol_comb(["Gluc_U", "Gluc_1", "Gluc_23"], ["Ace_U", "Ace_1"], 10, 0,100)
-    #print(mol)
-    gluc_u = Tracer("Gluc_U", 111111)
-    gluc_1 = Tracer("Gluc_1", 100000)
-    ace_U = Tracer("Ace_U", 11)
-    ace_1 = Tracer("Ace_1", 10)
-    glu_name = [gluc_u.name, gluc_1.name] #only tracers names
-    ace_name = [ace_U.name, ace_1.name]
-    glu_labeling = [gluc_u.labeling, gluc_1.labeling] #only tracers labeling
-    ace_labeling= [ace_U.labeling, ace_1.labeling]
-    generate_file(glu_name, ace_name, glu_labeling, ace_labeling)
-    # # print(mol_1)
+    gluc_u = Tracer("Gluc_U", "111111", 10, 20, 100)
+    gluc_1 = Tracer("Gluc_1", "100000", 20, 20, 100)
+    gluc_23 = Tracer("Gluc_23", "011000", 10, 10, 100)
+    ace_u = Tracer("Ace_U", "11", 10, 0, 100)
+    ace_1 = Tracer("Ace_1", "10", 10, 0,100)
+    tracers = {
+        "gluc": [gluc_u, gluc_1, gluc_23],
+        "ace" : [ace_u, ace_1]
+    }
+    mix = Mix(tracers)
+    mix.tracer_mix_combination()
+    print(mix.mixes)
+    print(mix.names)
+    #mix.tracer_mix_combination()
+    #print(mix.names)
+    # for key, value in mix.mixes.items():
+    #     print(f"{key}: {value}")
+    # print(generate_mixes_comb([gluc_u.name, gluc_1.name], [ace_u.name, ace_1.name]))
+    # ace_U = Tracer("Ace_U", 11)
+    # ace_1 = Tracer("Ace_1", 10)
+    #generate_file([gluc_u, gluc_1], [ace_u, ace_1], [eth_1, eth_2])
     # Get for Acetate
     # mol_2 = comb_fraction(2,0,100,10)
     # print(mol_2)
-    pass
