@@ -100,6 +100,7 @@ class Mix:
         self.tracers = tracers
         self.mixes = []
         self.names = []
+        self.isotopomer = []
 
     def tracer_mix_combination(self):
         """
@@ -108,15 +109,12 @@ class Mix:
 
         """
         intermediate_combination = [] #list containing lists of combinations inside a tracers mix
-        intermediate_name = [] #list containing lists of tracers names 
 
         for metabolite, tracer_mix in self.tracers.items():
             prod = product(*[tracer.fraction for tracer in tracer_mix])
-            intermediate_name.append([tracer.name for tracer in tracer_mix])
+            self.names += [tracer.name for tracer in tracer_mix]
+            self.isotopomer += [tracer.isotopomer for tracer in tracer_mix]
             intermediate_combination.append(list(combination for combination in prod if math.fsum(combination) == 100))
-        
-        for names in intermediate_name:
-            self.names += names 
 
         if len(self.tracers) > 1:
             self.mixes += list(product(*intermediate_combination))
@@ -182,41 +180,36 @@ class Process:
         self.mix.tracer_mix_combination()
 
 
-    def generate_file(self):
+    def generate_file(self, outputs_path):
         """
         Generating .linp files in function of all combination for one or two mixe(s).
         Files containing dataframe with tracers features including the combinations
         for all tracer mixes.
 
         """
-
-        df = pd.DataFrame({'Id': None,
-                        'Comment': None,
-                        'Specie': None,
-                        'Isotopomer': [],
-                        'Value': []})
-
-        tracer_isotopomer = []
-        for tracer_mix in self.mix.tracers.values():
-            tracer_isotopomer += [tracer.isotopomer for tracer in tracer_mix]
-
-        df["Specie"] = [tracer_names for tracer_names in self.mix.names]
-        df["Isotopomer"] = tracer_isotopomer
-
         for combination in self.mix.mixes:
-            tmp_df = df.copy()
+            df = pd.DataFrame({'Id': None,
+                            'Comment': None,
+                            'Specie': [],
+                            'Isotopomer': [],
+                            'Value': []})
+                
+            df["Specie"] = [tracer_names for tracer_names in self.mix.names]
+            df["Isotopomer"] = [tracer_isotopomer for tracer_isotopomer in self.mix.isotopomer]
+
             if len(self.mix.tracers) > 1:
                 values = ()
                 for pair in combination:
                     values +=pair
-                tmp_df["Value"] = values
-                tmp_df = tmp_df.loc[tmp_df["Value"] != 0]  # remove all row equals to 0
-                tmp_df.to_csv(fr"test_{combination}.linp", sep="\t")
+                df["Value"] = values
+                df = df.loc[df["Value"] != 0]  # remove all row equals to 0
+                df.to_csv(fr"{outputs_path}/test_{combination}.linp", sep="\t")
             else:
                 for pair in combination:
-                    tmp_df["Value"] = pair
-                    tmp_df = tmp_df.loc[tmp_df["Value"] != 0]
-                    tmp_df.to_csv(fr"test_{pair}.linp", sep="\t")
+                    df["Value"] = pair
+                    df = df.loc[df["Value"] != 0]
+                    df.to_csv(fr"{outputs_path}/test_{combination}.linp", sep="\t")
+            
 
 
     def influx_simulation(self):
@@ -236,6 +229,7 @@ if __name__ == "__main__":
     }
     mix = Mix(tracers)
     b=Process()
+    mix.tracer_mix_combination()
     b.generate_mixes(tracers)
-    b.generate_file()
-    
+    b.generate_file("U:/Projet/IsoDesign/isodesign/test-data")
+   
