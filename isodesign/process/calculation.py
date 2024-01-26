@@ -103,8 +103,8 @@ class Mix:
 
     def tracer_mix_combination(self):
         """
-        Generate combination inside a tracers group and/or 
-        combination between many tracers groups
+        Generate combination inside a tracers mix and/or 
+        combination between many tracers mixes
 
         """
         intermediate_combination = [] #list containing lists of combinations inside a tracers mix
@@ -128,13 +128,14 @@ class Process:
     """
     Class responsible of most of the processes... 
     """
-    def __init__(self):
-        self.files_name = None #store files names for the vmtf file
-        self.files_netw = None
-        self.files_tvar = None
-        self.files_mflux = None
-        pass
 
+    def __init__(self):
+        """ 
+        :param data_dict: dictionary containing names files as keys and 
+                            their contents as values
+        """
+        self.data_dict = {}
+        
     def read_files(self, data: str):
         """ 
         Read tvar, mflux and netw files (csv or tsv)
@@ -150,24 +151,78 @@ class Process:
         if not data_path.exists():
             raise ValueError(f"{data_path} doesn't exist.")
         else:
-            if data_path.suffix not in [".netw", ".tvar", ".mflux"]:
+            ext = data_path.suffix
+            if ext not in [".netw", ".tvar", ".mflux"]:
                 raise TypeError (f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
-            if data_path.suffix == ".netw":
-                self.netw = pd.read_csv(data, sep='\t', skiprows=[0], header=None)
-            if data_path.suffix == ".tvar":
-                self.tvar = pd.read_csv(data, sep='\t')
-            if data_path.suffix == ".mflux":
-                self.mflux = pd.read_csv(data, sep='\t', skiprows=[0])
-
-
+            else:
+                data = pd.read_csv(str(data_path), sep="\t", header=None if ext ==".netw" else 'infer')
+            self.data_dict.update(
+                {
+                    data_path.name : data
+                }
+            )
+            return
+        
+        
     def check_files(self):
+        """ 
+        Checking the content of imported files 
+
+        """
         pass
 
-    def generate_files(self):
-        pass
+        
+    def generate_mixes(self, trac: dict):
+        """
+        Generate the mixes from tracer dictionary
+
+        :param tracers: dictionary containing metabolites and associated tracers for mix
+        """
+        self.mix = Mix(trac)
+        self.mix.tracer_mix_combination()
+
+
+    def generate_file(self):
+        """
+        Generating .linp files in function of all combination for one or two mixe(s).
+        Files containing dataframe with tracers features including the combinations
+        for all tracer mixes.
+
+        """
+
+        df = pd.DataFrame({'Id': None,
+                        'Comment': None,
+                        'Specie': None,
+                        'Isotopomer': [],
+                        'Value': []})
+
+        tracer_isotopomer = []
+        for tracer_mix in self.mix.tracers.values():
+            tracer_isotopomer += [tracer.isotopomer for tracer in tracer_mix]
+
+        df["Specie"] = [tracer_names for tracer_names in self.mix.names]
+        df["Isotopomer"] = tracer_isotopomer
+
+        for combination in self.mix.mixes:
+            tmp_df = df.copy()
+            if len(self.mix.tracers) > 1:
+                values = ()
+                for pair in combination:
+                    values +=pair
+                tmp_df["Value"] = values
+                tmp_df = tmp_df.loc[tmp_df["Value"] != 0]  # remove all row equals to 0
+                tmp_df.to_csv(fr"test_{combination}.linp", sep="\t")
+            else:
+                for pair in combination:
+                    tmp_df["Value"] = pair
+                    tmp_df = tmp_df.loc[tmp_df["Value"] != 0]
+                    tmp_df.to_csv(fr"test_{pair}.linp", sep="\t")
+
 
     def influx_simulation(self):
         pass
+
+
 
 if __name__ == "__main__":
     gluc_u = Tracer("Gluc_U", "111111", 10, 20, 100)
@@ -177,16 +232,10 @@ if __name__ == "__main__":
     ace_1 = Tracer("Ace_1", "10", 10, 0,100)
     tracers = {
         "gluc": [gluc_u, gluc_1, gluc_23],
-        "ace" : [ace_u, ace_1]
+        "ace": [ace_u, ace_1]
     }
     mix = Mix(tracers)
-    mix.tracer_mix_combination()
-    print(gluc_u)
-    # print(mix.mixes)
-    # print(mix.names)
-    # for key, value in mix.mixes.items():
-    #     print(f"{key}: {value}")
-    # print(generate_mixes_comb([gluc_u.name, gluc_1.name], [ace_u.name, ace_1.name]))
-    # ace_U = Tracer("Ace_U", 11)
-    # ace_1 = Tracer("Ace_1", 10)
-    # print(mol_2)
+    b=Process()
+    b.generate_mixes(tracers)
+    b.generate_file()
+    
