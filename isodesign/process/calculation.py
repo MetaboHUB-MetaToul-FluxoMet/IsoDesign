@@ -1,6 +1,7 @@
 """ Module for calculation """
 from itertools import product, combinations
 import math
+from pathlib import Path
 
 import pandas as pd
 
@@ -36,7 +37,12 @@ class Tracer:
         return self.num_carbon
 
     def __repr__(self) -> str:
-        return f"Molecule name: {self.name},\nNumber of associated carbon(s) : {self.num_carbon}\nStep = {self.step}\nLower bound = {self.lower_bound}\n Upper bound = {self.upper_bound}\n Vector of fractions = {self.fraction}"
+        return f"Molecule name: {self.name},\
+        \nNumber of associated carbon(s) : {self.num_carbon},\
+        \nStep = {self.step},\
+        \nLower bound = {self.lower_bound},\
+        \nUpper bound = {self.upper_bound},\
+        \nVector of fractions = {self.fraction}"
     
     @property
     def lower_bound(self):
@@ -94,23 +100,21 @@ class Mix:
         self.tracers = tracers
         self.mixes = []
         self.names = []
+        self.isotopomer = []
 
     def tracer_mix_combination(self):
         """
-        Generate combination inside a tracers group and/or 
-        combination between many tracers groups
+        Generate combination inside a tracers mix and/or 
+        combination between many tracers mixes
 
         """
         intermediate_combination = [] #list containing lists of combinations inside a tracers mix
-        intermediate_name = [] #list containing lists of tracers names 
 
         for metabolite, tracer_mix in self.tracers.items():
             prod = product(*[tracer.fraction for tracer in tracer_mix])
-            intermediate_name.append([tracer.name for tracer in tracer_mix])
+            self.names += [tracer.name for tracer in tracer_mix]
+            self.isotopomer += [tracer.isotopomer for tracer in tracer_mix]
             intermediate_combination.append(list(combination for combination in prod if math.fsum(combination) == 100))
-        
-        for names in intermediate_name:
-            self.names += names 
 
         if len(self.tracers) > 1:
             self.mixes += list(product(*intermediate_combination))
@@ -119,17 +123,99 @@ class Mix:
         
 
 class Process:
+    """
+    Class responsible of most of the processes... 
+    """
+
     def __init__(self):
+        """ 
+        :param data_dict: dictionary containing names files as keys and 
+                            their contents as values
+        """
+        self.data_dict = {}
+        
+    def read_files(self, data: str):
+        """ 
+        Read tvar, mflux and netw files (csv or tsv)
+
+        :param data: str containing the path to the file
+
+        """
+        if not isinstance(data, str):
+            raise TypeError(f"{data} should be of type string and not {type(data)}")
+
+        data_path = Path(data).resolve()
+
+        if not data_path.exists():
+            raise ValueError(f"{data_path} doesn't exist.")
+        else:
+            ext = data_path.suffix
+            if ext not in [".netw", ".tvar", ".mflux"]:
+                raise TypeError (f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
+            else:
+                data = pd.read_csv(str(data_path), sep="\t", header=None if ext ==".netw" else 'infer')
+            self.data_dict.update(
+                {
+                    data_path.name : data
+                }
+            )
+            return
+        
+        
+    def check_files(self):
+        """ 
+        Checking the content of imported files 
+
+        """
         pass
 
-    def input_files(self):
-        pass
+        
+    def generate_mixes(self, trac: dict):
+        """
+        Generate the mixes from tracer dictionary
 
-    def generate_files(self):
-        pass
+        :param tracers: dictionary containing metabolites and associated tracers for mix
+        """
+        self.mix = Mix(trac)
+        self.mix.tracer_mix_combination()
+
+
+    def generate_file(self, outputs_path):
+        """
+        Generating .linp files in function of all combination for one or two mixe(s).
+        Files containing dataframe with tracers features including the combinations
+        for all tracer mixes.
+
+        """
+        for combination in self.mix.mixes:
+            df = pd.DataFrame({'Id': None,
+                            'Comment': None,
+                            'Specie': [],
+                            'Isotopomer': [],
+                            'Value': []})
+                
+            df["Specie"] = [tracer_names for tracer_names in self.mix.names]
+            df["Isotopomer"] = [tracer_isotopomer for tracer_isotopomer in self.mix.isotopomer]
+
+            if len(self.mix.tracers) > 1:
+                values = ()
+                for pair in combination:
+                    values +=pair
+                df["Value"] = values
+                df = df.loc[df["Value"] != 0]  # remove all row equals to 0
+                df.to_csv(fr"{outputs_path}/test_{combination}.linp", sep="\t")
+            else:
+                for pair in combination:
+                    df["Value"] = pair
+                    df = df.loc[df["Value"] != 0]
+                    df.to_csv(fr"{outputs_path}/test_{combination}.linp", sep="\t")
+            
+
 
     def influx_simulation(self):
         pass
+
+
 
 if __name__ == "__main__":
     gluc_u = Tracer("Gluc_U", "111111", 10, 20, 100)
@@ -139,20 +225,11 @@ if __name__ == "__main__":
     ace_1 = Tracer("Ace_1", "10", 10, 0,100)
     tracers = {
         "gluc": [gluc_u, gluc_1, gluc_23],
-        "ace" : [ace_u, ace_1]
+        "ace": [ace_u, ace_1]
     }
     mix = Mix(tracers)
+    b=Process()
     mix.tracer_mix_combination()
-    print(mix.mixes)
-    print(mix.names)
-    #mix.tracer_mix_combination()
-    #print(mix.names)
-    # for key, value in mix.mixes.items():
-    #     print(f"{key}: {value}")
-    # print(generate_mixes_comb([gluc_u.name, gluc_1.name], [ace_u.name, ace_1.name]))
-    # ace_U = Tracer("Ace_U", 11)
-    # ace_1 = Tracer("Ace_1", 10)
-    #generate_file([gluc_u, gluc_1], [ace_u, ace_1], [eth_1, eth_2])
-    # Get for Acetate
-    # mol_2 = comb_fraction(2,0,100,10)
-    # print(mol_2)
+    b.generate_mixes(tracers)
+    b.generate_file("U:/Projet/IsoDesign/isodesign/test-data")
+   
