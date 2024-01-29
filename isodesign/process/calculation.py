@@ -4,7 +4,7 @@ import math
 from pathlib import Path
 
 import pandas as pd
-
+import os
 
 class Tracer:
     """ 
@@ -181,13 +181,14 @@ class Process:
         self.mix = Mix(tracers)
         self.mix.tracer_mix_combination()
 
-    def generate_file(self, outputs_path):
+    def generate_file(self, outputs_path:str):
         """
-        Generating .linp files in function of all combination for one or two mixe(s).
+        Generating .linp files to a folder in the current directory 
+        in function of all combination for one or two mixe(s).
         Files containing dataframe with tracers features including the combinations
         for all tracer mixes.
-
         """
+        
         for combination in self.mix.mixes:
             df = pd.DataFrame({'Id': None,
                                'Comment': None,
@@ -198,22 +199,27 @@ class Process:
             df["Specie"] = [tracer_names for tracer_names in self.mix.names]
             df["Isotopomer"] = [tracer_isotopomer for tracer_isotopomer in self.mix.isotopomer]
 
+
             if len(self.mix.tracers) > 1:
                 values = ()
                 for pair in combination:
                     values += pair
                 df["Value"] = values
                 df = df.loc[df["Value"] != 0]  # remove all row equals to 0
-                df.to_csv(fr"{outputs_path}/test_{combination}.linp", sep="\t")
+                #create a new folder on the current directory 
+                output_folder = Path(outputs_path).mkdir(exist_ok=True)
+                #join the files created to the new folder created before 
+                df.to_csv(os.path.join(outputs_path, f"test_{combination}.linp"), sep="\t")
             else:
                 for pair in combination:
                     df["Value"] = pair
                     df = df.loc[df["Value"] != 0]
-                    df.to_csv(fr"{outputs_path}/test_{combination}.linp", sep="\t")
+                    output_folder = Path(outputs_path).mkdir(exist_ok=True) 
+                    df.to_csv(os.path.join(outputs_path, f"test_{pair}.linp"), sep="\t")
 
     def influx_simulation(self):
         pass
-
+    
 
 if __name__ == "__main__":
     gluc_u = Tracer("Gluc_U", "111111", 10, 20, 100)
@@ -223,10 +229,10 @@ if __name__ == "__main__":
     ace_1 = Tracer("Ace_1", "10", 10, 0, 100)
     tracers = {
         "gluc": [gluc_u, gluc_1, gluc_23],
-        "ace": [ace_u, ace_1]
+        "ace":[ace_u, ace_1]
     }
     mix = Mix(tracers)
     b = Process()
     mix.tracer_mix_combination()
     b.generate_mixes(tracers)
-    b.generate_file("U:/Projet/IsoDesign/isodesign/test-data")
+    b.generate_file("output_files")
