@@ -1,5 +1,5 @@
 """ Module for calculation """
-from itertools import product, combinations
+from itertools import product
 import math
 from pathlib import Path
 
@@ -32,7 +32,7 @@ class Tracer:
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
         self.fraction = [fraction for fraction in range(self.lower_bound, self.upper_bound + self.step, self.step)]
-       
+
     def __len__(self):
         return self.num_carbon
 
@@ -43,11 +43,11 @@ class Tracer:
         \nLower bound = {self.lower_bound},\
         \nUpper bound = {self.upper_bound},\
         \nVector of fractions = {self.fraction}"
-    
+
     @property
     def lower_bound(self):
         return self._lower_bound
-    
+
     @lower_bound.setter
     def lower_bound(self, value):
         if not isinstance(value, int):
@@ -55,12 +55,11 @@ class Tracer:
         if value < 0:
             raise ValueError("Lower bound for a tracer proportion must be a positive number")
         self._lower_bound = value
-            
-        
+
     @property
     def upper_bound(self):
         return self._upper_bound
-    
+
     @upper_bound.setter
     def upper_bound(self, value):
         if not isinstance(value, int):
@@ -70,17 +69,16 @@ class Tracer:
         if hasattr(self, "lower_bound") and value < self.lower_bound:
             raise ValueError("Upper bound must be greater than lower bound")
         self._upper_bound = value
-            
-        
+
     @property
     def step(self):
         return self._step
-    
+
     @step.setter
     def step(self, value):
         if not isinstance(value, int):
             raise TypeError("Step for proportions to test must be an integer")
-        if value <= 0 :
+        if value <= 0:
             raise ValueError("Step for proportions to test must be greater than 0")
         self._step = value
 
@@ -96,7 +94,7 @@ class Mix:
                             and/or combination between many tracers groups 
         :param self.names: list of all tracers names
         """
-    
+
         self.tracers = tracers
         self.mixes = []
         self.names = []
@@ -108,19 +106,22 @@ class Mix:
         combination between many tracers mixes
 
         """
-        intermediate_combination = [] #list containing lists of combinations inside a tracers mix
+        filtered_combinations = []
 
         for metabolite, tracer_mix in self.tracers.items():
+            # Create "generator" for combinations
             prod = product(*[tracer.fraction for tracer in tracer_mix])
+
             self.names += [tracer.name for tracer in tracer_mix]
             self.isotopomer += [tracer.isotopomer for tracer in tracer_mix]
-            intermediate_combination.append(list(combination for combination in prod if math.fsum(combination) == 100))
+            filtered_combinations.append(list(combination for combination in prod if math.fsum(combination) == 100))
 
+        # If multiple tracers we must build combinations between each metabolite mix
         if len(self.tracers) > 1:
-            self.mixes += list(product(*intermediate_combination))
+            self.mixes += list(product(*filtered_combinations))
         else:
-            self.mixes = intermediate_combination
-        
+            self.mixes = filtered_combinations
+
 
 class Process:
     """
@@ -128,12 +129,13 @@ class Process:
     """
 
     def __init__(self):
-        """ 
-        :param data_dict: dictionary containing names files as keys and 
-                            their contents as values
         """
+
+        """
+        # Init dictionary containing name files as keys and their contents as values
         self.data_dict = {}
-        
+        self.mix = None
+
     def read_files(self, data: str):
         """ 
         Read tvar, mflux and netw files (csv or tsv)
@@ -151,17 +153,17 @@ class Process:
         else:
             ext = data_path.suffix
             if ext not in [".netw", ".tvar", ".mflux"]:
-                raise TypeError (f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
+                raise TypeError(
+                    f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
             else:
-                data = pd.read_csv(str(data_path), sep="\t", header=None if ext ==".netw" else 'infer')
+                data = pd.read_csv(str(data_path), sep="\t", header=None if ext == ".netw" else 'infer')
             self.data_dict.update(
                 {
-                    data_path.name : data
+                    data_path.name: data
                 }
             )
             return
-        
-        
+
     def check_files(self):
         """ 
         Checking the content of imported files 
@@ -169,16 +171,15 @@ class Process:
         """
         pass
 
-        
-    def generate_mixes(self, trac: dict):
+    def generate_mixes(self, tracers: dict):
         """
         Generate the mixes from tracer dictionary
 
         :param tracers: dictionary containing metabolites and associated tracers for mix
         """
-        self.mix = Mix(trac)
-        self.mix.tracer_mix_combination()
 
+        self.mix = Mix(tracers)
+        self.mix.tracer_mix_combination()
 
     def generate_file(self, outputs_path):
         """
@@ -189,18 +190,18 @@ class Process:
         """
         for combination in self.mix.mixes:
             df = pd.DataFrame({'Id': None,
-                            'Comment': None,
-                            'Specie': [],
-                            'Isotopomer': [],
-                            'Value': []})
-                
+                               'Comment': None,
+                               'Specie': [],
+                               'Isotopomer': [],
+                               'Value': []})
+
             df["Specie"] = [tracer_names for tracer_names in self.mix.names]
             df["Isotopomer"] = [tracer_isotopomer for tracer_isotopomer in self.mix.isotopomer]
 
             if len(self.mix.tracers) > 1:
                 values = ()
                 for pair in combination:
-                    values +=pair
+                    values += pair
                 df["Value"] = values
                 df = df.loc[df["Value"] != 0]  # remove all row equals to 0
                 df.to_csv(fr"{outputs_path}/test_{combination}.linp", sep="\t")
@@ -209,12 +210,9 @@ class Process:
                     df["Value"] = pair
                     df = df.loc[df["Value"] != 0]
                     df.to_csv(fr"{outputs_path}/test_{combination}.linp", sep="\t")
-            
-
 
     def influx_simulation(self):
         pass
-
 
 
 if __name__ == "__main__":
@@ -222,14 +220,13 @@ if __name__ == "__main__":
     gluc_1 = Tracer("Gluc_1", "100000", 20, 20, 100)
     gluc_23 = Tracer("Gluc_23", "011000", 10, 10, 100)
     ace_u = Tracer("Ace_U", "11", 10, 0, 100)
-    ace_1 = Tracer("Ace_1", "10", 10, 0,100)
+    ace_1 = Tracer("Ace_1", "10", 10, 0, 100)
     tracers = {
         "gluc": [gluc_u, gluc_1, gluc_23],
         "ace": [ace_u, ace_1]
     }
     mix = Mix(tracers)
-    b=Process()
+    b = Process()
     mix.tracer_mix_combination()
     b.generate_mixes(tracers)
     b.generate_file("U:/Projet/IsoDesign/isodesign/test-data")
-   
