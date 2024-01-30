@@ -135,6 +135,8 @@ class Process:
         # Init dictionary containing name files as keys and their contents as values
         self.data_dict = {}
         self.mix = None
+        # Dictionary containing element to build the vmtf file.
+        self.dict_vmtf = {"Id":None, "Comment":None}
 
     def read_files(self, data: str):
         """ 
@@ -159,12 +161,14 @@ class Process:
                 data = pd.read_csv(str(data_path), sep="\t", header=None if ext == ".netw" else 'infer')
             self.data_dict.update(
                 {
-                    data_path.suffix: data
+                    data_path.name: data
                 }
             )
+            # adding in dict_vmtf the files extensions without the dot  as key and  files names as value 
+            self.dict_vmtf.update({ext[1:]:data_path.stem})
             return
 
-    def check_files(self):
+    def check_files(self, data):
         """ 
         Checking the content of imported files 
 
@@ -210,6 +214,8 @@ class Process:
                 output_folder = Path(output_path).mkdir(exist_ok=True)
                 #join the files created to the new folder created before 
                 df.to_csv(os.path.join(output_path, f"{combination}.linp"), sep="\t")
+                # adding an new key "linp" containing all the combination in dict_vmtf
+                self.dict_vmtf.update({"linp" : [f"{combination}" for combination in self.mix.mixes]})
             else:
                 for pair in combination:
                     df["Value"] = pair
@@ -217,30 +223,39 @@ class Process:
                     output_folder = Path(output_path).mkdir(exist_ok=True) 
                     df.to_csv(os.path.join(output_path, f"{pair}.linp"), sep="\t")
 
-    def generate_vmtf_file(self):
-        pass
-        
+                    self.dict_vmtf.update({"linp" : [f"{pair}" for pair in combination]})
 
+    def generate_vmtf_file(self):
+        """
+        Generate a vmtf file by using element containing in dict_vmtf dictionary 
+        """
         
+        df = pd.DataFrame({key:pd.Series(value) for key, value in self.dict_vmtf.items()})
+        #adding a new column "ftbl" containing the values that are in the key "linp" of dict_vmtf
+        df["ftbl"] = [value for value in self.dict_vmtf.get("linp")]
+        df.to_csv("file.vmtf", sep="\t", index=False)
+
     def influx_simulation(self):
         pass
     
 
 if __name__ == "__main__":
-    gluc_u = Tracer("Gluc_U", "111111", 10, 20, 100)
-    gluc_1 = Tracer("Gluc_1", "100000", 20, 20, 100)
+    gluc_u = Tracer("Gluc_U", "111111", 10, 10, 100)
+    gluc_1 = Tracer("Gluc_1", "100000", 10, 10, 100)
     gluc_23 = Tracer("Gluc_23", "011000", 10, 10, 100)
     ace_u = Tracer("Ace_U", "11", 10, 0, 100)
     ace_1 = Tracer("Ace_1", "10", 10, 0, 100)
     tracers = {
-        "gluc": [gluc_u, gluc_1, gluc_23],
-        "ace":[ace_u, ace_1]
+        "gluc": [gluc_u, gluc_1]
     }
     mix = Mix(tracers)
     b = Process()
     mix.tracer_mix_combination()
-    # b.generate_mixes(tracers)
-    # b.generate_file("output_files")
-    b.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.netw")
-    b.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.mflux")
-    b.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
+    b.generate_mixes(tracers)
+    b.generate_file("output_files")
+    b.read_files("U:/test_influx2/e_coli.mflux")
+    b.read_files("U:/test_influx2/e_coli.tvar")
+    b.read_files("U:/test_influx2/e_coli.netw")
+    # print(b.dict_vmtf)
+    b.generate_vmtf_file()
+    
