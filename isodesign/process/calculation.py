@@ -159,7 +159,7 @@ class Process:
                 data = pd.read_csv(str(data_path), sep="\t", header=None if ext == ".netw" else 'infer')
             self.data_dict.update(
                 {
-                    data_path.name: data
+                    data_path.suffix: data
                 }
             )
             return
@@ -181,7 +181,7 @@ class Process:
         self.mix = Mix(tracers)
         self.mix.tracer_mix_combination()
 
-    def generate_file(self, outputs_path:str):
+    def generate_file(self, output_path:str):
         """
         Generating .linp files to a folder in the current directory 
         in function of all combination for one or two mixe(s).
@@ -207,16 +207,21 @@ class Process:
                 df["Value"] = values
                 df = df.loc[df["Value"] != 0]  # remove all row equals to 0
                 #create a new folder on the current directory 
-                output_folder = Path(outputs_path).mkdir(exist_ok=True)
+                output_folder = Path(output_path).mkdir(exist_ok=True)
                 #join the files created to the new folder created before 
-                df.to_csv(os.path.join(outputs_path, f"test_{combination}.linp"), sep="\t")
+                df.to_csv(os.path.join(output_path, f"{combination}.linp"), sep="\t")
             else:
                 for pair in combination:
                     df["Value"] = pair
                     df = df.loc[df["Value"] != 0]
-                    output_folder = Path(outputs_path).mkdir(exist_ok=True) 
-                    df.to_csv(os.path.join(outputs_path, f"test_{pair}.linp"), sep="\t")
+                    output_folder = Path(output_path).mkdir(exist_ok=True) 
+                    df.to_csv(os.path.join(output_path, f"{pair}.linp"), sep="\t")
 
+    def generate_vmtf_file(self):
+        pass
+        
+
+        
     def influx_simulation(self):
         pass
     
@@ -234,5 +239,8 @@ if __name__ == "__main__":
     mix = Mix(tracers)
     b = Process()
     mix.tracer_mix_combination()
-    b.generate_mixes(tracers)
-    b.generate_file("output_files")
+    # b.generate_mixes(tracers)
+    # b.generate_file("output_files")
+    b.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.netw")
+    b.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.mflux")
+    b.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
