@@ -284,9 +284,9 @@ if __name__ == "__main__":
     print("Folder contained linp files has been generated on your current repertory.")
 
     print("\n***************\n")
-    test_object1.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.mflux")
-    test_object1.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
-    test_object1.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.netw")
+    test_object1.read_files("../test-data/design_test.mflux")
+    test_object1.read_files("../tes-data/design_test.tvar")
+    test_object1.read_files("../test-data/design_test.netw")
     print("Imported files\n\n", test_object1.data_dict)
 
     print("\n***************\n")
