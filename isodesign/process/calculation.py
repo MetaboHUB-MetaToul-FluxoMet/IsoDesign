@@ -31,7 +31,7 @@ class Tracer:
         self.step = step
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
-        self.fraction = [fraction for fraction in range(self.lower_bound, self.upper_bound + self.step, self.step)]
+        self.fraction = [fraction/100 for fraction in range(self.lower_bound, self.upper_bound + self.step, self.step)]
 
     def __len__(self):
         return self.num_carbon
@@ -110,18 +110,20 @@ class Mix:
 
         for metabolite, tracer_mix in self.tracers.items():
             # Create "generator" for combinations
-            prod = product(*[tracer.fraction for tracer in tracer_mix])
-
+            prod=product(*[tracer.fraction for tracer in tracer_mix])
+        
             self.names += [tracer.name for tracer in tracer_mix]
             self.isotopomer += [tracer.isotopomer for tracer in tracer_mix]
-            filtered_combinations.append(list(combination for combination in prod if math.fsum(combination) == 100))
-
+            filtered_combinations.append(list(combination for combination in prod if math.fsum(combination) == 1))
+            
+        
         # If multiple tracers we must build combinations between each metabolite mix
         if len(self.tracers) > 1:
             self.mixes += list(product(*filtered_combinations))
         else:
-            self.mixes = filtered_combinations
-
+            for list_combinations in filtered_combinations:
+                self.mixes = [combinations for combinations in list_combinations]
+           
 
 class Process:
     """
@@ -203,27 +205,19 @@ class Process:
             df["Specie"] = [tracer_names for tracer_names in self.mix.names]
             df["Isotopomer"] = [tracer_isotopomer for tracer_isotopomer in self.mix.isotopomer]
 
-
             if len(self.mix.tracers) > 1:
                 values = ()
                 for pair in combination:
                     values += pair
                 df["Value"] = values
-                df = df.loc[df["Value"] != 0]  # remove all row equals to 0
-                #create a new folder on the current directory 
-                output_folder = Path(output_path).mkdir(exist_ok=True)
-                #join the files created to the new folder created before 
-                df.to_csv(os.path.join(output_path, f"{combination}.linp"), sep="\t")
-                # adding an new key "linp" containing all the combination in dict_vmtf
-                self.dict_vmtf.update({"linp" : [f"{combination}" for combination in self.mix.mixes]})
             else:
-                for pair in combination:
-                    df["Value"] = pair
-                    df = df.loc[df["Value"] != 0]
-                    output_folder = Path(output_path).mkdir(exist_ok=True) 
-                    df.to_csv(os.path.join(output_path, f"{pair}.linp"), sep="\t")
+                df["Value"] = combination
 
-                    self.dict_vmtf.update({"linp" : [f"{pair}" for pair in combination]})
+            df = df.loc[df["Value"] != 0] 
+            output_folder = Path(output_path).mkdir(exist_ok=True) 
+            df.to_csv(os.path.join(output_path, f"{combination}.linp"), sep="\t")
+
+            self.dict_vmtf.update({"linp" : [f"{combination}"]})
 
     def generate_vmtf_file(self):
         """
@@ -232,7 +226,7 @@ class Process:
         
         df = pd.DataFrame({key:pd.Series(value) for key, value in self.dict_vmtf.items()})
         #adding a new column "ftbl" containing the values that are in the key "linp" of dict_vmtf
-        df["ftbl"] = [value for value in self.dict_vmtf.get("linp")]
+        df["ftbl"] = self.dict_vmtf["linp"]
         df.to_csv("file.vmtf", sep="\t", index=False)
 
     def influx_simulation(self):
@@ -240,11 +234,11 @@ class Process:
     
 
 if __name__ == "__main__":
-    gluc_u = Tracer("Gluc_U", "111111", 10, 10, 100)
-    gluc_1 = Tracer("Gluc_1", "100000", 10, 10, 100)
-    gluc_23 = Tracer("Gluc_23", "011000", 10, 10, 100)
-    ace_u = Tracer("Ace_U", "11", 10, 0, 100)
-    ace_1 = Tracer("Ace_1", "10", 10, 0, 100)
+    gluc_u = Tracer("Gluc_U", "111111", 10, 0, 100)
+    gluc_1 = Tracer("Gluc_1", "100000", 10, 0, 100)
+    # gluc_23 = Tracer("Gluc_23", "011000", 10, 10, 100)
+    ace_u = Tracer("Ace_U", "11", 20, 0, 100)
+    ace_1 = Tracer("Ace_1", "10", 20, 0, 100)
     tracers = {
         "gluc": [gluc_u, gluc_1]
     }
@@ -252,10 +246,12 @@ if __name__ == "__main__":
     b = Process()
     mix.tracer_mix_combination()
     b.generate_mixes(tracers)
+    # print(b.mix.mixes)
     b.generate_file("output_files")
-    b.read_files("U:/test_influx2/e_coli.mflux")
-    b.read_files("U:/test_influx2/e_coli.tvar")
-    b.read_files("U:/test_influx2/e_coli.netw")
+    # b.read_files("U:/test_influx2/e_coli.mflux")
+    # b.read_files("U:/test_influx2/e_coli.tvar")
+    # b.read_files("U:/test_influx2/e_coli.netw")
     # print(b.dict_vmtf)
-    b.generate_vmtf_file()
+    #b.generate_vmtf_file()
+    
     
