@@ -8,7 +8,7 @@ import os
 
 class Tracer:
     """ 
-    Class for the initiation of tracers.
+    Class for the initiation of tracers
 
     """
 
@@ -20,17 +20,16 @@ class Tracer:
         :param lower_bound: minimun proportion to test
         :param upper_bound: maximum proportion to test 
 
-        :param self.num_carbon: carbon number from isotopomer count
-        :param self.fraction: list of possible fraction between 
-                            lower_bound and upper_bound depending 
-                            of the step value
         """
         self.name = name
         self.isotopomer = isotopomer
-        self.num_carbon = len(self.isotopomer)
         self.step = step
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
+
+        self.num_carbon = len(self.isotopomer)
+        # List of possible fraction between lower_bound and upper_bound depending of the step value
+        # Fractions will be used for influx_si simulations. Influx_si takes only values that are between 0 and 1
         self.fraction = [fraction/100 for fraction in range(self.lower_bound, self.upper_bound + self.step, self.step)]
 
     def __len__(self):
@@ -86,18 +85,18 @@ class Tracer:
 class Mix:
     def __init__(self, tracers: dict):
         """
-        :param tracers: dictionnary containing the different tracer 
-                        groups with group name as key and list of 
+        :param tracers: dictionary contained the different tracer 
+                        mix with mix name as key and list of 
                         tracers as value   
-
-        :param self.mixes: list of all combinations inside a tracers group 
-                            and/or combination between many tracers groups 
-        :param self.names: list of all tracers names
         """
 
         self.tracers = tracers
+
+        # List of all combinations inside a tracers mix and/or combination between many tracers mix
         self.mixes = []
+        # List of all tracers names. It's used to facilitate the linp files generations
         self.names = []
+        # List of all tracers isotopomers. It's used to facilitate the linp files generations
         self.isotopomer = []
 
     def tracer_mix_combination(self):
@@ -106,14 +105,18 @@ class Mix:
         combination between many tracers mixes
 
         """
+
+        # List contained filtered list of possible combinations between tracers inside a mix 
+        # The number of list depend on the number of tracers mixes  
         filtered_combinations = []
 
         for metabolite, tracer_mix in self.tracers.items():
             # Create "generator" for combinations
-            prod=product(*[tracer.fraction for tracer in tracer_mix])
+            prod = product(*[tracer.fraction for tracer in tracer_mix])
         
             self.names += [tracer.name for tracer in tracer_mix]
             self.isotopomer += [tracer.isotopomer for tracer in tracer_mix]
+            # Only combinations which their sum is equal to 1 are used for influx_si simulations
             filtered_combinations.append(list(combination for combination in prod if math.fsum(combination) == 1))
             
         
@@ -121,13 +124,15 @@ class Mix:
         if len(self.tracers) > 1:
             self.mixes += list(product(*filtered_combinations))
         else:
-            for list_combinations in filtered_combinations:
-                self.mixes = [combinations for combinations in list_combinations]
+            # The only list contained in filtered_combinations is stocked
+            self.mixes = filtered_combinations[0]
+
            
 
 class Process:
     """
     Class responsible of most of the processes... 
+
     """
 
     def __init__(self):
@@ -136,8 +141,9 @@ class Process:
         """
         # Init dictionary containing name files as keys and their contents as values
         self.data_dict = {}
+        # Mix object
         self.mix = None
-        # Dictionary containing element to build the vmtf file.
+        # Dictionary contained element to build the vmtf file.
         self.dict_vmtf = {"Id":None, "Comment":None}
 
     def read_files(self, data: str):
@@ -166,7 +172,7 @@ class Process:
                     data_path.name: data
                 }
             )
-            # adding in dict_vmtf the files extensions without the dot  as key and  files names as value 
+            # Add in dict_vmtf the files extensions without the dot as key and files names as value 
             self.dict_vmtf.update({ext[1:]:data_path.stem})
             return
 
@@ -179,19 +185,22 @@ class Process:
 
     def generate_mixes(self, tracers: dict):
         """
-        Generate the mixes from tracer dictionary
+        Generate the mixes from tracer dictionary.
+        It used the method tracer_mix_combination contained in Mix class.
 
         :param tracers: dictionary containing metabolites and associated tracers for mix
         """
 
+        # Mix class object contained tracers mix combinations 
         self.mix = Mix(tracers)
         self.mix.tracer_mix_combination()
 
     def generate_file(self, output_path:str):
         """
-        Generating .linp files to a folder in the current directory 
-        in function of all combination for one or two mixe(s).
-        Files containing dataframe with tracers features including the combinations
+        Generate linp files to a folder in the current directory in function
+        of all combination for one or two mixe(s). Those files are used 
+        for influx_si simulations.
+        Files containing tracers features including the combinations
         for all tracer mixes.
         """
         
@@ -206,26 +215,38 @@ class Process:
             df["Isotopomer"] = [tracer_isotopomer for tracer_isotopomer in self.mix.isotopomer]
 
             if len(self.mix.tracers) > 1:
-                values = ()
+                # Tuple contained tuples with all the combination reunited 
+                reunited_combination = ()
                 for pair in combination:
-                    values += pair
-                df["Value"] = values
+                    reunited_combination += pair
+                df["Value"] = reunited_combination
             else:
                 df["Value"] = combination
-
+        
+            # Remove all row equals to 0 because linp file doesn't have value equal to 0 
             df = df.loc[df["Value"] != 0] 
+            # Create the folder that stock linp files
             output_folder = Path(output_path).mkdir(exist_ok=True) 
+            # Generate linp files depending on the number of combination
+            # Join the files created to the new folder created before 
             df.to_csv(os.path.join(output_path, f"{combination}.linp"), sep="\t")
 
-            self.dict_vmtf.update({"linp" : [f"{combination}"]})
+            # Add a new key "linp" with all the combinations as value
+            self.dict_vmtf.update({"linp" : [f"{combination}" for combination in self.mix.mixes]})
 
     def generate_vmtf_file(self):
         """
-        Generate a vmtf file by using element containing in dict_vmtf dictionary 
+        Generate a vmtf file that permit to combine variable and constant parts in 
+        a set of experiment on the same organism to launch a batch of calculation.
+        This file contained columns using imported files extensions. Each row contains
+        imported files names that will be used to produce a ftbl file used in the calculation. 
+        Each row have ftbl column with unique and non empty name. 
         """
         
+        # Value convert into Series 
+        # Permit to create a dataframe from a dictionary where keys have different length of value   
         df = pd.DataFrame({key:pd.Series(value) for key, value in self.dict_vmtf.items()})
-        #adding a new column "ftbl" containing the values that are in the key "linp" of dict_vmtf
+        # Add a new column "ftbl" containing the values that are in the key "linp" of dict_vmtf
         df["ftbl"] = self.dict_vmtf["linp"]
         df.to_csv("file.vmtf", sep="\t", index=False)
 
@@ -236,22 +257,42 @@ class Process:
 if __name__ == "__main__":
     gluc_u = Tracer("Gluc_U", "111111", 10, 0, 100)
     gluc_1 = Tracer("Gluc_1", "100000", 10, 0, 100)
-    # gluc_23 = Tracer("Gluc_23", "011000", 10, 10, 100)
     ace_u = Tracer("Ace_U", "11", 20, 0, 100)
     ace_1 = Tracer("Ace_1", "10", 20, 0, 100)
-    tracers = {
+    mix1 = {
         "gluc": [gluc_u, gluc_1]
     }
-    mix = Mix(tracers)
-    b = Process()
-    mix.tracer_mix_combination()
-    b.generate_mixes(tracers)
-    # print(b.mix.mixes)
-    b.generate_file("output_files")
-    # b.read_files("U:/test_influx2/e_coli.mflux")
-    # b.read_files("U:/test_influx2/e_coli.tvar")
-    # b.read_files("U:/test_influx2/e_coli.netw")
-    # print(b.dict_vmtf)
-    #b.generate_vmtf_file()
+    mix2 = {
+        "gluc": [gluc_u, gluc_1],
+        "ace": [ace_u, ace_1]
+    }
+    print("Dictionary mix1\n\n", mix1)
+    print("\nDictionary mix2\n\n", mix2)
+
+    print("\n***************\n")
+    # Create Process class objects
+    test_object1 = Process()
+    test_object2 = Process()
+    test_object1.generate_mixes(mix1)
+    print(f"Combination generate for mix1 ({test_object1.mix.names}) : \n",test_object1.mix.mixes)
+    test_object2.generate_mixes(mix2)
+    print(f"\nCombination generate for mix2 ({test_object2.mix.names}) : \n",test_object2.mix.mixes)
+
+    print("\n***************\n")
+    test_object1.generate_file(f"{test_object1.mix.names}")
+    test_object2.generate_file(f"{test_object2.mix.names}")
+    print("Folder contained linp files has been generated on your current repertory.")
+
+    print("\n***************\n")
+    test_object1.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.mflux")
+    test_object1.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.tvar")
+    test_object1.read_files("U:/Projet/IsoDesign/isodesign/test-data/design_test.netw")
+    print("Imported files\n\n", test_object1.data_dict)
+
+    print("\n***************\n")
+    test_object1.generate_vmtf_file()
+    print(f"Dictionary with all vmtf file element for this mix {test_object1.mix.names} : \n", test_object1.dict_vmtf)
+    print("\nVmtf file has been generated on your current repository.")
+
     
     
