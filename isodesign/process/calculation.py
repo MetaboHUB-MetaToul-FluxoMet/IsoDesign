@@ -85,7 +85,7 @@ class Tracer:
 class Mix:
     def __init__(self, tracers: dict):
         """
-        :param tracers: dictionary contained the different tracer 
+        :param tracers: dictionary containing the different tracer 
                         mix with mix name as key and list of 
                         tracers as value   
         """
@@ -94,9 +94,8 @@ class Mix:
 
         # List of all combinations inside a tracers mix and/or combination between many tracers mix
         self.mixes = []
-        # List of all tracers names. It's used to facilitate the linp files generations
+        # Lists of all tracers names and all tracers isotopomers. They are used to facilitate the linp files generations
         self.names = []
-        # List of all tracers isotopomers. It's used to facilitate the linp files generations
         self.isotopomer = []
 
     def tracer_mix_combination(self):
@@ -186,7 +185,6 @@ class Process:
     def generate_mixes(self, tracers: dict):
         """
         Generate the mixes from tracer dictionary.
-        It used the method tracer_mix_combination contained in Mix class.
 
         :param tracers: dictionary containing metabolites and associated tracers for mix
         """
@@ -197,12 +195,14 @@ class Process:
 
     def generate_file(self, output_path:str):
         """
-        Generate linp files to a folder in the current directory in function
+        Generate linp files to a folder in the current directory depending
         of all combination for one or two mixe(s). Those files are used 
         for influx_si simulations.
         Files containing tracers features including the combinations
         for all tracer mixes.
         """
+
+        output_path = Path(output_path)
         
         for combination in self.mix.mixes:
             df = pd.DataFrame({'Id': None,
@@ -226,10 +226,10 @@ class Process:
             # Remove all row equals to 0 because linp file doesn't have value equal to 0 
             df = df.loc[df["Value"] != 0] 
             # Create the folder that stock linp files
-            output_folder = Path(output_path).mkdir(exist_ok=True) 
+            output_path.mkdir(exist_ok=True) 
             # Generate linp files depending on the number of combination
             # Join the files created to the new folder created before 
-            df.to_csv(os.path.join(output_path, f"{combination}.linp"), sep="\t")
+            df.to_csv(os.path.join(str(output_path), f"{combination}.linp"), sep="\t")
 
             # Add a new key "linp" with all the combinations as value
             self.dict_vmtf.update({"linp" : [f"{combination}" for combination in self.mix.mixes]})
@@ -247,6 +247,7 @@ class Process:
         # Permit to create a dataframe from a dictionary where keys have different length of value   
         df = pd.DataFrame({key:pd.Series(value) for key, value in self.dict_vmtf.items()})
         # Add a new column "ftbl" containing the values that are in the key "linp" of dict_vmtf
+        # These values will be the names of the export folders of the results  
         df["ftbl"] = self.dict_vmtf["linp"]
         df.to_csv("file.vmtf", sep="\t", index=False)
 
@@ -285,7 +286,7 @@ if __name__ == "__main__":
 
     print("\n***************\n")
     test_object1.read_files("../test-data/design_test.mflux")
-    test_object1.read_files("../tes-data/design_test.tvar")
+    test_object1.read_files("../test-data/design_test.tvar")
     test_object1.read_files("../test-data/design_test.netw")
     print("Imported files\n\n", test_object1.data_dict)
 
