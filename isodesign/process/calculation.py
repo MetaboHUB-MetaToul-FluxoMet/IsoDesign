@@ -3,8 +3,9 @@ from itertools import product
 import math
 from pathlib import Path
 
-import pandas as pd
 import os
+import pandas as pd
+import csv
 
 class Tracer:
     """ 
@@ -160,20 +161,14 @@ class Process:
         if not data_path.exists():
             raise ValueError(f"{data_path} doesn't exist.")
         else:
-            ext = data_path.suffix
-            if ext not in [".netw", ".tvar", ".mflux"]:
-                raise TypeError(
-                    f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux formats are accepted")
-            else:
-                data = pd.read_csv(str(data_path), sep="\t", header=None if ext == ".netw" else 'infer')
-            self.data_dict.update(
-                {
-                    data_path.name: data
-                }
-            )
-            # Add in dict_vmtf the files extensions without the dot as key and files names as value 
-            self.dict_vmtf.update({ext[1:]:data_path.stem})
-            return
+            try:
+                data = pd.read_csv(str(data_path), sep="\t")
+                self.data_dict.update({data_path.name: data})
+                # Add in dict_vmtf the files extensions without the dot as key and files names as value 
+                self.dict_vmtf.update({data_path.suffix[1:]:data_path.stem})
+            except Exception as exc:
+                raise TypeError(f" {data} is not in the good format. It should be a csv or a tsv file") from exc
+
 
     def check_files(self, data):
         """ 
@@ -254,7 +249,8 @@ class Process:
     def influx_simulation(self):
         pass
     
-
+    
+    
 if __name__ == "__main__":
     gluc_u = Tracer("Gluc_U", "111111", 10, 0, 100)
     gluc_1 = Tracer("Gluc_1", "100000", 10, 0, 100)
@@ -282,16 +278,16 @@ if __name__ == "__main__":
     print("\n***************\n")
     test_object1.generate_file(f"{test_object1.mix.names}")
     test_object2.generate_file(f"{test_object2.mix.names}")
-    print("Folder contained linp files has been generated on your current repertory.")
+    print("Folder containing linp files has been generated on your current repertory.")
 
     print("\n***************\n")
-    test_object1.read_files("../test-data/design_test.mflux")
-    test_object1.read_files("../test-data/design_test.tvar")
-    test_object1.read_files("../test-data/design_test.netw")
+    test_object1.read_files(r"../test-data/design_test.mflux")
+    test_object1.read_files(r"../test-data/design_test.tvar")
+    test_object1.read_files(r"../test-data/design_test.netw")
     print("Imported files\n\n", test_object1.data_dict)
 
     print("\n***************\n")
-    test_object1.generate_vmtf_file()
+    # test_object1.generate_vmtf_file()
     print(f"Dictionary with all vmtf file element for this mix {test_object1.mix.names} : \n", test_object1.dict_vmtf)
     print("\nVmtf file has been generated on your current repository.")
 
