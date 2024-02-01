@@ -5,7 +5,7 @@ from pathlib import Path
 
 import os
 import pandas as pd
-import csv
+
 
 class Tracer:
     """ 
@@ -161,13 +161,21 @@ class Process:
         if not data_path.exists():
             raise ValueError(f"{data_path} doesn't exist.")
         else:
-            try:
-                data = pd.read_csv(str(data_path), sep="\t")
-                self.data_dict.update({data_path.name: data})
-                # Add in dict_vmtf the files extensions without the dot as key and files names as value 
-                self.dict_vmtf.update({data_path.suffix[1:]:data_path.stem})
-            except Exception as exc:
-                raise TypeError(f" {data} is not in the good format. It should be a csv or a tsv file") from exc
+            ext = data_path.suffix
+            if ext not in [".netw", ".tvar", ".mflux", ".miso"]:
+                raise TypeError(
+                    f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux, .miso formats are accepted")
+            else:
+                data = pd.read_csv(str(data_path), sep="\t", comment= "#", header=None if ext == ".netw" else 'infer')
+            self.data_dict.update(
+                {
+                    data_path.name: data
+                }
+            )
+            # Add in dict_vmtf the files extensions without the dot as key and files names as value 
+            self.dict_vmtf.update({ext[1:]:data_path.stem})
+            return
+
 
 
     def check_files(self, data):
@@ -281,9 +289,10 @@ if __name__ == "__main__":
     print("Folder containing linp files has been generated on your current repertory.")
 
     print("\n***************\n")
-    test_object1.read_files(r"../test-data/design_test.mflux")
-    test_object1.read_files(r"../test-data/design_test.tvar")
-    test_object1.read_files(r"../test-data/design_test.netw")
+    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
+    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
+    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
+    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
     print("Imported files\n\n", test_object1.data_dict)
 
     print("\n***************\n")
