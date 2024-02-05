@@ -174,7 +174,6 @@ class Process:
                     data_path.name: data
                 }
             )
-            # Process.check_files(self.data_dict)
             # Add in dict_vmtf the files extensions without the dot as key and files names as value 
             self.dict_vmtf.update({ext[1:]:data_path.stem})
             
@@ -189,7 +188,7 @@ class Process:
 
         # Set containing the reactions and reactants names from netw files
         netw_reactions = set()
-        # All metabolites contained in these sets must be present in the set netw_reactions  
+        # All metabolites contained in these sets below must be present in the set netw_reactions  
         # Set containing fluxes names only for free fluxes  
         tvar_flux_name = set()
         # Set containing molecules names
@@ -243,9 +242,7 @@ class Process:
         # Check if all the metabolites of the files matching with metabolites contained in the netw file    
         for flux in tvar_flux_name:
             if flux not in netw_reactions:
-                print("no")
-            if flux not in netw_reactions:
-                    raise ValueError(f"{flux} from a tvar file is not in the network file")
+                raise ValueError(f"{flux} from a tvar file is not in the network file")
           
         for flux in mflux_flux:
             if flux not in netw_reactions:
