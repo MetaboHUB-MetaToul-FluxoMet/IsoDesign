@@ -5,6 +5,7 @@ from pathlib import Path
 
 import os
 import pandas as pd
+import numpy as np
 
 
 class Tracer:
@@ -139,14 +140,15 @@ class Process:
         """
 
         """
-        # Init dictionary containing name files as keys and their contents as values
+        # Init dictionary containing name files as keys and their contents (dataframes) as values
         self.data_dict = {}
         # Mix object
         self.mix = None
         # Dictionary contained element to build the vmtf file.
         self.dict_vmtf = {"Id":None, "Comment":None}
 
-    def read_files(self, data: str):
+
+    def read_files(self, data):
         """ 
         Read tvar, mflux and netw files (csv or tsv)
 
@@ -172,18 +174,86 @@ class Process:
                     data_path.name: data
                 }
             )
+            # Process.check_files(self.data_dict)
             # Add in dict_vmtf the files extensions without the dot as key and files names as value 
             self.dict_vmtf.update({ext[1:]:data_path.stem})
-            return
+            
 
 
-
-    def check_files(self, data):
+    def check_files(self):
         """ 
-        Checking the content of imported files 
+        Checking the content of imported files contained in self.data_dict 
+        with the files names as key and their content (in dataframe forms) as value 
 
         """
-        pass
+
+        # Set containing the reactions and reactants names from netw files
+        netw_reactions = set()
+        # All metabolites contained in these sets must be present in the set netw_reactions  
+        # Set containing fluxes names only for free fluxes  
+        tvar_flux_name = set()
+        # Set containing molecules names
+        miso_specie = set()
+        # Set containing fluxes
+        mflux_flux = set()
+
+        for name_file, content in self.data_dict.items():
+            if ".netw" in name_file: 
+                # Set containing firstly the reactions names without the " : " separator
+                netw_reactions.update(sub[:-1] for sub in content.iloc[:,0])
+                # Loop allowing to only take reactant names and add them to the netw_reactions set 
+                for reactions in content.iloc[:,1]:
+                    for element in reactions.split():
+                        if element not in ["<->", "->", "+"]:
+                            netw_reactions.add(element)
+
+                if len(content.columns) > 2:
+                    raise ValueError(f"Number of columns isn't correct for {name_file} file")
+        
+            if ".tvar" in name_file: 
+                tvar_flux_name.update(content.loc[content["Kind"] == "NET", "Name"])
+
+                for x in ["Name", "Kind", "Type", "Value"]:
+                    if x not in content.columns:
+                        raise ValueError(f"Columns {x} is missing from the tvar file")
+                for x in content["Type"]:
+                    if x not in ["F", "C", "D"]:
+                        raise ValueError(f"Column 'Type' in {name_file} must contains only F, D or C type ")
+                for x in content["Kind"]:
+                    if x not in ["NET","XCH", "METAB"]:
+                        raise ValueError(f"Column 'Kind' in {name_file} must contains only NET, XCH or METAB type ")
+                
+            if ".miso" in name_file:
+                miso_specie.update(content["Specie"])
+                for x in ["Specie", "Fragment", "Dataset", "Isospecies", "Value", "Time"]:
+                    if x not in content.columns:
+                        raise ValueError(f"Columns {x} is missing from the miso file")      
+                    
+            if ".mflux" in name_file:
+                mflux_flux.update(content["Flux"])
+                for x in ["Flux", "Value", "SD"]:
+                    if x not in content.columns :
+                        raise ValueError(f"Columns {x} is missing from the mflux file")
+                           
+            # Check if all the value and SD columns are numeric for all files containing those columns 
+            for x in content.columns:
+                if x in ["Value", "SD"] and content[x].dtypes != np.float64 :
+                    raise ValueError(f"Column {x} in file {name_file} has values that are not of numeric type")
+
+        # Check if all the metabolites of the files matching with metabolites contained in the netw file    
+        for flux in tvar_flux_name:
+            if flux not in netw_reactions:
+                print("no")
+            if flux not in netw_reactions:
+                    raise ValueError(f"{flux} from a tvar file is not in the network file")
+          
+        for flux in mflux_flux:
+            if flux not in netw_reactions:
+                raise ValueError(f"{flux} from a mflux file is not in the network file ")
+                    
+        for specie in miso_specie:
+            if specie not in netw_reactions: 
+                raise ValueError(f"{specie} from a miso file is not in the network file ")
 
     def generate_mixes(self, tracers: dict):
         """
@@ -278,27 +348,28 @@ if __name__ == "__main__":
     # Create Process class objects
     test_object1 = Process()
     test_object2 = Process()
-    test_object1.generate_mixes(mix1)
-    print(f"Combination generate for mix1 ({test_object1.mix.names}) : \n",test_object1.mix.mixes)
-    test_object2.generate_mixes(mix2)
-    print(f"\nCombination generate for mix2 ({test_object2.mix.names}) : \n",test_object2.mix.mixes)
+    # test_object1.generate_mixes(mix1)
+    # print(f"Combination generate for mix1 ({test_object1.mix.names}) : \n",test_object1.mix.mixes)
+    # test_object2.generate_mixes(mix2)
+    # print(f"\nCombination generate for mix2 ({test_object2.mix.names}) : \n",test_object2.mix.mixes)
 
-    print("\n***************\n")
-    test_object1.generate_file(f"{test_object1.mix.names}")
-    test_object2.generate_file(f"{test_object2.mix.names}")
-    print("Folder containing linp files has been generated on your current repertory.")
+    # print("\n***************\n")
+    # test_object1.generate_file(f"{test_object1.mix.names}")
+    # test_object2.generate_file(f"{test_object2.mix.names}")
+    # print("Folder containing linp files has been generated on your current repertory.")
 
     print("\n***************\n")
     test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
     test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
     test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
     test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
-    print("Imported files\n\n", test_object1.data_dict)
+    # print("Imported files\n\n", test_object1.data_dict)
+    test_object1.check_files()
 
     print("\n***************\n")
     # test_object1.generate_vmtf_file()
-    print(f"Dictionary with all vmtf file element for this mix {test_object1.mix.names} : \n", test_object1.dict_vmtf)
-    print("\nVmtf file has been generated on your current repository.")
+    # print(f"Dictionary with all vmtf file element for this mix {test_object1.mix.names} : \n", test_object1.dict_vmtf)
+    # print("\nVmtf file has been generated on your current repository.")
 
     
     
