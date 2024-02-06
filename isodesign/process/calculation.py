@@ -167,8 +167,8 @@ class Process:
             if ext not in [".netw", ".tvar", ".mflux", ".miso"]:
                 raise TypeError(
                     f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux, .miso formats are accepted")
-            else:
-                data = pd.read_csv(str(data_path), sep="\t", comment= "#", header=None if ext == ".netw" else 'infer')
+            
+            data = pd.read_csv(str(data_path), sep="\t", comment= "#", header=None if ext == ".netw" else 'infer')
             self.data_dict.update(
                 {
                     data_path.name: data
@@ -185,60 +185,39 @@ class Process:
         with the files names as key and their content (in dataframe forms) as value 
 
         """
-
-        # Set containing the reactions and reactants names from netw files
-        netw_reactions = set()
-        # All metabolites contained in these sets below must be present in the set netw_reactions  
-        # Set containing fluxes names only for free fluxes  
-        tvar_flux_name = set()
-        # Set containing molecules names
-        miso_specie = set()
-        # Set containing fluxes
-        mflux_flux = set()
-
+     
         for name_file, content in self.data_dict.items():
             if ".netw" in name_file: 
-                # Set containing firstly the reactions names without the " : " separator
-                netw_reactions.update(sub[:-1] for sub in content.iloc[:,0])
+                Process._check_netw(self)
+
+                # Set containing the reactions and reactants names from netw files
+                # Contained firstly the reactions names without the " : " separator
+                netw_reactions = set(reaction[:-1] for reaction in content.iloc[:,0])
                 # Loop allowing to only take reactant names and add them to the netw_reactions set 
                 for reactions in content.iloc[:,1]:
                     for element in reactions.split():
                         if element not in ["<->", "->", "+"]:
                             netw_reactions.add(element)
 
-                if len(content.columns) > 2:
-                    raise ValueError(f"Number of columns isn't correct for {name_file} file")
-        
             if ".tvar" in name_file: 
-                tvar_flux_name.update(content.loc[content["Kind"] == "NET", "Name"])
+                Process._check_tvar(self)
 
-                for x in ["Name", "Kind", "Type", "Value"]:
-                    if x not in content.columns:
-                        raise ValueError(f"Columns {x} is missing from the tvar file")
-                for x in content["Type"]:
-                    if x not in ["F", "C", "D"]:
-                        raise ValueError(f"Column 'Type' in {name_file} must contains only F, D or C type ")
-                for x in content["Kind"]:
-                    if x not in ["NET","XCH", "METAB"]:
-                        raise ValueError(f"Column 'Kind' in {name_file} must contains only NET, XCH or METAB type ")
+                # Set containing fluxes names only for free fluxes
+                tvar_flux_name = set(content.loc[content["Kind"] == "NET", "Name"])
                 
             if ".miso" in name_file:
-                miso_specie.update(content["Specie"])
-                for x in ["Specie", "Fragment", "Dataset", "Isospecies", "Value", "Time"]:
-                    if x not in content.columns:
-                        raise ValueError(f"Columns {x} is missing from the miso file")      
-                    
-            if ".mflux" in name_file:
-                mflux_flux.update(content["Flux"])
-                for x in ["Flux", "Value", "SD"]:
-                    if x not in content.columns :
-                        raise ValueError(f"Columns {x} is missing from the mflux file")
-                           
-            # Check if all the value and SD columns are numeric for all files containing those columns 
-            for x in content.columns:
-                if x in ["Value", "SD"] and content[x].dtypes != np.float64 :
-                    raise ValueError(f"Column {x} in file {name_file} has values that are not of numeric type")
+                Process._check_miso(self)
 
+                # Set containing molecules names
+                miso_specie = set(content["Specie"])
+                
+
+            if ".mflux" in name_file:
+                Process._check_mflux(self)
+
+                # Set containing fluxes
+                mflux_flux = set(content["Flux"])
+            
         # Check if all the metabolites of the files matching with metabolites contained in the netw file    
         for flux in tvar_flux_name:
             if flux not in netw_reactions:
@@ -246,12 +225,67 @@ class Process:
           
         for flux in mflux_flux:
             if flux not in netw_reactions:
-                raise ValueError(f"{flux} from a mflux file is not in the network file ")
+                raise ValueError(f"{flux} from mflux file is not in the network file ")
                     
         for specie in miso_specie:
             if specie not in netw_reactions: 
                 raise ValueError(f"{specie} from a miso file is not in the network file ")
 
+
+    def _check_netw(self):
+        """
+        Check the contents of the netw contained in the dictionary self.data_dict 
+        """
+        for name_file, content in self.data_dict.items():
+            if ".netw" in name_file:
+                if len(content.columns) > 2:
+                    raise ValueError(f"Number of columns isn't correct for {name_file} file")
+
+    def _check_tvar(self):
+        """
+        Check the contents of the tvar contained in the dictionary self.data_dict 
+        """
+        for name_file, content in self.data_dict.items():
+            if ".tvar" in name_file:
+                for x in ["Name", "Kind", "Type", "Value"]:
+                    if x not in content.columns:
+                        raise ValueError(f"Columns {x} is missing from {name_file} file")
+                    if x in ["Value"] and content[x].dtypes != np.float64 :
+                        raise ValueError(f"Column {x} in file {name_file} has values that are not of numeric type")
+   
+                for x in content["Type"]:
+                    if x not in ["F", "C", "D"]:
+                        raise ValueError(f"Column 'Type' in {name_file} must contains only F, D or C type ")
+                    
+                for x in content["Kind"]:
+                    if x not in ["NET","XCH", "METAB"]:
+                        raise ValueError(f"Column 'Kind' in {name_file} must contains only NET, XCH or METAB type ")
+
+    def _check_miso(self):
+        """
+        Check the contents of the miso contained in the dictionary self.data_dict 
+        """
+        for name_file, content in self.data_dict.items():
+            if ".miso" in name_file:
+                for x in ["Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time"]:
+                    if x not in content.columns:
+                        raise ValueError(f"Columns {x} is missing from the miso file")
+                    if x in ["Value", "SD"] and content[x].dtypes != np.float64 :
+                        raise ValueError(f"Column {x} in file {name_file} has values that are not of numeric type")
+
+    
+    def _check_mflux(self):
+        """
+        Check the contents of the mflux contained in the dictionary self.data_dict 
+        """
+        for name_file, content in self.data_dict.items():
+            if ".mflux" in name_file:
+                for x in ["Flux", "Value", "SD"]:
+                    if x not in content.columns :
+                            raise ValueError(f"Columns {x} is missing from the mflux file")
+                    if x in ["Value", "SD"] and content[x].dtypes != np.float64 :
+                        raise ValueError(f"Column {x} in file {name_file} has values that are not of numeric type")
+                    
     def generate_mixes(self, tracers: dict):
         """
         Generate the mixes from tracer dictionary.
