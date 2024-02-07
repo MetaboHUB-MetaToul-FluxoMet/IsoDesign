@@ -135,18 +135,30 @@ class Process:
     Class responsible of most of the processes... 
 
     """
+    
+    MISO_COLUMNS = ["Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time"]
+    TVAR_COLUMNS = ["Name", "Kind", "Type", "Value"]
+    MFLUX_COLUMNS = ["Flux", "Value", "SD"]
+    NUMERICAL_COLUMNS = ["Value", "SD"]
 
     def __init__(self):
         """
 
         """
-        # Init dictionary containing name files as keys and their contents (dataframes) as values
+        # Init dictionary containing extension files as keys and a list of their contents (dataframes) and complete name as values
         self.data_dict = {}
+
         # Mix object
         self.mix = None
+
         # Dictionary contained element to build the vmtf file.
         self.dict_vmtf = {"Id":None, "Comment":None}
 
+        # Dictionary contained the columns to check between the different imported files in the check_files method
+        # Key : file and column name, Value : column content 
+        self.check_files_dict = {}
+
+       
 
     def read_files(self, data):
         """ 
@@ -160,6 +172,7 @@ class Process:
 
         data_path = Path(data).resolve()
 
+
         if not data_path.exists():
             raise ValueError(f"{data_path} doesn't exist.")
         else:
@@ -169,9 +182,10 @@ class Process:
                     f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux, .miso formats are accepted")
             
             data = pd.read_csv(str(data_path), sep="\t", comment= "#", header=None if ext == ".netw" else 'infer')
+
             self.data_dict.update(
                 {
-                    data_path.name: data
+                    ext : [data_path.name, data]
                 }
             )
             # Add in dict_vmtf the files extensions without the dot as key and files names as value 
@@ -181,111 +195,140 @@ class Process:
 
     def check_files(self):
         """ 
-        Checking the content of imported files contained in self.data_dict 
-        with the files names as key and their content (in dataframe forms) as value 
+        Check the content of each file by calling up sub-functions 
+        specific to each file. Also checks whether metabolites and reactions
+        present in the files are actually present in the network file. 
 
         """
-     
-        for name_file, content in self.data_dict.items():
-            if ".netw" in name_file: 
-                Process._check_netw(self)
 
-                # Set containing the reactions and reactants names from netw files
-                # Contained firstly the reactions names without the " : " separator
-                netw_reactions = set(reaction[:-1] for reaction in content.iloc[:,0])
-                # Loop allowing to only take reactant names and add them to the netw_reactions set 
-                for reactions in content.iloc[:,1]:
-                    for element in reactions.split():
-                        if element not in ["<->", "->", "+"]:
-                            netw_reactions.add(element)
-
-            if ".tvar" in name_file: 
-                Process._check_tvar(self)
-
-                # Set containing fluxes names only for free fluxes
-                tvar_flux_name = set(content.loc[content["Kind"] == "NET", "Name"])
-                
-            if ".miso" in name_file:
-                Process._check_miso(self)
-
-                # Set containing molecules names
-                miso_specie = set(content["Specie"])
-                
-
-            if ".mflux" in name_file:
-                Process._check_mflux(self)
-
-                # Set containing fluxes
-                mflux_flux = set(content["Flux"])
+        # Call sub-functions to check each imported file
+        self._check_netw()
+        self._check_tvar()
+        self._check_miso()
+        self._check_mflux()
             
-        # Check if all the metabolites of the files matching with metabolites contained in the netw file    
-        for flux in tvar_flux_name:
-            if flux not in netw_reactions:
-                raise ValueError(f"{flux} from a tvar file is not in the network file")
-          
-        for flux in mflux_flux:
-            if flux not in netw_reactions:
-                raise ValueError(f"{flux} from mflux file is not in the network file ")
-                    
-        for specie in miso_specie:
-            if specie not in netw_reactions: 
-                raise ValueError(f"{specie} from a miso file is not in the network file ")
+        # Check if all the metabolites of the files matching with metabolites contained in the netw file
+        # Use of the check_files_dict dictionary, which contains all the columns of the various files to be compared     
+        for metabolite in self.check_files_dict["tvar_flux_name"] :
+            if metabolite not in self.check_files_dict["netw_reactions_name"]:
+                raise ValueError(f"'{metabolite}' from a tvar file is not in the network file")
+  
+        for flux in self.check_files_dict["mflux_flux"] :
+            if flux not in self.check_files_dict["netw_reactions_name"]:
+                raise ValueError(f"'{flux}' from a mflux file is not in the network file")
 
+        for specie in self.check_files_dict["miso_flux"] :
+            if specie not in self.check_files_dict["netw_metabolite"]:
+                raise ValueError(f"'{specie}' from a miso file is not in the network file")
+                
 
     def _check_netw(self):
         """
-        Check the contents of the netw contained in the dictionary self.data_dict 
+        Check the contents of the netw file contained in the 
+        dictionary self.data_dict. Adds reaction names and metabolites 
+        present in the file to the self.check_files_dict dictionary.
         """
-        for name_file, content in self.data_dict.items():
-            if ".netw" in name_file:
-                if len(content.columns) > 2:
-                    raise ValueError(f"Number of columns isn't correct for {name_file} file")
+
+        # Retrieve file name 
+        file_name = self.data_dict[".netw"][0]
+
+        # Checks the file contents
+        if len(self.data_dict[".netw"][1].columns) > 2:
+            raise ValueError(f"Number of columns isn't correct for {file_name} file")
+        
+        # Add reaction names without the ":" separator as sets  
+        self.check_files_dict.update({"netw_reactions_name" : set(reaction[:-1] for reaction in self.data_dict[".netw"][1].iloc[:,0])})
+        # Add only metabolites to the dictionary 
+        netw_metabolite = set()
+        for reactions in self.data_dict[".netw"][1].iloc[:,1]:
+            for element in reactions.split():
+                if element not in ["<->", "->", "+"]:
+                    netw_metabolite.add(element)
+        self.check_files_dict.update({"netw_metabolite" : netw_metabolite})       
 
     def _check_tvar(self):
         """
-        Check the contents of the tvar contained in the dictionary self.data_dict 
-        """
-        for name_file, content in self.data_dict.items():
-            if ".tvar" in name_file:
-                for x in ["Name", "Kind", "Type", "Value"]:
-                    if x not in content.columns:
-                        raise ValueError(f"Columns {x} is missing from {name_file} file")
-                    if x in ["Value"] and content[x].dtypes != np.float64 :
-                        raise ValueError(f"Column {x} in file {name_file} has values that are not of numeric type")
-   
-                for x in content["Type"]:
-                    if x not in ["F", "C", "D"]:
-                        raise ValueError(f"Column 'Type' in {name_file} must contains only F, D or C type ")
-                    
-                for x in content["Kind"]:
-                    if x not in ["NET","XCH", "METAB"]:
-                        raise ValueError(f"Column 'Kind' in {name_file} must contains only NET, XCH or METAB type ")
+        Check the contents of the tvar contained in the dictionary 
+        self.data_dict. Add the fluxes present in the self.check_files_dict 
+        dictionary to compare them with the contents of the netw file.
 
+        """
+        file_name = self.data_dict[".tvar"][0]
+
+        # Checks the file contents 
+        for x in self.TVAR_COLUMNS:
+            if x not in self.data_dict[".tvar"][1].columns:
+                raise ValueError(f"Columns {x} is missing from {file_name}")
+            if x == "Value":
+                self._check_numerical_columns(self.data_dict[".tvar"][1][x], file_name)
+
+        for x in self.data_dict[".tvar"][1]["Type"]:
+            if x not in ["F", "C", "D"]:
+                raise ValueError(f"'{x}' type from {file_name} is not accepted in 'Type' column. Only F, D or C type are accepted.")
+
+        for x in self.data_dict[".tvar"][1]["Kind"]:
+            if x not in ["NET","XCH", "METAB"]:
+                raise ValueError(f"'{x} type from {file_name} is not accepted in 'Kind' column. Only NET, XCH or METAB type are accepted.")
+        
+        # Add fluxes in the "Name" column that are NET fluxes only
+        self.check_files_dict.update({"tvar_flux_name" : set(self.data_dict[".tvar"][1].loc[self.data_dict[".tvar"][1]["Kind"] == "NET", "Name"])})
+        
     def _check_miso(self):
         """
-        Check the contents of the miso contained in the dictionary self.data_dict 
+        Check the contents of the miso contained in the dictionary 
+        self.data_dict. Add the metabolites to be compared with the 
+        contents of the netw file to the self.check_files_dict dictionary.
         """
-        for name_file, content in self.data_dict.items():
-            if ".miso" in name_file:
-                for x in ["Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time"]:
-                    if x not in content.columns:
-                        raise ValueError(f"Columns {x} is missing from the miso file")
-                    if x in ["Value", "SD"] and content[x].dtypes != np.float64 :
-                        raise ValueError(f"Column {x} in file {name_file} has values that are not of numeric type")
+        file_name = self.data_dict[".miso"][0]
 
+        # Check the file contents
+        for x in self.MISO_COLUMNS:
+            if x not in self.data_dict[".miso"][1].columns:
+                raise ValueError(f"Columns {x} is missing from {file_name}")
+            
+        for x in self.NUMERICAL_COLUMNS:
+            self._check_numerical_columns(self.data_dict[".miso"][1][x], file_name)
+
+        # Add metabolites 
+        self.check_files_dict.update({"miso_flux" : set(self.data_dict[".miso"][1]["Specie"])})
+            
     
     def _check_mflux(self):
         """
-        Check the contents of the mflux contained in the dictionary self.data_dict 
+        Check the contents of the mflux contained in the dictionary 
+        self.data_dict. Add the feeds to be compared with the contents 
+        of the netw file to the self.check_files_dict dictionary.
+
         """
-        for name_file, content in self.data_dict.items():
-            if ".mflux" in name_file:
-                for x in ["Flux", "Value", "SD"]:
-                    if x not in content.columns :
-                            raise ValueError(f"Columns {x} is missing from the mflux file")
-                    if x in ["Value", "SD"] and content[x].dtypes != np.float64 :
-                        raise ValueError(f"Column {x} in file {name_file} has values that are not of numeric type")
-                    
+        file_name = self.data_dict[".mflux"][0]
+
+        # Check the file contents
+        for x in self.MFLUX_COLUMNS:
+            if x not in self.data_dict[".mflux"][1].columns :
+                raise ValueError(f"Columns {x} is missing from {file_name}")
+            
+        for x in self.NUMERICAL_COLUMNS:
+            self._check_numerical_columns(self.data_dict[".mflux"][1][x], file_name)
+        
+        # Add fluxes 
+        self.check_files_dict.update({"mflux_flux" : set(self.data_dict[".mflux"][1]["Flux"])})
+    
+    def _check_numerical_columns(self, columns, file_name):
+        """ 
+        Checks that columns contain numerical values.
+
+        :param columns: the column to be checked 
+        :param file_name: name of the file 
+
+        """
+        for x in columns:
+            # Convert all values to float to avoid other value types
+            try:
+                float(x)
+            except ValueError:
+                raise ValueError(f"'{x}' from {file_name} is incorrect. Only numerical values are accepted in {columns.name} column.")
+
+
     def generate_mixes(self, tracers: dict):
         """
         Generate the mixes from tracer dictionary.
@@ -372,10 +415,10 @@ if __name__ == "__main__":
         "gluc": [gluc_u, gluc_1],
         "ace": [ace_u, ace_1]
     }
-    print("Dictionary mix1\n\n", mix1)
-    print("\nDictionary mix2\n\n", mix2)
+    # print("Dictionary mix1\n\n", mix1)
+    # print("\nDictionary mix2\n\n", mix2)
 
-    print("\n***************\n")
+    # print("\n***************\n")
     # Create Process class objects
     test_object1 = Process()
     test_object2 = Process()
@@ -390,12 +433,17 @@ if __name__ == "__main__":
     # print("Folder containing linp files has been generated on your current repertory.")
 
     print("\n***************\n")
-    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
-    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
-    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
-    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
-    # print("Imported files\n\n", test_object1.data_dict)
+    # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
+    # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
+    # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
+    # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
+    test_object1.read_files(r"../test-data/e_coli.mflux")
+    test_object1.read_files(r"../test-data/e_coli.miso")
+    test_object1.read_files(r"../test-data/e_coli.netw")
+    test_object1.read_files(r"../test-data/e_coli.tvar")
+    print("Imported files\n\n", test_object1.data_dict)
     test_object1.check_files()
+    # print(test_object1.check_files_dict)
 
     print("\n***************\n")
     # test_object1.generate_vmtf_file()
