@@ -35,7 +35,7 @@ class Tracer:
         self.fraction = [fraction/100 for fraction in range(self.lower_bound, self.upper_bound + self.step, self.step)]
 
     def __len__(self):
-        return self.num_carbon
+        returnd self.num_carbon
 
     def __repr__(self) -> str:
         return f"Molecule name: {self.name},\
