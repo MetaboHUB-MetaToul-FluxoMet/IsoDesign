@@ -1,4 +1,4 @@
-# Created by 'ftbl2mtf e_coli.ftbl -o mtf/' at 2022-05-25 17:04:34 CEST +0200								
+# Created by 'ftbl2mtf e_coli.ftbl -o mtf/' at 2022-05-25 17:04:34 CEST +0200
 Id	Comment	Specie	Fragment	Dataset	Isospecies	Value	SD	Time
 		Suc	1,2,3,4	MS-1	M1	0.371605319	0.01	
 		Suc	1,2,3,4	MS-1	M2	0.360829749	0.01	

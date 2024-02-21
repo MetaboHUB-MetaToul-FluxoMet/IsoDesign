@@ -1,12 +1,15 @@
 """ Module for calculation """
 from itertools import product
-import math
 from pathlib import Path
 
+import subprocess
 import os
+import shutil 
 import pandas as pd
 import numpy as np
+from decimal import Decimal, getcontext
 
+# import timeit
 
 class Isotopomer:
     """ 
@@ -30,10 +33,18 @@ class Isotopomer:
         self.upper_bound = upper_bound
 
         self.num_carbon = len(self.labelling)
-        # List of possible fraction between lower_bound and upper_bound depending of the step value
-        # Fractions will be used for influx_si simulations. Influx_si takes only values that are between 0 and 1
-        self.fraction = [fraction / 100 for fraction in
-                         range(self.lower_bound, self.upper_bound + self.step, self.step)]
+       
+        
+    def generate_fraction(self):
+        """
+        Generate numpy array containing list of possible fraction 
+        between lower_bound and upper_bound depending of the step value.
+        Fractions will be used for influx_si simulations. Influx_si takes 
+        only values that are between 0 and 1.
+        """
+
+        # getcontext().prec = 3
+        return np.array([Decimal(fraction)/Decimal(100) for fraction in range(self.lower_bound, self.upper_bound + self.step, self.step)])
 
     def __len__(self):
         return self.num_carbon
@@ -43,8 +54,7 @@ class Isotopomer:
         \nNumber of associated carbon(s) : {self.num_carbon},\
         \nStep = {self.step},\
         \nLower bound = {self.lower_bound},\
-        \nUpper bound = {self.upper_bound},\
-        \nVector of fractions = {self.fraction}"
+        \nUpper bound = {self.upper_bound}"
 
     @property
     def lower_bound(self):
@@ -86,65 +96,58 @@ class Isotopomer:
 
 
 class LabelInput:
-    def __init__(self, isotopomers: dict):
+    def __init__(self, isotopomers_group: dict):
         """
         Class containing the logic for handling labelling input generation for influx_si simulations.
 
         :param isotopomers: dictionary of isotopomers
         """
-
-        self.isotopomers = isotopomers
+        
+        self.isotopomers_group = isotopomers_group
 
         # Container for all label input combinations
-        self.mixes = []
+        # keys : substrate name of the isotopomers group, Values : label input combinations
+        self.isotopomers_combination = {}
         # Isotopomer names and labelling patterns.
         self.names = []
         self.patterns = []
 
     def generate_labelling_combinations(self):
         """
-        Generate combination inside a tracers mix and/or 
-        combination between many tracers mixes
+        Generate combination inside a isotopomers group and/or 
+        combination between isotopomers group.
 
         """
-
-        # List contained filtered list of possible combinations between tracers inside a mix 
-        # The number of list depend on the number of tracers mixes  
-        filtered_combinations = []
-
-        for metabolite, tracer_mix in self.isotopomers.items():
-            # Create "generator" for combinations
-            prod = product(*[tracer.fraction for tracer in tracer_mix])
-
-            self.names += [tracer.name for tracer in tracer_mix]
-            self.patterns += [tracer.patterns for tracer in tracer_mix]
-            # Only combinations which their sum is equal to 1 are used for influx_si simulations
-            filtered_combinations.append(list(combination for combination in prod if math.fsum(combination) == 1))
-
-        # If multiple tracers we must build combinations between each metabolite mix
-        if len(self.isotopomers) > 1:
-            self.mixes += list(product(*filtered_combinations))
+        for name_isotopomers, isotopomers in self.isotopomers_group.items():
+            # All isotopomers fractions are generated except for the first one 
+            # First isotopomer's fraction will be deduced from the other ones
+            fractions = [fracs.generate_fraction() for fracs in isotopomers[1:]]
+            all_combinations = np.array(np.meshgrid(*fractions)).T.reshape(-1, len(fractions))
+            filtered_combinations = np.array([combination for combination in all_combinations if np.sum(combination) <= Decimal(1)])
+            first_isotopomer_fraction = np.subtract(np.ones([len(filtered_combinations)], dtype=Decimal), filtered_combinations.sum(axis=1))
+            self.isotopomers_combination[name_isotopomers] = np.column_stack((first_isotopomer_fraction, filtered_combinations))
+            
+            self.names += [isotopomers.name for isotopomers in isotopomers]
+            self.patterns += [isotopomers.labelling for isotopomers in isotopomers]
+            
+        if len(self.isotopomers_group) > 1 :
+            # Addition of a key containing all isotopomers group combination if there is multiple isotopomers group 
+            self.isotopomers_combination.update({"combinations" : [np.concatenate((*pair,)) for pair in list(product(*self.isotopomers_combination.values()))]})
         else:
-            # The only list contained in filtered_combinations is stocked
-            self.mixes = filtered_combinations[0]
-
-
+            self.isotopomers_combination.update({"combinations" : np.column_stack((first_isotopomer_fraction, filtered_combinations))})   
+        
 class Process:
     """
     Class responsible of most of the processes... 
 
     """
-    FILES_EXTENSION = [".netw", ".tvar", ".mflux", ".miso"]
+    FILES_EXTENSION = [".netw", ".tvar", ".mflux", ".miso",".cnstr"]
     MISO_COLUMNS = ["Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time"]
     TVAR_COLUMNS = ["Name", "Kind", "Type", "Value"]
     MFLUX_COLUMNS = ["Flux", "Value", "SD"]
     NUMERICAL_COLUMNS = ["Value", "SD"]
 
     def __init__(self):
-        """
-
-        """
-
         # Dictionary to store imported file contents. Keys are file full names, contents are stored as values
         self.data_dict = {}
 
@@ -153,6 +156,9 @@ class Process:
 
         # Dictionary containing element to build the vmtf file.
         self.dict_vmtf = {"Id": None, "Comment": None}
+        
+        # Path to the folder containing all the linp files
+        self.path_linp_folder = None
 
         # Dictionary contained the columns to check between the different imported files in the check_files method
         # Key : file and column name, Value : column content 
@@ -160,7 +166,7 @@ class Process:
 
     def read_files(self, data):
         """ 
-        Read tvar, mflux, miso and netw files (csv or tsv)
+        Read tvar, mflux, miso, cnstr and netw files (csv or tsv)
 
         :param data: str containing the path to the file
 
@@ -176,7 +182,7 @@ class Process:
         ext = data_path.suffix
         if ext not in self.FILES_EXTENSION:
             raise TypeError(
-                f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux, .miso formats are accepted")
+                f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux, .miso, .cnstr formats are accepted")
 
         data = pd.read_csv(str(data_path), sep="\t", comment="#", header=None if ext == ".netw" else 'infer')
 
@@ -189,6 +195,8 @@ class Process:
                 self._check_miso(data, data_path.name)
             case ".mflux":
                 self._check_mflux(data, data_path.name)
+
+        shutil.copy(data_path, self.path_linp_folder)
 
         self.data_dict.update({data_path.name: data})
         # Add in dict_vmtf the files extensions without the dot as key and files names as value 
@@ -340,44 +348,41 @@ class Process:
 
     def generate_file(self, output_path: str):
         """
-        Generate linp files to a folder in the current directory depending
-        of all combination for one or two mixe(s). Those files are used 
-        for influx_si simulations.
-        Files containing tracers features including the combinations
-        for all tracer mixes.
+        Generate linp files to a folder in the current directory depending 
+        of all combinations for one or multiple isotopomers groups. 
+        Those files are used for influx_si simulations.
+        Files have a number as name and contained isotopomers 
+        features including the combinations for all isotopomer group.
+
+        A file is generated containing all the file number and combinations 
+        informations. 
         """
+        
+        counter = 1
 
-        output_path = Path(output_path)
+        # Create the folder that stock linp files if is doesn't exist
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        self.path_linp_folder = os.path.abspath(output_path)
 
-        for combination in self.mix.mixes:
-            df = pd.DataFrame({'Id': None,
-                               'Comment': None,
-                               'Specie': [],
-                               'Isotopomer': [],
-                               'Value': []})
+        with open(os.path.join(str(output_path), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
+            for pair in self.mix.isotopomers_combination["combinations"]:
+                df = pd.DataFrame({'Id': None,
+                                    'Comment': None,
+                                    'Specie': [],
+                                    'Isotopomer': [],
+                                    'Value': []})
 
-            df["Specie"] = [tracer_names for tracer_names in self.mix.names]
-            df["Isotopomer"] = [tracer_isotopomer for tracer_isotopomer in self.mix.patterns]
-
-            if len(self.mix.isotopomers) > 1:
-                # Tuple contained tuples with all the combination reunited 
-                reunited_combination = ()
-                for pair in combination:
-                    reunited_combination += pair
-                df["Value"] = reunited_combination
-            else:
-                df["Value"] = combination
-
-            # Remove all row equals to 0 because linp file doesn't have value equal to 0 
-            df = df.loc[df["Value"] != 0]
-            # Create the folder that stock linp files
-            output_path.mkdir(exist_ok=True)
-            # Generate linp files depending on the number of combination
-            # Join the files created to the new folder created before 
-            df.to_csv(os.path.join(str(output_path), f"{combination}.linp"), sep="\t")
-
-            # Add a new key "linp" with all the combinations as value
-            self.dict_vmtf.update({"linp": [f"{combination}" for combination in self.mix.mixes]})
+                df["Specie"] = list(self.mix.names)
+                df["Isotopomer"] = list(self.mix.patterns) 
+                df["Value"] = pair
+                df = df.loc[df["Value"] != 0]
+                
+                df.to_csv(os.path.join(str(output_path), f"{counter}.linp"), sep="\t")   
+                f.write(f"File {counter} - {self.mix.names}\n {[float(decimal_value) for decimal_value in pair]} \n") 
+                # Add a new key "linp" with all the combinations as value
+                self.dict_vmtf.update({"linp":  [f"{number_file}" for number_file in range(1, counter+1)]})
+                counter += 1
 
     def generate_vmtf_file(self):
         """
@@ -394,54 +399,65 @@ class Process:
         # Add a new column "ftbl" containing the values that are in the key "linp" of dict_vmtf
         # These values will be the names of the export folders of the results  
         df["ftbl"] = self.dict_vmtf["linp"]
-        df.to_csv("file.vmtf", sep="\t", index=False)
+        vmtf_file_name = self.dict_vmtf["netw"]
+        df.to_csv(f"{self.path_linp_folder}/{vmtf_file_name}.vmtf", sep="\t", index=False)
 
     def influx_simulation(self):
-        pass
+        """
+        Methode using influx_si for the test by using subprocess.
+        """
+
+        # Going to the folder containing all the file to use for influx_si
+        os.chdir(self.path_linp_folder)
+        prefix = self.dict_vmtf["netw"]
+        subprocess.run(["influx_s", "--prefix", prefix, "--mtf", f"{prefix}.vmtf", "--noopt"], shell=True, check=True)
 
 
 if __name__ == "__main__":
-    gluc_u = Isotopomer("Gluc_U", "111111", 10, 0, 100)
-    gluc_1 = Isotopomer("Gluc_1", "100000", 10, 0, 100)
+    gluc_u = Isotopomer("Gluc", "111111", 10, 0, 100)
+    gluc_1 = Isotopomer("Gluc", "100000", 10, 0, 100)
+    gluc = Isotopomer("Gluc", "000000", 10, 0, 100)
     ace_u = Isotopomer("Ace_U", "11", 20, 0, 100)
     ace_1 = Isotopomer("Ace_1", "10", 20, 0, 100)
     mix1 = {
-        "gluc": [gluc_u, gluc_1]
+        "gluc": [gluc, gluc_u]
     }
     mix2 = {
-        "gluc": [gluc_u, gluc_1],
+        "gluc": [gluc, gluc_u],
         "ace": [ace_u, ace_1]
     }
-    # print("Dictionary mix1\n\n", mix1)
-    # print("\nDictionary mix2\n\n", mix2)
+    print("Dictionary mix1\n\n", mix1)
+    print("\nDictionary mix2\n\n", mix2)
 
-    # print("\n***************\n")
+    print("\n***************\n")
     # Create Process class objects
     test_object1 = Process()
     test_object2 = Process()
-    # test_object1.generate_mixes(mix1)
-    # print(f"Combination generate for mix1 ({test_object1.mix.names}) : \n",test_object1.mix.mixes)
-    # test_object2.generate_mixes(mix2)
-    # print(f"\nCombination generate for mix2 ({test_object2.mix.names}) : \n",test_object2.mix.mixes)
+    test_object1.generate_mixes(mix1)
+    print(f"Combination generate for mix1 ({test_object1.mix.names}) : \n",test_object1.mix.isotopomers_combination)
+    test_object2.generate_mixes(mix2)
+    print(f"\nCombination generate for mix2 ({test_object2.mix.names}) : \n",test_object2.mix.isotopomers_combination)
 
-    # print("\n***************\n")
-    # test_object1.generate_file(f"{test_object1.mix.names}")
-    # test_object2.generate_file(f"{test_object2.mix.names}")
-    # print("Folder containing linp files has been generated on your current repertory.")
+    print("\n***************\n")
+    test_object1.generate_file("test_mtf")
+    print("Folder containing linp files has been generated on your current repertory.")
 
     print("\n***************\n")
     # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
-    # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
-    # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
     # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
+    # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
+    # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
+    # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.cnstr")
     test_object1.read_files(r"../test-data/e_coli.mflux")
     test_object1.read_files(r"../test-data/e_coli.miso")
     test_object1.read_files(r"../test-data/e_coli.netw")
     test_object1.read_files(r"../test-data/e_coli.tvar")
-    test_object1.check_files_matching()
+    test_object1.read_files(r"../test-data/e_coli.cnstr")
+    # test_object1.check_files_matching()
     print("Imported files\n\n", test_object1.data_dict)
 
     print("\n***************\n")
-    # test_object1.generate_vmtf_file()
-    # print(f"Dictionary with all vmtf file element for this mix {test_object1.mix.names} : \n", test_object1.dict_vmtf)
-    # print("\nVmtf file has been generated on your current repository.")
+    test_object1.generate_vmtf_file()
+    print(f"Dictionary with all vmtf file element for this mix {test_object1.mix.names} : \n", test_object1.dict_vmtf)
+    print("\nVmtf file has been generated on your current repository.")
+    # test_object1.influx_simulation()

@@ -1,3 +1,4 @@
+# Created by 'ftbl2mtf e_coli.ftbl -o mtf/' at 2022-05-25 17:04:34 CEST +0200
 Glucupt_1:	Gluc_1 (ABCDEF) -> Glc6P (ABCDEF)
 Glucupt_U:	Gluc_U (ABCDEF) -> Glc6P (ABCDEF)
 pgi:	Glc6P (ABCDEF) <-> Fru6P (ABCDEF)
