@@ -5,9 +5,11 @@ from pathlib import Path
 import subprocess
 import os
 import shutil 
+import logging
+from decimal import Decimal
 import pandas as pd
 import numpy as np
-from decimal import Decimal, getcontext
+
 
 # import timeit
 
@@ -164,6 +166,17 @@ class Process:
         # Key : file and column name, Value : column content 
         self.files_matching_dict = {}
 
+        self._logger = logging.getLogger("root")
+
+    def _init_logger(self):
+        logger = logging.getLogger("root")
+        logger.setLevel(logging.DEBUG)
+        file_handler = logging.FileHandler("./log.txt", mode="w")
+        file_handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter("%(asctime)s: Method %(funcName)s:%(levelname)s:%(name)s: %(message)s")
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
     def read_files(self, data):
         """ 
         Read tvar, mflux, miso, cnstr and netw files (csv or tsv)
@@ -171,20 +184,29 @@ class Process:
         :param data: str containing the path to the file
 
         """
-        if not isinstance(data, str):
-            raise TypeError(f"{data} should be of type string and not {type(data)}")
+        self._init_logger()
 
+        if not isinstance(data, str):
+            msg = f"{data} should be of type string and not {type(data)}"
+            self._logger.error(msg)
+            raise TypeError(msg)
+            
         data_path = Path(data).resolve()
 
         if not data_path.exists():
-            raise ValueError(f"{data_path} doesn't exist.")
-
+            msg = f"{data_path} doesn't exist."
+            self._logger.error(msg)
+            raise ValueError(msg)
+            
         ext = data_path.suffix
         if ext not in self.FILES_EXTENSION:
-            raise TypeError(
-                f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux, .miso, .cnstr formats are accepted")
+            msg = f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux, .miso, .cnstr formats are accepted"
+            self._logger.error(msg)
+            raise TypeError(msg)
 
         data = pd.read_csv(str(data_path), sep="\t", comment="#", header=None if ext == ".netw" else 'infer')
+
+        self._logger.info("Data importation...")
 
         match ext:
             case ".tvar":
@@ -199,6 +221,7 @@ class Process:
         shutil.copy(data_path, self.path_linp_folder)
 
         self.data_dict.update({data_path.name: data})
+        self._logger.info(f"Imported files : {self.data_dict}")
         # Add in dict_vmtf the files extensions without the dot as key and files names as value 
         self.dict_vmtf.update({ext[1:]: data_path.stem})
 
@@ -232,10 +255,13 @@ class Process:
         :param data: Dataframe with file contents
         :param filename: complete file name
         """
+        self._init_logger()
 
         # Checks the file contents
         if len(data.columns) > 2:
-            raise ValueError(f"Number of columns isn't correct for {filename} file")
+            msg= f"Number of columns isn't correct for {filename} file"
+            self._logger.error(msg)
+            raise ValueError(msg)
 
         # Add reaction names without the ":" separator as sets  
         self.files_matching_dict.update({"netw_reactions_name": set(reaction[:-1] for reaction in data.iloc[:, 0])})
@@ -256,23 +282,29 @@ class Process:
         :param data : Dataframe with file contents
         :param filename : complete file name
         """
+        self._init_logger()
+
         # Checks the file contents 
         for x in self.TVAR_COLUMNS:
             if x not in data.columns:
-                raise ValueError(f"Columns {x} is missing from {filename}")
+                msg=f"Columns {x} is missing from {filename}"
+                self._logger.error(msg)
+                raise ValueError(msg)
             if x == "Value":
                 self._check_numerical_columns(data[x], filename)
 
         for x in data["Type"]:
             if x not in ["F", "C", "D"]:
-                raise ValueError(
-                    f"'{x}' type from {filename} is not accepted in 'Type' column. Only F, D or C type are accepted.")
+                msg = f"'{x}' type from {filename} is not accepted in 'Type' column. Only F, D or C type are accepted."
+                self._logger.error(msg)
+                raise ValueError(msg)
 
         for x in data["Kind"]:
             if x not in ["NET", "XCH", "METAB"]:
-                raise ValueError(
-                    f"'{x} type from {filename} is not accepted in 'Kind' column. Only NET, XCH or METAB type are accepted.")
-
+                msg =  f"'{x} type from {filename} is not accepted in 'Kind' column. Only NET, XCH or METAB type are accepted."
+                self._logger.error(msg)
+                raise ValueError(msg)
+            
         # Add reactions in the "Name" column with NET fluxes only
         self.files_matching_dict.update({"tvar_reactions_name": set(data.loc[data["Kind"] == "NET", "Name"])})
 
@@ -285,11 +317,14 @@ class Process:
         :param data : Dataframe with file contents
         :param filename : complete file name
         """
+        self._init_logger()
 
         # Check the file contents
         for x in self.MISO_COLUMNS:
             if x not in data.columns:
-                raise ValueError(f"Columns {x} is missing from {filename}")
+                msg = f"Columns {x} is missing from {filename}"
+                self._logger.error(msg)
+                raise ValueError(msg)
 
         for x in self.NUMERICAL_COLUMNS:
             self._check_numerical_columns(data[x], filename)
@@ -445,14 +480,14 @@ if __name__ == "__main__":
     print("\n***************\n")
     # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
     # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
-    # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
+    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
     # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
     # test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.cnstr")
-    test_object1.read_files(r"../test-data/e_coli.mflux")
-    test_object1.read_files(r"../test-data/e_coli.miso")
-    test_object1.read_files(r"../test-data/e_coli.netw")
-    test_object1.read_files(r"../test-data/e_coli.tvar")
-    test_object1.read_files(r"../test-data/e_coli.cnstr")
+    # test_object1.read_files(r"../test-data/e_coli.mflux")
+    # test_object1.read_files(r"../test-data/e_coli.miso")
+    # test_object1.read_files(r"../test-data/e_coli.netw")
+    # test_object1.read_files(r"../test-data/e_coli.tvar")
+    # test_object1.read_files(r"../test-data/e_coli.cnstr")
     # test_object1.check_files_matching()
     print("Imported files\n\n", test_object1.data_dict)
 
