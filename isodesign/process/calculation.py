@@ -14,8 +14,6 @@ logging.basicConfig(format= " %(levelname)s:%(name)s: Method %(funcName)s: %(mes
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-
-
 # import timeit
 
 class Isotopomer:
@@ -172,15 +170,6 @@ class Process:
 
         # logger = logging.getLogger("root")
 
-    # def _init_logger(self):
-    #     logger = logging.getLogger("root")
-    #     logger.setLevel(logging.DEBUG)
-    #     file_handler = logging.FileHandler("./log.txt", mode="w")
-    #     file_handler.setLevel(logging.DEBUG)
-    #     formatter = logging.Formatter("%(asctime)s: Method %(funcName)s:%(levelname)s:%(name)s: %(message)s")
-    #     file_handler.setFormatter(formatter)
-    #     logger.addHandler(file_handler)
-
     def read_files(self, data):
         """ 
         Read tvar, mflux, miso, cnstr and netw files (csv or tsv)
@@ -209,7 +198,7 @@ class Process:
 
         data = pd.read_csv(str(data_path), sep="\t", comment="#", header=None if ext == ".netw" else 'infer')
         logger.info("Data importation...")
-        logger.info("Imported file : %s,\n Data :\n %s", data_path.name, data)
+        logger.info("\nImported file : %s\n Data :\n %s\n", data_path.name, data)
 
         match ext:
             case ".tvar":
@@ -382,8 +371,10 @@ class Process:
         # Mix class object contained tracers mix combinations 
         self.mix = LabelInput(tracers)
         self.mix.generate_labelling_combinations()
+        logger.info("Isotopomers : %s %s\n", self.mix.names, self.mix.patterns)
+        logger.info("Isotopomers combinations : %s", self.mix.isotopomers_combination)
 
-    def generate_file(self, output_path: str):
+    def generate_linp_files(self, output_path: str):
         """
         Generate linp files to a folder in the current directory depending 
         of all combinations for one or multiple isotopomers groups. 
@@ -402,6 +393,8 @@ class Process:
             os.makedirs(output_path)
         self.path_linp_folder = os.path.abspath(output_path)
 
+        logger.info("Creation of the linp files...")
+
         with open(os.path.join(str(output_path), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
             for pair in self.mix.isotopomers_combination["combinations"]:
                 df = pd.DataFrame({'Id': None,
@@ -416,10 +409,13 @@ class Process:
                 df = df.loc[df["Value"] != 0]
                 
                 df.to_csv(os.path.join(str(output_path), f"{counter}.linp"), sep="\t")   
+                
                 f.write(f"File {counter} - {self.mix.names}\n {[float(decimal_value) for decimal_value in pair]} \n") 
                 # Add a new key "linp" with all the combinations as value
                 self.dict_vmtf.update({"linp":  [f"{number_file}" for number_file in range(1, counter+1)]})
                 counter += 1
+        
+        logger.info("Folder containing linp files has been generated on your current repertory.\n")
 
     def generate_vmtf_file(self):
         """
@@ -429,15 +425,20 @@ class Process:
         imported files names that will be used to produce a ftbl file used in the calculation. 
         Each row have ftbl column with unique and non empty name. 
         """
-
+        
         # Value convert into Series 
         # Permit to create a dataframe from a dictionary where keys have different length of value   
         df = pd.DataFrame({key: pd.Series(value) for key, value in self.dict_vmtf.items()})
         # Add a new column "ftbl" containing the values that are in the key "linp" of dict_vmtf
         # These values will be the names of the export folders of the results  
         df["ftbl"] = self.dict_vmtf["linp"]
+
+        logger.info("Creation of the vmtf file containing these files :\n %s", df)
         vmtf_file_name = self.dict_vmtf["netw"]
         df.to_csv(f"{self.path_linp_folder}/{vmtf_file_name}.vmtf", sep="\t", index=False)
+
+        logger.info("Vmtf file has been generated on the linp folder.")
+
 
     def influx_simulation(self):
         """
@@ -463,38 +464,26 @@ if __name__ == "__main__":
         "gluc": [gluc, gluc_u],
         "ace": [ace_u, ace_1]
     }
-    # print("Dictionary mix1\n\n", mix1)
-    # print("\nDictionary mix2\n\n", mix2)
-
-    # print("\n***************\n")
     # # Create Process class objects
     test_object1 = Process()
     test_object2 = Process()
     # test_object1.generate_mixes(mix1)
-    # print(f"Combination generate for mix1 ({test_object1.mix.names}) : \n",test_object1.mix.isotopomers_combination)
+   
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.cnstr")
+
     test_object2.generate_mixes(mix2)
-    # print(f"\nCombination generate for mix2 ({test_object2.mix.names}) : \n",test_object2.mix.isotopomers_combination)
 
-    # # print("\n***************\n")
-    # test_object1.generate_file("test_mtf")
-    # # print("Folder containing linp files has been generated on your current repertory.")
+    test_object2.generate_linp_files("test_mtf")
 
-    # # print("\n***************\n")
-    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
-    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
-    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
-    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
-    test_object1.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.cnstr")
-    # # # test_object1.read_files(r"../test-data/e_coli.mflux")
-    # # # test_object1.read_files(r"../test-data/e_coli.miso")
-    # # # test_object1.read_files(r"../test-data/e_coli.netw")
-    # # # test_object1.read_files(r"../test-data/e_coli.tvar")
-    # # # test_object1.read_files(r"../test-data/e_coli.cnstr")
-    # # # test_object1.check_files_matching()
-    # print("Imported files\n\n", test_object1.data_dict)
-
-    # print("\n***************\n")
-    # test_object1.generate_vmtf_file()
-    # print(f"Dictionary with all vmtf file element for this mix {test_object1.mix.names} : \n", test_object1.dict_vmtf)
-    # print("\nVmtf file has been generated on your current repository.")
+    test_object2.read_files(r"../test-data/e_coli.mflux")
+    test_object2.read_files(r"../test-data/e_coli.miso")
+    test_object2.read_files(r"../test-data/e_coli.netw")
+    test_object2.read_files(r"../test-data/e_coli.tvar")
+    test_object2.read_files(r"../test-data/e_coli.cnstr")
+    # test_object2.check_files_matching()
+    test_object2.generate_vmtf_file()
     # # test_object1.influx_simulation()
