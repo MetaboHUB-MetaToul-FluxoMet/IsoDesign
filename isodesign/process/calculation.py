@@ -152,9 +152,8 @@ class Process:
     NUMERICAL_COLUMNS = ["Value", "SD"]
 
     def __init__(self):
-        # Dictionary to store imported file contents. Keys are file full names, contents are stored as values
+        # Dictionary to store imported file contents. Keys are files path, contents are stored as values
         self.data_dict = {}
-
         # Mix object
         self.mix = None
 
@@ -168,7 +167,6 @@ class Process:
         # Key : file and column name, Value : column content 
         self.files_matching_dict = {}
 
-        # logger = logging.getLogger("root")
 
     def read_files(self, data):
         """ 
@@ -210,12 +208,22 @@ class Process:
             case ".mflux":
                 self._check_mflux(data, data_path.name)
 
-        # shutil.copy(data_path, self.path_linp_folder)
-
-        self.data_dict.update({data_path.name: data})
+        self.data_dict.update({str(data_path): data})
         
         # Add in dict_vmtf the files extensions without the dot as key and files names as value 
         self.dict_vmtf.update({ext[1:]: data_path.stem})
+
+    def files_copy(self):
+        """
+        Method permit to copy the imported files in the linp folder. 
+        All the files that will be passed to influx_si simulations 
+        have to be in the same folder.
+        """
+        logger.info("Copy of the imported files to folder containing linp files...")
+        
+        for path in self.data_dict.keys():
+            shutil.copy(path, self.path_linp_folder)
+        logger.info("Files have been copied \n")
 
     def check_files_matching(self):
         """ 
@@ -469,21 +477,24 @@ if __name__ == "__main__":
     test_object2 = Process()
     # test_object1.generate_mixes(mix1)
    
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.cnstr")
+    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
+    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
+    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
+    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
+    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.cnstr")
+    print(test_object2.data_dict)
+    # test_object2.read_files(r"../test-data/e_coli.mflux")
+    # test_object2.read_files(r"../test-data/e_coli.miso")
+    # test_object2.read_files(r"../test-data/e_coli.netw")
+    # test_object2.read_files(r"../test-data/e_coli.tvar")
+    # test_object2.read_files(r"../test-data/e_coli.cnstr")
+    
 
     test_object2.generate_mixes(mix2)
 
     test_object2.generate_linp_files("test_mtf")
 
-    test_object2.read_files(r"../test-data/e_coli.mflux")
-    test_object2.read_files(r"../test-data/e_coli.miso")
-    test_object2.read_files(r"../test-data/e_coli.netw")
-    test_object2.read_files(r"../test-data/e_coli.tvar")
-    test_object2.read_files(r"../test-data/e_coli.cnstr")
+    test_object2.files_copy()
     # test_object2.check_files_matching()
     test_object2.generate_vmtf_file()
     # # test_object1.influx_simulation()
