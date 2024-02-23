@@ -477,17 +477,17 @@ if __name__ == "__main__":
     test_object2 = Process()
     # test_object1.generate_mixes(mix1)
    
-    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
-    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
-    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
-    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
-    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.cnstr")
-    print(test_object2.data_dict)
-    # test_object2.read_files(r"../test-data/e_coli.mflux")
-    # test_object2.read_files(r"../test-data/e_coli.miso")
-    # test_object2.read_files(r"../test-data/e_coli.netw")
-    # test_object2.read_files(r"../test-data/e_coli.tvar")
-    # test_object2.read_files(r"../test-data/e_coli.cnstr")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.mflux")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.miso")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.netw")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.tvar")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.cnstr")
+    
+    test_object2.read_files(r"../test-data/e_coli.mflux")
+    test_object2.read_files(r"../test-data/e_coli.miso")
+    test_object2.read_files(r"../test-data/e_coli.netw")
+    test_object2.read_files(r"../test-data/e_coli.tvar")
+    test_object2.read_files(r"../test-data/e_coli.cnstr")
     
 
     test_object2.generate_mixes(mix2)
