@@ -1,11 +1,15 @@
 import pytest 
 import pandas as pd
-from isodesign.process.calculation import Isotopomer, LabelInput, Process
+from isodesign.process.calculation import Isotopomer
 
 @pytest.fixture
 def isotopomer():
     return Isotopomer("Gluc", "111111", 10, 0, 100)
 
-# @pytest.fixture
-# def LabelInput():
-#     return LabelInput()
+@pytest.fixture
+def label_input():
+    gluc_u = Isotopomer("Gluc", "111111", 10, 0, 100)
+    gluc_1 = Isotopomer("Gluc", "100000", 10, 0, 100)
+    isotopomers_group = {"glucose" : [gluc_u, gluc_1]}
+    return isotopomers_group
+

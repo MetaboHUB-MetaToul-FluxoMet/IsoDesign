@@ -1,7 +1,7 @@
 from decimal import Decimal
 import numpy as np
 import pytest
-import isodesign
+from isodesign.process.calculation import LabelInput
 
 
 def test_isotopomer_creation(isotopomer):
@@ -25,3 +25,10 @@ def test_fractions_generation(isotopomer):
     
     assert isinstance(fractions, np.ndarray)
     
+def test_generate_labelling_combinations(label_input):
+    isotopomers_group = LabelInput(label_input)
+    isotopomers_group.generate_labelling_combinations()
+    assert "glucose" in isotopomers_group.isotopomers_combination
+    for combination in isotopomers_group.isotopomers_combination.values():
+        for pair in combination: 
+            assert sum(pair) == 1 
