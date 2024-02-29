@@ -10,6 +10,7 @@ from decimal import Decimal
 import pandas as pd
 import numpy as np
 
+
 logging.basicConfig(format= " %(levelname)s:%(name)s: Method %(funcName)s: %(message)s")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -115,7 +116,7 @@ class LabelInput:
         self.isotopomer_combination = {}
         # Isotopomer names and labelling patterns.
         self.names = []
-        self.labellin_patterns = []
+        self.labelling_patterns = []
 
     def generate_labelling_combinations(self):
         """
@@ -141,7 +142,7 @@ class LabelInput:
             self.isotopomer_combination[isotopomer_name] = np.column_stack((deduced_fraction, filtered_combinations))
             
             self.names += [isotopomers.name for isotopomers in isotopomer]
-            self.labellin_patterns += [isotopomers.labelling for isotopomers in isotopomer]
+            self.labelling_patterns += [isotopomers.labelling for isotopomers in isotopomer]
             
         if len(self.isotopomer_group) > 1 :
             # Addition of a key containing all isotopomers group combination if there is multiple isotopomers group 
@@ -274,14 +275,14 @@ class Process:
             raise ValueError(msg)
 
         # Add reaction names without the ":" separator as sets  
-        self.files_matching_dict.update({"netw_reactions_name": set(reaction[:-1] for reaction in data.iloc[:, 0])})
-        # Add only metabolites and atom mapping to the dictionary 
-        netw_metabolite = set()
-        for reactions in data.iloc[:, 1]:
-            for element in reactions.split():
-                if element not in ["<->", "->", "+"]:
-                    netw_metabolite.add(element)
-        self.files_matching_dict.update({"netw_metabolite": netw_metabolite})
+        # self.files_matching_dict.update({"netw_reactions_name": set(reaction[:-1] for reaction in data.iloc[:, 0])})
+        # # Add only metabolites and atom mapping to the dictionary 
+        # netw_metabolite = set()
+        # for reactions in data.iloc[:, 1]:
+        #     for element in reactions.split():
+        #         if element not in ["<->", "->", "+"]:
+        #             netw_metabolite.add(element)
+        # # self.files_matching_dict.update({"netw_metabolite": netw_metabolite})
 
     def _check_tvar(self, data, filename):
         """
@@ -315,7 +316,7 @@ class Process:
                 raise ValueError(msg)
             
         # Add reactions in the "Name" column with NET fluxes only
-        self.files_matching_dict.update({"tvar_reactions_name": set(data.loc[data["Kind"] == "NET", "Name"])})
+        # self.files_matching_dict.update({"tvar_reactions_name": set(data.loc[data["Kind"] == "NET", "Name"])})
 
     def _check_miso(self, data, filename):
         """
@@ -337,8 +338,8 @@ class Process:
         for x in self.NUMERICAL_COLUMNS:
             self._check_numerical_columns(data[x], filename)
 
-        # Add species
-        self.files_matching_dict.update({"miso_species": set(data["Specie"])})
+        # # Add species
+        # self.files_matching_dict.update({"miso_species": set(data["Specie"])})
 
     def _check_mflux(self, data, filename):
         """
@@ -360,8 +361,8 @@ class Process:
         for x in self.NUMERICAL_COLUMNS:
             self._check_numerical_columns(data[x], filename)
 
-        # Add fluxes 
-        self.files_matching_dict.update({"mflux_flux": set(data["Flux"])})
+        # # Add fluxes 
+        # self.files_matching_dict.update({"mflux_flux": set(data["Flux"])})
 
     def _check_numerical_columns(self, column, file_name):
         """ 
@@ -375,10 +376,10 @@ class Process:
             # Convert all values to float to avoid other value types
             try:
                 float(x)
-            except TypeError:
+            except ValueError:
                 msg = f"'{x}' from {file_name} is incorrect. Only numerical values are accepted in {column.name} column."
                 logger.error(msg)
-                raise TypeError(msg)
+                raise ValueError(msg)
 
     def generate_mixes(self, isotopomers_group: dict):
         """
@@ -391,7 +392,7 @@ class Process:
         # LabelInput class object contained isotopomers group combinations 
         self.labelinput = LabelInput(isotopomers_group)
         self.labelinput.generate_labelling_combinations()
-        logger.info(f"Isotopomers : {self.labelinput.names} {self.labelinput.labellin_patterns}\n")
+        logger.info(f"Isotopomers : {self.labelinput.names} {self.labelinput.labelling_patterns}\n")
         logger.debug(f"Isotopomers combinations : {self.labelinput.isotopomer_combination}")
 
     def generate_linp_files(self, output_path: str):
@@ -421,7 +422,7 @@ class Process:
                                     'Value': []})
 
                 df["Specie"] = list(self.labelinput.names)
-                df["Isotopomer"] = list(self.labelinput.labellin_patterns) 
+                df["Isotopomer"] = list(self.labelinput.labelling_patterns) 
                 df["Value"] = pair
                 df = df.loc[df["Value"] != 0]
                 logger.debug(f"Folder path : {self.path_linp_folder}\n Dataframe {index}:\n {df}")
@@ -467,7 +468,8 @@ class Process:
         # check parameter tells subprocess.run to throw an exception if the command fails
         # If the command returns a non-zero return value, this usually indicates an error 
         subprocess.run(["influx_s", "--prefix", prefix, "--mtf", f"{prefix}.vmtf", "--noopt"], check=True)
-
+       
+    
 
 if __name__ == "__main__":
     gluc_u = Isotopomer("Gluc", "111111", 10, 0, 100)
@@ -487,23 +489,23 @@ if __name__ == "__main__":
     test_object2 = Process()
     # test_object1.generate_mixes(mix1)
    
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.mflux")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.miso")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.netw")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.tvar")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.cnstr")
+    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.mflux")
+    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.miso")
+    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.netw")
+    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.tvar")
+    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.cnstr")
     
-    test_object2.read_files(r"../test-data/design_test_1.mflux")
-    test_object2.read_files(r"../test-data/design_test_1.miso")
-    test_object2.read_files(r"../test-data/design_test_1.netw")
-    test_object2.read_files(r"../test-data/design_test_1.tvar")
+    # test_object2.read_files(r"../test-data/design_test_1.mflux")
+    # test_object2.read_files(r"../test-data/design_test_1.miso")
+    # test_object2.read_files(r"../test-data/design_test_1.netw")
+    # test_object2.read_files(r"../test-data/design_test_1.tvar")
     # test_object2.read_files(r"../test-data/design_test_1.cnstr")
 
     test_object2.generate_mixes(mix1)
 
     test_object2.generate_linp_files("test_mtf")
 
-    # test_object2.files_copy()
+    test_object2.files_copy()
     # # test_object2.check_files_matching()
     test_object2.generate_vmtf_file()
     # test_object2.influx_simulation()
