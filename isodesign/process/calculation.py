@@ -461,14 +461,14 @@ class Process:
         """
         Methode using influx_si for the test by using subprocess
         """
-
+        logger.info("Influx_s is running...")
         # Going to the folder containing all the file to use for influx_si
         os.chdir(self.path_linp_folder)
         prefix = self.dict_vmtf["netw"]
         # check parameter tells subprocess.run to throw an exception if the command fails
         # If the command returns a non-zero return value, this usually indicates an error 
         subprocess.run(["influx_s", "--prefix", prefix, "--mtf", f"{prefix}.vmtf", "--noopt"], check=True)
-       
+        logger.info("You can check your results in the current directory")
     
 
 if __name__ == "__main__":
@@ -487,7 +487,6 @@ if __name__ == "__main__":
     # # Create Process class objects
     test_object1 = Process()
     test_object2 = Process()
-    # test_object1.generate_mixes(mix1)
    
     test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.mflux")
     test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.miso")
@@ -508,5 +507,5 @@ if __name__ == "__main__":
     test_object2.files_copy()
     # # test_object2.check_files_matching()
     test_object2.generate_vmtf_file()
-    # test_object2.influx_simulation()
+    test_object2.influx_simulation()
     
