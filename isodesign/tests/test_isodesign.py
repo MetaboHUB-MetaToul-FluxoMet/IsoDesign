@@ -135,3 +135,9 @@ def test_generation_linp_empty_combination_list(process):
     with pytest.raises(AttributeError):
         process.labelinput.isotopomer_combination["combinations"] = None
         process.generate_linp_files("output_path")
+
+def test_generation_vmtf_file_empty_dict(process):
+    with pytest.raises(AttributeError):
+        process.dict_vmtf = None
+        process.generate_vmtf_file()
+
