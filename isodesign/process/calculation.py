@@ -105,7 +105,7 @@ class LabelInput:
         """
         Class containing the logic for handling labelling input generation.
 
-        :param isotopomers_group: dictionary containing as key substrate name of the isotopomer group
+        :param isotopomer_group: dictionary containing as key substrate name of the isotopomer group
                                 and as values a list of isotopomer 
         """
         
@@ -130,7 +130,6 @@ class LabelInput:
             fractions = [fracs.generate_fraction() for fracs in isotopomer[1:]]
             # fractions : list containing vectors of fractions each isotopomer 
             # np.meshgrid is used to return matrices corresponding to all possible combinations of the various vectors present in fractions list
-            # 
             # -1 parameter in reshape permit to adjusts the size of the first dimension (rows) according to the total number of elements in the array
             all_combinations = np.array(np.meshgrid(*fractions)).T.reshape(-1, len(fractions))
             filtered_combinations = np.array([combination for combination in all_combinations if np.sum(combination) <= Decimal(1)])
@@ -159,6 +158,7 @@ class Process:
     MISO_COLUMNS = ["Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time"]
     TVAR_COLUMNS = ["Name", "Kind", "Type", "Value"]
     MFLUX_COLUMNS = ["Flux", "Value", "SD"]
+    CNSTR_COLUMNS = ["Kind", "Formula", "Operator", "Value"]
     NUMERICAL_COLUMNS = ["Value", "SD"]
 
     def __init__(self):
@@ -174,6 +174,7 @@ class Process:
         # Path to the folder containing all the linp files
         self.path_linp_folder = None
 
+        self.prefix = None
         # Dictionary contained the columns to check between the different imported files in the check_files method
         # Key : file and column name, Value : column content 
         self.files_matching_dict = {}
@@ -209,20 +210,20 @@ class Process:
         logger.info("Data importation...")
         logger.info(f"\nImported file : {data_path.name}\n Data :\n {data}\n")
 
-        match ext:
-            case ".tvar":
-                self._check_tvar(data, data_path.name)
-            case ".netw":
-                self._check_netw(data, data_path.name)
-            case ".miso":
-                self._check_miso(data, data_path.name)
-            case ".mflux":
-                self._check_mflux(data, data_path.name)
+        # match ext:
+        #     # case ".tvar":
+        #     #     self._check_tvar(data, data_path.name)
+        #     case ".netw":
+        #         self._check_netw(data, data_path.name)
+            # case ".miso":
+            #     self._check_miso(data, data_path.name)
+            # case ".mflux":
+            #     self._check_mflux(data, data_path.name)
+
 
         self.data_dict.update({str(data_path): data})
+        self.prefix = data_path.stem
         
-        # Add in dict_vmtf the files extensions without the dot as key and files names as value 
-        self.dict_vmtf.update({ext[1:]: data_path.stem})
 
     def files_copy(self):
         """
@@ -364,6 +365,7 @@ class Process:
         # # Add fluxes 
         # self.files_matching_dict.update({"mflux_flux": set(data["Flux"])})
 
+
     def _check_numerical_columns(self, column, file_name):
         """ 
         Check that column contain numerical values.
@@ -428,7 +430,7 @@ class Process:
                 logger.debug(f"Folder path : {self.path_linp_folder}\n Dataframe {index}:\n {df}")
 
                 df.to_csv(os.path.join(str(output_path), f"file_{index}.linp"), sep="\t", index=False)   
-                f.write(f"File {index} - {self.labelinput.names}\n {[float(decimal_value) for decimal_value in pair]} \n") 
+                f.write(f"File {index} - {self.labelinput.names}\n \t {self.labelinput.labelling_patterns}\n \t {[float(decimal_value) for decimal_value in pair]} \n") 
                 # Add a new key "linp" with all the combinations as value
                 self.dict_vmtf.update({"linp":  [f"file_{number_file}" for number_file in range(1, index)]})
         logger.debug(f"Elements in the vmtf dictionary {self.dict_vmtf}")
@@ -451,7 +453,7 @@ class Process:
         df["ftbl"] = self.dict_vmtf["linp"]
 
         logger.debug(f"Creation of the vmtf file containing these files :\n {df}")
-        vmtf_file_name = self.dict_vmtf["netw"]
+        vmtf_file_name = self.prefix
         df.to_csv(f"{self.path_linp_folder}/{vmtf_file_name}.vmtf", sep="\t", index=False)
         
         logger.info("Vmtf file has been generated in the linp folder.")
@@ -464,13 +466,12 @@ class Process:
         logger.info("Influx_s is running...")
         # Going to the folder containing all the file to use for influx_si
         os.chdir(self.path_linp_folder)
-        prefix = self.dict_vmtf["netw"]
         # check parameter tells subprocess.run to throw an exception if the command fails
         # If the command returns a non-zero return value, this usually indicates an error 
-        subprocess.run(["influx_s", "--prefix", prefix, "--mtf", f"{prefix}.vmtf", "--noopt"], check=True)
+        subprocess.run(["influx_s", "--prefix", self.prefix, "--mtf", f"{self.prefix}.vmtf", "--noopt"], check=True)
         logger.info("You can check your results in the current directory")
+           
     
-
 if __name__ == "__main__":
     gluc_u = Isotopomer("Gluc", "111111", 10, 0, 100)
     gluc_1 = Isotopomer("Gluc", "100000", 10, 0, 100)
@@ -488,24 +489,24 @@ if __name__ == "__main__":
     test_object1 = Process()
     test_object2 = Process()
    
-    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.mflux")
-    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.miso")
-    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.netw")
-    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.tvar")
-    test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.cnstr")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.mflux")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.miso")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.netw")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.tvar")
+    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\design_test_1.cnstr")
     
-    # test_object2.read_files(r"../test-data/design_test_1.mflux")
-    # test_object2.read_files(r"../test-data/design_test_1.miso")
-    # test_object2.read_files(r"../test-data/design_test_1.netw")
-    # test_object2.read_files(r"../test-data/design_test_1.tvar")
-    # test_object2.read_files(r"../test-data/design_test_1.cnstr")
+    test_object2.read_files(r"../test-data/design_test_1.mflux")
+    test_object2.read_files(r"../test-data/design_test_1.miso")
+    test_object2.read_files(r"../test-data/design_test_1.netw")
+    test_object2.read_files(r"../test-data/design_test_1.tvar")
+    test_object2.read_files(r"../test-data/design_test_1.cnstr")
 
     test_object2.generate_mixes(mix1)
 
     test_object2.generate_linp_files("test_mtf")
 
     test_object2.files_copy()
-    # # test_object2.check_files_matching()
     test_object2.generate_vmtf_file()
     test_object2.influx_simulation()
+    
     
