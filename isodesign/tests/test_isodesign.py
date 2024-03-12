@@ -59,15 +59,15 @@ def test_generate_labelling_combinations(label_input):
 
 def test_read_files_invalid_input(process):
     with pytest.raises(TypeError):
-        process.read_files(123)
+        process.read_file(123)
     
     with pytest.raises(ValueError):
         invalid_path = Path(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli2.txt")
-        process.read_files(str(invalid_path.resolve()))
+        process.read_file(str(invalid_path.resolve()))
    
     with pytest.raises(ValueError):
         invalid_ext = Path(r"U:\Projet\IsoDesign\isodesign\test-data\e_coli.txt")
-        process.read_files(str(invalid_ext.resolve()))
+        process.read_file(str(invalid_ext.resolve()))
  
 
 def test_invalid_netw_file(process):

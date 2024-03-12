@@ -197,7 +197,7 @@ class Process:
         # Key : file and column name, Value : column content 
         self.files_matching_dict = {}
 
-    def read_files(self, data):
+    def read_file(self, data):
         """ 
         Read tvar, mflux, miso, cnstr and netw files (csv or tsv)
 
@@ -241,6 +241,16 @@ class Process:
 
         self.data_dict.update({str(data_path): data})
         logger.debug(f"data_dict : {self.data_dict}")
+
+    def initialize_data(self, directory):
+
+        input_dir = Path(directory).resolve()
+        logger.debug(f"Input data directory = {input_dir}")
+
+        for file in input_dir.iterdir():
+            self.read_file(str(file))
+        self.prefix = Path([key for key in self.data_dict.keys()][0]).stem
+        logger.debug(f"Data dict = {self.data_dict}")
 
     def files_copy(self):
         """
@@ -563,23 +573,25 @@ if __name__ == "__main__":
 
     test_object2 = Process()
 
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.mflux")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.miso")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.netw")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.tvar")
-    # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.cnstr")
+    # test_object2.read_file(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.mflux")
+    # test_object2.read_file(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.miso")
+    # test_object2.read_file(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.netw")
+    # test_object2.read_file(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.tvar")
+    # test_object2.read_file(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.cnstr")
 
-    # test_object2.read_files(r"../isodesign/test-data/acetate_LLE\design_test_1.mflux")
-    # test_object2.read_files(r"../test-data/acetate_LLE\design_test_1.miso")
-    # test_object2.read_files(r"../test-data/acetate_LLE\design_test_1.netw")
-    # test_object2.read_files(r"../test-data/acetate_LLE\design_test_1.tvar")
-    # test_object2.read_files(r"../test-data/acetate_LLE\design_test_1.cnstr")
+    test_object2.initialize_data(r"C:\Users\legregam\PycharmProjects\IsoDesign\isodesign\test-data\acetate_LLE")
 
-    # test_object2.generate_combinations(mix1)
-    # test_object2.generate_linp_files("test_mtf")
+    # test_object2.read_file(r"../test-data/acetate_LLE\design_test_1.mflux")
+    # test_object2.read_file(r"../test-data/acetate_LLE\design_test_1.miso")
+    # test_object2.read_file(r"../test-data/acetate_LLE\design_test_1.netw")
+    # test_object2.read_file(r"../test-data/acetate_LLE\design_test_1.tvar")
+    # test_object2.read_file(r"../test-data/acetate_LLE\design_test_1.cnstr")
+    #
+    test_object2.generate_combinations(mix1)
+    test_object2.generate_linp_files("./isodesign/process/test_data/acetate_LLE/test_mtf")
 
-    # test_object2.files_copy()
-    # test_object2.generate_vmtf_file()
-    # test_object2.influx_simulation()
+    test_object2.files_copy()
+    test_object2.generate_vmtf_file()
+    test_object2.influx_simulation()
     test_object2.output_parser()
 
