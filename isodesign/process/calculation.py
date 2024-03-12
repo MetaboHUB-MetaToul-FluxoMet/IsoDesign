@@ -126,7 +126,7 @@ class LabelInput:
         """
         # logger.debug(f"Isotopologue groups:\n{self.isotopomer_group}")
         for isotopomer_name, isotopomer in self.isotopomer_group.items():
-            # logger.debug(f"Running combinatory function on {isotopomer_name}")
+            logger.debug(f"Running combinatory function on {isotopomer_name}")
             # For all isotopomers present, all possible fractions are generated except for the first 
             # First isotopomer's fraction will be deduced from the other ones
             if len(isotopomer) > 1:
@@ -139,8 +139,6 @@ class LabelInput:
             # -1 parameter in reshape permit to adjusts the size of the first dimension (rows) according to the total number of elements in the array
             all_combinations = np.array(np.meshgrid(*fractions)).T.reshape(-1, len(fractions))
             logger.debug(f"List of all combinations:\n{all_combinations}")
-            # filtered_combinations = np.empty_like(all_combinations)
-            # if len(all_combinations) > 1:
 
             logger.debug("filtering combinations...")
             filtered_combinations = np.array(
@@ -150,15 +148,13 @@ class LabelInput:
             # Calculate the difference between 1 and the sum of the fractions of the other isotopomers  
             # Total sum of all fractions must equal 1
             # Permit to find the fractions of the last isotopomer
-            deduced_fraction = np.array([])
             if len(filtered_combinations) > 1:
-                deduced_fraction = np.append(deduced_fraction,
-                                             np.subtract(np.ones([len(filtered_combinations)], dtype=Decimal),
-                                                         filtered_combinations.sum(axis=1)))
+                deduced_fraction = np.array([np.subtract(np.ones([len(filtered_combinations)], dtype=Decimal),
+                                                         filtered_combinations.sum(axis=1))]).reshape(len(filtered_combinations),1)
+                self.isotopomer_combination[isotopomer_name] = np.column_stack((deduced_fraction, filtered_combinations))
             else:
-                deduced_fraction = np.append(deduced_fraction, filtered_combinations)
-            self.isotopomer_combination[isotopomer_name] = np.column_stack((deduced_fraction, filtered_combinations))
-
+                self.isotopomer_combination[isotopomer_name] = filtered_combinations
+            
             self.names += [isotopomers.name for isotopomers in isotopomer]
             self.labelling_patterns += [isotopomers.labelling for isotopomers in isotopomer]
 
@@ -229,6 +225,8 @@ class Process:
 
         data = pd.read_csv(str(data_path), sep="\t", comment="#", header=None if ext == ".netw" else 'infer')
         logger.info("Data import...")
+        logger.info(f"Importing data from {data_path.name} \nImported data: \n{data}")
+
         logger.debug(f"\nImported file : {data_path.name}\n Data :\n {data}\n")
 
         # match ext:
@@ -442,7 +440,7 @@ class Process:
 
                 df["Specie"] = list(self.labelinput.names)
                 df["Isotopomer"] = list(self.labelinput.labelling_patterns)
-                df["Value"] = pd.Series(pair)
+                df["Value"] = list(pair)
                 df = df.loc[df["Value"] != 0]
                 logger.debug(f"Folder path : {self.path_linp_folder}\n Dataframe {index}:\n {df}")
 
@@ -488,6 +486,14 @@ class Process:
         subprocess.run(["influx_s", "--prefix", self.prefix, "--mtf", f"{self.prefix}.vmtf", "--noopt"], check=True)
         logger.info("You can check your results in the current directory")
 
+    def output_parser(self):
+        """ 
+        Using the output_parser class
+        """
+        output_parser_object = OutputParser()
+        output_parser_object.get_initial_tvar_value(self.data_dict)
+        output_parser_object.read_tvar_sim_files()
+        output_parser_object.generate_output_dataframe()
 
 class OutputParser:
     def __init__(self):
@@ -496,17 +502,16 @@ class OutputParser:
         # To get data from the initial tvar file 
         self.imported_tvar = None
 
-    def get_initial_tvar_value(self, process_object: Process):
+    def get_initial_tvar_value(self, data_dict : dict):
         """ 
         Retrieves the contents of the imported tvar file from 
         the dictionary data_dict stored in the Process class 
 
-        :param process_object : Process object with data_dict 
-                                dictionary containing imported 
-                                files and their contents
+        :param data_dict : dictionary containing imported 
+                            files and their contents
         """
 
-        for files, content in process_object.data_dict.items():
+        for files, content in data_dict.items():
             if files.endswith('.tvar'):
                 self.imported_tvar = content
         logger.debug(f"Self.initial_tvar : {self.imported_tvar}")
@@ -576,8 +581,5 @@ if __name__ == "__main__":
     # test_object2.files_copy()
     # test_object2.generate_vmtf_file()
     # test_object2.influx_simulation()
+    test_object2.output_parser()
 
-    test = OutputParser()
-    test.get_initial_tvar_value(test_object2)
-    test.read_tvar_sim_files()
-    test.generate_output_dataframe()
