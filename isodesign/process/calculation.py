@@ -4,16 +4,16 @@ from pathlib import Path
 
 import subprocess
 import os
-import shutil 
+import shutil
 import logging
 from decimal import Decimal
 import pandas as pd
 import numpy as np
 
-
-logging.basicConfig(format= " %(levelname)s:%(name)s: Method %(funcName)s: %(message)s")
+logging.basicConfig(format=" %(levelname)s:%(name)s: Method %(funcName)s: %(message)s")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
 
 # import timeit
 
@@ -39,8 +39,7 @@ class Isotopomer:
         self.upper_bound = upper_bound
 
         self.num_carbon = len(self.labelling)
-       
-        
+
     def generate_fraction(self):
         """
         Generate numpy array containing list of possible fraction 
@@ -50,7 +49,8 @@ class Isotopomer:
         """
 
         # getcontext().prec = 3
-        return np.array([Decimal(fraction)/Decimal(100) for fraction in range(self.lower_bound, self.upper_bound + self.step, self.step)])
+        return np.array([Decimal(fraction) / Decimal(100) for fraction in
+                         range(self.lower_bound, self.upper_bound + self.step, self.step)])
 
     def __len__(self):
         return self.num_carbon
@@ -108,7 +108,7 @@ class LabelInput:
         :param isotopomer_group: dictionary containing as key substrate name of the isotopomer group
                                 and as values a list of isotopomer 
         """
-        
+
         self.isotopomer_group = isotopomer_group
 
         # Container for all label input combinations
@@ -129,7 +129,7 @@ class LabelInput:
             # logger.debug(f"Running combinatory function on {isotopomer_name}")
             # For all isotopomers present, all possible fractions are generated except for the first 
             # First isotopomer's fraction will be deduced from the other ones
-            if len(isotopomer) > 1 :
+            if len(isotopomer) > 1:
                 fractions = [fracs.generate_fraction() for fracs in isotopomer[1:]]
             else:
                 fractions = [fracs.generate_fraction() for fracs in isotopomer]
@@ -141,37 +141,42 @@ class LabelInput:
             logger.debug(f"List of all combinations:\n{all_combinations}")
             # filtered_combinations = np.empty_like(all_combinations)
             # if len(all_combinations) > 1:
-            
+
             logger.debug("filtering combinations...")
-            filtered_combinations = np.array([combination for combination in all_combinations if np.sum(combination) <= Decimal(1)])
+            filtered_combinations = np.array(
+                [combination for combination in all_combinations if np.sum(combination) <= Decimal(1)])
             logger.debug(f"Filtered combinations: \n{filtered_combinations}")
-    
+
             # Calculate the difference between 1 and the sum of the fractions of the other isotopomers  
             # Total sum of all fractions must equal 1
             # Permit to find the fractions of the last isotopomer
             deduced_fraction = np.array([])
-            if len(filtered_combinations)> 1:
-                deduced_fraction = np.append(deduced_fraction, np.subtract(np.ones([len(filtered_combinations)], dtype=Decimal), filtered_combinations.sum(axis=1)))
+            if len(filtered_combinations) > 1:
+                deduced_fraction = np.append(deduced_fraction,
+                                             np.subtract(np.ones([len(filtered_combinations)], dtype=Decimal),
+                                                         filtered_combinations.sum(axis=1)))
             else:
                 deduced_fraction = np.append(deduced_fraction, filtered_combinations)
             self.isotopomer_combination[isotopomer_name] = np.column_stack((deduced_fraction, filtered_combinations))
-            
 
             self.names += [isotopomers.name for isotopomers in isotopomer]
             self.labelling_patterns += [isotopomers.labelling for isotopomers in isotopomer]
-        
-        if len(self.isotopomer_group) > 1 :
+
+        if len(self.isotopomer_group) > 1:
             # Addition of a key containing all isotopomers group combination if there is multiple isotopomers group 
-            self.isotopomer_combination.update({"combinations" : [np.concatenate((*pair,)) for pair in list(product(*self.isotopomer_combination.values()))]})
+            self.isotopomer_combination.update({"combinations": [np.concatenate((*pair,)) for pair in
+                                                                 list(product(*self.isotopomer_combination.values()))]})
         else:
-            self.isotopomer_combination.update({"combinations" : np.column_stack((deduced_fraction, filtered_combinations))})   
-        
+            self.isotopomer_combination.update(
+                {"combinations": np.column_stack((deduced_fraction, filtered_combinations))})
+
+
 class Process:
     """
     Class responsible of most of the processes... 
 
     """
-    FILES_EXTENSION = [".netw", ".tvar", ".mflux", ".miso",".cnstr"]
+    FILES_EXTENSION = [".netw", ".tvar", ".mflux", ".miso", ".cnstr"]
     MISO_COLUMNS = ["Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time"]
     TVAR_COLUMNS = ["Name", "Kind", "Type", "Value"]
     MFLUX_COLUMNS = ["Flux", "Value", "SD"]
@@ -187,7 +192,7 @@ class Process:
 
         # Dictionary containing element to build the vmtf file
         self.dict_vmtf = {"Id": None, "Comment": None}
-        
+
         # Path to the folder containing all the linp files
         self.path_linp_folder = None
 
@@ -196,7 +201,6 @@ class Process:
         # Key : file and column name, Value : column content 
         self.files_matching_dict = {}
 
-
     def read_files(self, data):
         """ 
         Read tvar, mflux, miso, cnstr and netw files (csv or tsv)
@@ -204,19 +208,19 @@ class Process:
         :param data: str containing the path to the file
 
         """
-        
+
         if not isinstance(data, str):
             msg = f"{data} should be of type string and not {type(data)}"
             logger.error(msg)
             raise TypeError(msg)
-            
+
         data_path = Path(data).resolve()
 
         if not data_path.exists():
             msg = f"{data_path} doesn't exist."
             logger.error(msg)
             raise ValueError(msg)
-            
+
         ext = data_path.suffix
         if ext not in self.FILES_EXTENSION:
             msg = f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux, .miso, .cnstr formats are accepted"
@@ -232,10 +236,10 @@ class Process:
         #     #     self._check_tvar(data, data_path.name)
         #     case ".netw":
         #         self._check_netw(data, data_path.name)
-            # case ".miso":
-            #     self._check_miso(data, data_path.name)
-            # case ".mflux":
-            #     self._check_mflux(data, data_path.name)
+        # case ".miso":
+        #     self._check_miso(data, data_path.name)
+        # case ".mflux":
+        #     self._check_mflux(data, data_path.name)
 
         self.data_dict.update({str(data_path): data})
         logger.debug(f"data_dict : {self.data_dict}")
@@ -247,11 +251,11 @@ class Process:
         have to be in the same folder.
         """
         logger.info("Copy of the imported files to folder containing linp files...")
-        
+
         for path in self.data_dict:
             shutil.copy(path, self.path_linp_folder)
         logger.info("Files have been copied \n")
-    
+
     # def check_files_matching(self):
     #     """ 
     #     Check if metabolites and reactions present in 
@@ -272,7 +276,6 @@ class Process:
     #         if specie not in self.files_matching_dict["netw_metabolite"]:
     #             raise ValueError(f"'{specie}' from a miso file is not in the network file")
 
-
     def _check_netw(self, data, filename):
         """
         Check the contents of a netw file. Add reaction names and 
@@ -286,7 +289,7 @@ class Process:
 
         # Checks the file contents
         if len(data.columns) > 2:
-            msg= f"Number of columns isn't correct for {filename} file"
+            msg = f"Number of columns isn't correct for {filename} file"
             logger.error(msg)
             raise ValueError(msg)
 
@@ -313,7 +316,7 @@ class Process:
         # Checks the file contents 
         for x in self.TVAR_COLUMNS:
             if x not in data.columns:
-                msg=f"Columns {x} is missing from {filename}"
+                msg = f"Columns {x} is missing from {filename}"
                 logger.error(msg)
                 raise ValueError(msg)
             if x == "Value":
@@ -327,10 +330,10 @@ class Process:
 
         for x in data["Kind"]:
             if x not in ["NET", "XCH", "METAB"]:
-                msg =  f"'{x} type from {filename} is not accepted in 'Kind' column. Only NET, XCH or METAB type are accepted."
+                msg = f"'{x} type from {filename} is not accepted in 'Kind' column. Only NET, XCH or METAB type are accepted."
                 logger.error(msg)
                 raise ValueError(msg)
-            
+
         # Add reactions in the "Name" column with NET fluxes only
         # self.files_matching_dict.update({"tvar_reactions_name": set(data.loc[data["Kind"] == "NET", "Name"])})
 
@@ -379,7 +382,6 @@ class Process:
 
         # # Add fluxes 
         # self.files_matching_dict.update({"mflux_flux": set(data["Flux"])})
-
 
     def _check_numerical_columns(self, column, file_name):
         """ 
@@ -433,21 +435,22 @@ class Process:
         with open(os.path.join(str(output_path), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
             for index, pair in enumerate(self.labelinput.isotopomer_combination["combinations"], start=1):
                 df = pd.DataFrame({'Id': None,
-                                    'Comment': None,
-                                    'Specie': [],
-                                    'Isotopomer': [],
-                                    'Value': []})
+                                   'Comment': None,
+                                   'Specie': [],
+                                   'Isotopomer': [],
+                                   'Value': []})
 
                 df["Specie"] = list(self.labelinput.names)
-                df["Isotopomer"] = list(self.labelinput.labelling_patterns) 
+                df["Isotopomer"] = list(self.labelinput.labelling_patterns)
                 df["Value"] = pd.Series(pair)
                 df = df.loc[df["Value"] != 0]
                 logger.debug(f"Folder path : {self.path_linp_folder}\n Dataframe {index}:\n {df}")
 
-                df.to_csv(os.path.join(str(output_path), f"file_{index:02d}.linp"), sep="\t", index=False)   
-                f.write(f"File {index} - {self.labelinput.names}\n \t {self.labelinput.labelling_patterns}\n \t {[float(decimal_value) for decimal_value in pair]} \n") 
+                df.to_csv(os.path.join(str(output_path), f"file_{index:02d}.linp"), sep="\t", index=False)
+                f.write(
+                    f"File {index} - {self.labelinput.names}\n \t {self.labelinput.labelling_patterns}\n \t {[float(decimal_value) for decimal_value in pair]} \n")
                 # Add a new key "linp" with all the combinations as value
-                self.dict_vmtf.update({"linp":  [f"file_{number_file:02d}" for number_file in range(1, index)]})
+                self.dict_vmtf.update({"linp": [f"file_{number_file:02d}" for number_file in range(1, index)]})
         logger.debug(f"Elements in the vmtf dictionary {self.dict_vmtf}")
         logger.info("Folder containing linp files has been generated on your current directory.\n")
 
@@ -459,7 +462,7 @@ class Process:
         imported files names that will be used to produce a ftbl file used in the calculation. 
         Each row have ftbl column with unique and non empty name. 
         """
-        
+
         # Value convert into Series 
         # Permit to create a dataframe from a dictionary where keys have different length of value   
         df = pd.DataFrame.from_dict({key: pd.Series(value) for key, value in self.dict_vmtf.items()})
@@ -470,9 +473,8 @@ class Process:
         logger.debug(f"Creation of the vmtf file containing these files :\n {df}")
         vmtf_file_name = self.prefix
         df.to_csv(f"{self.path_linp_folder}/{vmtf_file_name}.vmtf", sep="\t", index=False)
-        
-        logger.info("Vmtf file has been generated in the linp folder.")
 
+        logger.info("Vmtf file has been generated in the linp folder.")
 
     def influx_simulation(self):
         """
@@ -486,15 +488,15 @@ class Process:
         subprocess.run(["influx_s", "--prefix", self.prefix, "--mtf", f"{self.prefix}.vmtf", "--noopt"], check=True)
         logger.info("You can check your results in the current directory")
 
-           
+
 class OutputParser:
     def __init__(self):
         # Dictionary containing element to build the output dataframe
         self.dict_output_dataframe = {}
         # To get data from the initial tvar file 
-        self.imported_tvar = None 
+        self.imported_tvar = None
 
-    def get_initial_tvar_value(self, process_object : Process):
+    def get_initial_tvar_value(self, process_object: Process):
         """ 
         Retrieves the contents of the imported tvar file from 
         the dictionary data_dict stored in the Process class 
@@ -508,7 +510,7 @@ class OutputParser:
             if files.endswith('.tvar'):
                 self.imported_tvar = content
         logger.debug(f"Self.initial_tvar : {self.imported_tvar}")
-        
+
     def read_tvar_sim_files(self):
         """
         Read tvar.sim files and add data of interest to dict_output_dataframe
@@ -528,11 +530,11 @@ class OutputParser:
 
         for files_path in tvar_sim_paths:
             output_data = pd.read_csv(files_path, sep="\t")
-            self.dict_output_dataframe.update({"Flux Name" : output_data["Name"]})
-            self.dict_output_dataframe.update({"Kind" : output_data["Kind"]})
-            self.dict_output_dataframe.update({"Value" : output_data["Value"]})
-            self.dict_output_dataframe.update({"Value Difference" : imported_tvar["Value"] - output_data["Value"]})
-            self.dict_output_dataframe.update({f"{files_path.name}_SD" : output_data['SD']})
+            self.dict_output_dataframe.update({"Flux Name": output_data["Name"]})
+            self.dict_output_dataframe.update({"Kind": output_data["Kind"]})
+            self.dict_output_dataframe.update({"Value": output_data["Value"]})
+            self.dict_output_dataframe.update({"Value Difference": imported_tvar["Value"] - output_data["Value"]})
+            self.dict_output_dataframe.update({f"{files_path.name}_SD": output_data['SD']})
         logger.debug(f"dict_output_dataframe: {self.dict_output_dataframe}")
 
     def generate_output_dataframe(self):
@@ -543,7 +545,6 @@ class OutputParser:
         logger.debug(f"output dataframe {output_dataframe}")
 
 
-
 if __name__ == "__main__":
     gluc_u = Isotopomer("Gluc", "111111", 10, 0, 100)
     gluc_1 = Isotopomer("Gluc", "100000", 10, 0, 100)
@@ -552,17 +553,17 @@ if __name__ == "__main__":
     mix1 = {
         "gluc": [gluc_1, gluc_u],
         "fthf": [fthf],
-        "co2" : [co2]
+        "co2": [co2]
     }
-   
+
     test_object2 = Process()
-    
+
     # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.mflux")
     # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.miso")
     # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.netw")
     # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.tvar")
     # test_object2.read_files(r"U:\Projet\IsoDesign\isodesign\test-data\acetate_LLE\design_test_1.cnstr")
-    
+
     # test_object2.read_files(r"../isodesign/test-data/acetate_LLE\design_test_1.mflux")
     # test_object2.read_files(r"../test-data/acetate_LLE\design_test_1.miso")
     # test_object2.read_files(r"../test-data/acetate_LLE\design_test_1.netw")
@@ -575,7 +576,7 @@ if __name__ == "__main__":
     # test_object2.files_copy()
     # test_object2.generate_vmtf_file()
     # test_object2.influx_simulation()
-    
+
     test = OutputParser()
     test.get_initial_tvar_value(test_object2)
     test.read_tvar_sim_files()
