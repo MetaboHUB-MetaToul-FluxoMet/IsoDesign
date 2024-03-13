@@ -7,6 +7,9 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+pandas = "^2.1.4"
+numpy = "^1.26.4"
+influx-si = "^7.0.2"
 
 
 [build-system]
