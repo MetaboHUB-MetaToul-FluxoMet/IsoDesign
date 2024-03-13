@@ -173,14 +173,9 @@ class Process:
 
     """
     FILES_EXTENSION = [".netw", ".tvar", ".mflux", ".miso", ".cnstr"]
-    MISO_COLUMNS = ["Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time"]
-    TVAR_COLUMNS = ["Name", "Kind", "Type", "Value"]
-    MFLUX_COLUMNS = ["Flux", "Value", "SD"]
-    CNSTR_COLUMNS = ["Kind", "Formula", "Operator", "Value"]
-    NUMERICAL_COLUMNS = ["Value", "SD"]
 
     def __init__(self):
-        # Dictionary to store imported file contents. Keys are files path, contents are stored as values
+        # Dictionary to store imported file contents. Keys are files name, tuple with file path and contents as values
         self.data_dict = {}
         # LabelInput object
         # To use the generate_labelling_combinations method
@@ -191,7 +186,10 @@ class Process:
 
         # Path to the folder containing all the linp files
         self.path_input_folder = None
+        # Path to the folder containing the files created by Isodesign
         self.path_isodesign_folder = None
+        # File names without extensions
+        # Used for influx_s
         self.prefix = None
 
     def read_file(self, data):
@@ -223,23 +221,22 @@ class Process:
         if ext in self.FILES_EXTENSION:
             data = pd.read_csv(str(data_path), sep="\t", comment="#", header=None if ext == ".netw" else 'infer')
             self.data_dict.update({data_path.name: (data_path, data)})
+
             self.prefix = data_path.stem
         
-        # logger.info("Data import...")
-        # logger.info(f"Importing data from {data_path.name} \nImported data: \n{data}")
-
-        # logger.debug(f"\nImported file : {data_path.name}\n Data :\n {data}\n")
-
-        
-        # logger.debug(f"data_dict : {self.data_dict}")
 
     def initialize_data(self, directory):
+        """
+        Imports all files in a folder
 
-        self.path_input_folder = Path(directory).resolve()
-        logger.debug(f"Input data directory = {self.path_input_folder}")
+        :param directory: folder path 
+        """
+        self.path_input_folder = Path(directory)
+        logger.debug(f"Input folder directory = {self.path_input_folder}")
 
         for file in self.path_input_folder.iterdir():
             self.read_file(str(file))
+
         logger.debug(f"Prefix {self.prefix}")
         logger.debug(f"Data dict = {self.data_dict}")
 
@@ -255,7 +252,6 @@ class Process:
             logger.debug(f"path {path[0]}")
             shutil.copy(path[0], self.path_isodesign_folder)
         logger.info("Files have been copied \n")
-
 
     def generate_combinations(self, isotopomers_group: dict):
         """
@@ -283,7 +279,7 @@ class Process:
         """
 
         # Create the folder that stock linp files if is doesn't exist
-        self.path_isodesign_folder = Path(self.path_input_folder/"Isodesign")
+        self.path_isodesign_folder = Path(self.path_input_folder/"test_isodesign")
         if not os.path.exists(self.path_isodesign_folder):
             os.makedirs(self.path_isodesign_folder)
         
@@ -309,6 +305,7 @@ class Process:
                     f"File {index} - {self.labelinput.names}\n \t {self.labelinput.labelling_patterns}\n \t {[float(decimal_value) for decimal_value in pair]} \n")
                 # Add a new key "linp" with all the combinations as value
                 self.dict_vmtf.update({"linp": [f"file_{number_file:02d}" for number_file in range(1, index+1)]})
+        
         logger.debug(f"Elements in the vmtf dictionary {self.dict_vmtf}")
         logger.info("Folder containing linp files has been generated on your current directory.\n")
 
@@ -347,28 +344,40 @@ class Process:
         subprocess.run(["influx_s", "--prefix", self.prefix, "--mtf", f"{self.prefix}.vmtf", "--noopt"], check=True)
         logger.info("You can check your results in the current directory")
     
-    def main(self, process_object, isotopomer_dict : dict):
-        process_object.generate_combinations(isotopomer_dict)
-        process_object.generate_linp_files()
-        process_object.files_copy()
-        process_object.generate_vmtf_file()
-        process_object.influx_simulation()
-
-    def output_parser(self):
+    def handling_output_data(self):
         """ 
         Using the output_parser class
         """
         output_parser_object = OutputParser()
         output_parser_object.get_initial_tvar_value(self.data_dict)
-        output_parser_object.read_tvar_sim_files()
+        output_parser_object.read_tvar_sim_files(self.path_isodesign_folder)
         output_parser_object.generate_output_dataframe()
+        output_parser_object.apply_score("sum_sd")
+
+    def main(self, isotopomer_dict : dict):
+        self.generate_combinations(isotopomer_dict)
+        self.generate_linp_files()
+        # self.files_copy()
+        # self.generate_vmtf_file()
+        # self.influx_simulation()
+        self.handling_output_data()
+   
 
 class OutputParser:
     def __init__(self):
+
+        # Dictionary containing the scoring name as the key and the function to be applied as the value 
+        self.SCORES = {
+            "sum_sd" : self.apply_sum_sd, 
+            "flux_sd" : self.apply_flux_number
+            }
+
         # Dictionary containing element to build the output dataframe
         self.dict_output_dataframe = {}
         # To get data from the initial tvar file 
         self.imported_tvar = None
+        # the output dataframe
+        self.output_dataframe = None
 
     def get_initial_tvar_value(self, data_dict : dict):
         """ 
@@ -384,7 +393,7 @@ class OutputParser:
                 self.imported_tvar = content[1]
         logger.debug(f"Self.initial_tvar : {self.imported_tvar}")
 
-    def read_tvar_sim_files(self):
+    def read_tvar_sim_files(self, path_folder):
         """
         Read tvar.sim files and add data of interest to dict_output_dataframe
         """
@@ -395,7 +404,7 @@ class OutputParser:
         # use the lambda x function to sort the values, ignoring upper- and lower-case letters 
         imported_tvar = self.imported_tvar.sort_values(by=['Name'], ascending=True, key=lambda x: x.str.lower())
         # use os.walk to generate the names of folders, subfolders and files in a given directory
-        for root, folders_names, files_names in os.walk(Path("test_mtf")):
+        for root, folders_names, files_names in os.walk(path_folder):
             if root.endswith("_res"):
                 tvar_sim_paths += [Path(f"{root}/{files}") for files in files_names if files.endswith('.tvar.sim')]
 
@@ -403,10 +412,10 @@ class OutputParser:
 
         for files_path in tvar_sim_paths:
             output_data = pd.read_csv(files_path, sep="\t")
-            self.dict_output_dataframe.update({"Flux Name": output_data["Name"]})
+            self.dict_output_dataframe.update({"Flux_name": output_data["Name"]})
             self.dict_output_dataframe.update({"Kind": output_data["Kind"]})
             self.dict_output_dataframe.update({"Value": output_data["Value"]})
-            self.dict_output_dataframe.update({"Value Difference": imported_tvar["Value"] - output_data["Value"]})
+            self.dict_output_dataframe.update({"Value_difference": imported_tvar["Value"] - output_data["Value"]})
             self.dict_output_dataframe.update({f"{files_path.name}_SD": output_data['SD']})
         logger.debug(f"dict_output_dataframe: {self.dict_output_dataframe}")
 
@@ -414,10 +423,43 @@ class OutputParser:
         """
         Output dataframe creation
         """
-        output_dataframe = pd.DataFrame.from_dict({key: value for key, value in self.dict_output_dataframe.items()})
-        logger.debug(f"output dataframe {output_dataframe}")
+        self.output_dataframe = pd.DataFrame.from_dict({key: value for key, value in self.dict_output_dataframe.items()})
+        logger.debug(f"output dataframe {self.output_dataframe}")
 
+    def apply_sum_sd(self, sd):
+        """
+        Sum of sd 
+        """
+        return sd.sum()
+    
+    def apply_flux_number(self, sd):
+        """
+        Sum of number of flux with sd less than 100
+        """
+        return (sd < 100).sum()
+
+    def apply_score(self, *scoring : str, weight = 1):
+        """
+        Method generates a dataframe based on the desired scoring 
+
+        :param scoring: desired scoring type
+        :param weight: 
+        """
+
+        # Only net flows are kept 
+        df_kind_net = self.output_dataframe.loc[(self.output_dataframe["Kind"] == "NET")]
+        logger.debug(f"Dataframe without XCH {df_kind_net}")
+
+        # Selection of columns containing SDs for tvar.sim files
+        sd_files = df_kind_net.iloc[:, 4:]
+
+        df_scoring = pd.DataFrame(
+            {score : func(sd_files) * weight 
+             for score, func in self.SCORES.items() if score in scoring}
+            )
         
+        logger.debug(f"Dataframe with scoring : \n {df_scoring}")
+
 
 if __name__ == "__main__":
     gluc_u = Isotopomer("Gluc", "111111", 10, 0, 100)
@@ -431,10 +473,6 @@ if __name__ == "__main__":
     }
     test = Process()
     test.initialize_data(r"U:\Projet\IsoDesign\isodesign\test_data\acetate_LLE")
-    # test.files_copy()
-    # test.main(test, mix1)
+    test.main(mix1)
   
-    # test.generate_vmtf_file()
-    # test.influx_simulation()
-    test.output_parser()
 
