@@ -111,8 +111,8 @@ class LabelInput:
 
         self.isotopomer_group = isotopomer_group
 
-        # Container for all label input combinations
-        # keys : substrate name of the isotopomers group, Values : label input combinations
+        # Container for all label input combination proportions
+        # keys : substrate name of the isotopomers group, Values : label input combination proportions
         self.isotopomer_combination = {}
         # Isotopomer names and labelling patterns.
         self.names = []
@@ -120,7 +120,7 @@ class LabelInput:
 
     def generate_labelling_combinations(self):
         """
-        Generate combination inside a isotopomers group and/or 
+        Generate combination proportions inside a isotopomers group and/or 
         combination between isotopomers group.
 
         """
@@ -134,13 +134,14 @@ class LabelInput:
             else:
                 fractions = [fracs.generate_fraction() for fracs in isotopomer]
             logger.debug(f"Generated fractions: \n {fractions}")
-            # fractions : list containing vectors of fractions each isotopomer 
-            # np.meshgrid is used to return matrices corresponding to all possible combinations of the various vectors present in fractions list
+            # fractions : list containing vectors of fractions of each isotopomer 
+            # np.meshgrid is used to return matrices corresponding to all possible combination proportions of the various vectors present in fractions list
             # -1 parameter in reshape permit to adjusts the size of the first dimension (rows) according to the total number of elements in the array
             all_combinations = np.array(np.meshgrid(*fractions)).T.reshape(-1, len(fractions))
             logger.debug(f"List of all combinations:\n{all_combinations}")
 
             logger.debug("filtering combinations...")
+            # keep only the proportions of combinations whose sum is less than or equal to 1 
             filtered_combinations = np.array(
                 [combination for combination in all_combinations if np.sum(combination) <= Decimal(1)])
             logger.debug(f"Filtered combinations: \n{filtered_combinations}")
@@ -176,13 +177,13 @@ class Process:
 
     def __init__(self):
         # Dictionary to store imported file contents. Keys are files name, tuple with file path and contents as values
-        self.data_dict = {}
+        self.imported_files_dict = {}
         # LabelInput object
         # To use the generate_labelling_combinations method
         self.labelinput = None
 
         # Dictionary containing element to build the vmtf file
-        self.dict_vmtf = {"Id": None, "Comment": None}
+        self.vmtf_element_dict = {"Id": None, "Comment": None}
 
         # Path to the folder containing all the linp files
         self.path_input_folder = None
@@ -191,6 +192,9 @@ class Process:
         # File names without extensions
         # Used for influx_s
         self.prefix = None
+
+        self.dict_summarize_tvar = {}
+        self.summarize_tvar_df = None
 
     def read_file(self, data):
         """ 
@@ -220,10 +224,10 @@ class Process:
 
         if ext in self.FILES_EXTENSION:
             data = pd.read_csv(str(data_path), sep="\t", comment="#", header=None if ext == ".netw" else 'infer')
-            self.data_dict.update({data_path.name: (data_path, data)})
+            self.imported_files_dict.update({data_path.name: (data_path, data)})
 
             self.prefix = data_path.stem
-        
+        logger.debug(f"Prefix {self.prefix}")
 
     def initialize_data(self, directory):
         """
@@ -236,9 +240,8 @@ class Process:
 
         for file in self.path_input_folder.iterdir():
             self.read_file(str(file))
-
-        logger.debug(f"Prefix {self.prefix}")
-        logger.debug(f"Data dict = {self.data_dict}")
+        
+        logger.debug(f"Imported files dictionary = {self.imported_files_dict}")
 
     def files_copy(self):
         """
@@ -248,7 +251,7 @@ class Process:
         """
         logger.info("Copy of the imported files to folder containing linp files...")
 
-        for path in self.data_dict.values():
+        for path in self.imported_files_dict.values():
             logger.debug(f"path {path[0]}")
             shutil.copy(path[0], self.path_isodesign_folder)
         logger.info("Files have been copied \n")
@@ -279,7 +282,7 @@ class Process:
         """
 
         # Create the folder that stock linp files if is doesn't exist
-        self.path_isodesign_folder = Path(self.path_input_folder/"test_isodesign")
+        self.path_isodesign_folder = Path(self.path_input_folder/"tmp_isodesign")
         if not os.path.exists(self.path_isodesign_folder):
             os.makedirs(self.path_isodesign_folder)
         
@@ -304,9 +307,9 @@ class Process:
                 f.write(
                     f"File {index} - {self.labelinput.names}\n \t {self.labelinput.labelling_patterns}\n \t {[float(decimal_value) for decimal_value in pair]} \n")
                 # Add a new key "linp" with all the combinations as value
-                self.dict_vmtf.update({"linp": [f"file_{number_file:02d}" for number_file in range(1, index+1)]})
+                self.vmtf_element_dict.update({"linp": [f"file_{number_file:02d}" for number_file in range(1, index+1)]})
         
-        logger.debug(f"Elements in the vmtf dictionary {self.dict_vmtf}")
+        logger.debug(f"Elements in the vmtf dictionary {self.vmtf_element_dict}")
         logger.info("Folder containing linp files has been generated on your current directory.\n")
 
     def generate_vmtf_file(self):
@@ -320,14 +323,12 @@ class Process:
 
         # Value convert into Series 
         # Permit to create a dataframe from a dictionary where keys have different length of value   
-        df = pd.DataFrame.from_dict({key: pd.Series(value) for key, value in self.dict_vmtf.items()})
-        # Add a new column "ftbl" containing the values that are in the key "linp" of dict_vmtf
+        df = pd.DataFrame.from_dict({key: pd.Series(value) for key, value in self.vmtf_element_dict.items()})
+        # Add a new column "ftbl" containing the values that are in the key "linp" of vmtf_element_dict
         # These values will be the names of the export folders of the results  
-        df["ftbl"] = self.dict_vmtf["linp"]
-
+        df["ftbl"] = self.vmtf_element_dict["linp"]
         logger.debug(f"Creation of the vmtf file containing these files :\n {df}")
-        vmtf_file_name = self.prefix
-        df.to_csv(f"{self.path_isodesign_folder}/{vmtf_file_name}.vmtf", sep="\t", index=False)
+        df.to_csv(f"{self.path_isodesign_folder}/{self.prefix}.vmtf", sep="\t", index=False)
 
         logger.info("Vmtf file has been generated in the linp folder.")
 
@@ -338,71 +339,36 @@ class Process:
         logger.info("Influx_s is running...")
         # Going to the folder containing all the file to use for influx_si
         os.chdir(self.path_isodesign_folder)
-        # logger.debug(f"current directory {Path(self.path).resolve()}")
         # check parameter tells subprocess.run to throw an exception if the command fails
         # If the command returns a non-zero return value, this usually indicates an error 
         subprocess.run(["influx_s", "--prefix", self.prefix, "--mtf", f"{self.prefix}.vmtf", "--noopt"], check=True)
         logger.info("You can check your results in the current directory")
     
-    def handling_output_data(self):
-        """ 
-        Using the output_parser class
+
+    def get_initial_tvar_files(self):
         """
-        output_parser_object = OutputParser()
-        output_parser_object.get_initial_tvar_value(self.data_dict)
-        output_parser_object.read_tvar_sim_files(self.path_isodesign_folder)
-        output_parser_object.generate_output_dataframe()
-        output_parser_object.apply_score("sum_sd")
-
-    def main(self, isotopomer_dict : dict):
-        self.generate_combinations(isotopomer_dict)
-        self.generate_linp_files()
-        # self.files_copy()
-        # self.generate_vmtf_file()
-        # self.influx_simulation()
-        self.handling_output_data()
-   
-
-class OutputParser:
-    def __init__(self):
-
-        # Dictionary containing the scoring name as the key and the function to be applied as the value 
-        self.SCORES = {
-            "sum_sd" : self.apply_sum_sd, 
-            "flux_sd" : self.apply_flux_number
-            }
-
-        # Dictionary containing element to build the output dataframe
-        self.dict_output_dataframe = {}
-        # To get data from the initial tvar file 
-        self.imported_tvar = None
-        # the output dataframe
-        self.output_dataframe = None
-
-    def get_initial_tvar_value(self, data_dict : dict):
-        """ 
         Retrieves the contents of the imported tvar file from 
         the dictionary data_dict stored in the Process class 
-
-        :param data_dict : dictionary containing imported 
-                            files and their contents
         """
 
-        for files, content in data_dict.items():
+        # sort names in alphabetical order to match with tvar.sim files 
+        # use the lambda x function to sort the values, ignoring upper- and lower-case letters 
+        for files, content in self.imported_files_dict.items():
             if files.endswith('.tvar'):
-                self.imported_tvar = content[1]
-        logger.debug(f"Self.initial_tvar : {self.imported_tvar}")
+                imported_tvar = content[1].sort_values(by=['Name'], ascending=True, key=lambda x: x.str.lower())
+                return imported_tvar["Value"]
+        # logger.debug(f"Self.initial_tvar : {self.imported_tvar}")
 
-    def read_tvar_sim_files(self, path_folder):
+
+    def output_parser(self, path_folder):
         """
-        Read tvar.sim files and add data of interest to dict_output_dataframe
+        Read tvar.sim files and add data of interest to dict_summarize_tvar
         """
 
         # list of all tvar.sim file paths 
         tvar_sim_paths = []
-        # sort names in alphabetical order to match with tvar.sim files 
-        # use the lambda x function to sort the values, ignoring upper- and lower-case letters 
-        imported_tvar = self.imported_tvar.sort_values(by=['Name'], ascending=True, key=lambda x: x.str.lower())
+       
+        #imported_tvar = self.imported_tvar.sort_values(by=['Name'], ascending=True, key=lambda x: x.str.lower())
         # use os.walk to generate the names of folders, subfolders and files in a given directory
         for root, folders_names, files_names in os.walk(path_folder):
             if root.endswith("_res"):
@@ -412,19 +378,48 @@ class OutputParser:
 
         for files_path in tvar_sim_paths:
             output_data = pd.read_csv(files_path, sep="\t")
-            self.dict_output_dataframe.update({"Flux_name": output_data["Name"]})
-            self.dict_output_dataframe.update({"Kind": output_data["Kind"]})
-            self.dict_output_dataframe.update({"Value": output_data["Value"]})
-            self.dict_output_dataframe.update({"Value_difference": imported_tvar["Value"] - output_data["Value"]})
-            self.dict_output_dataframe.update({f"{files_path.name}_SD": output_data['SD']})
-        logger.debug(f"dict_output_dataframe: {self.dict_output_dataframe}")
+            self.dict_summarize_tvar.update({"Flux_name": output_data["Name"]})
+            self.dict_summarize_tvar.update({"Kind": output_data["Kind"]})
+            self.dict_summarize_tvar.update({"Value": output_data["Value"]})
+            self.dict_summarize_tvar.update({"Value_difference": self.get_initial_tvar_files() - output_data["Value"]})
+            self.dict_summarize_tvar.update({f"{files_path.name}_SD": output_data['SD']})
+        logger.debug(f"dict_summarize_tvar: {self.dict_summarize_tvar}")
 
-    def generate_output_dataframe(self):
+    def generate_summarize_tvar(self):
         """
-        Output dataframe creation
+        Generates a dataframe containing the results 
+        obtained after the influx simulation
         """
-        self.output_dataframe = pd.DataFrame.from_dict({key: value for key, value in self.dict_output_dataframe.items()})
-        logger.debug(f"output dataframe {self.output_dataframe}")
+        self.summarize_tvar_df = pd.DataFrame.from_dict({key: value for key, value in self.dict_summarize_tvar.items()})
+        # self.summarize_tvar_df.to_csv(os.path.join(str(self.path_isodesign_folder), "output_dataframe"), sep="\t", index=False)
+        logger.debug(f"Summarize tvar dataframe {self.summarize_tvar_df}")
+
+    def scoring_handler(self):
+        """ 
+        Using the output_parser class
+        """
+        scores=ScoringHandler()
+        scores.apply_score(self.summarize_tvar_df,"sum_sd", "flux_sd")
+
+    def main(self, isotopomer_dict : dict):
+        self.generate_combinations(isotopomer_dict)
+        self.generate_linp_files()
+        # self.files_copy()
+        # self.generate_vmtf_file()
+        # self.influx_simulation()
+        self.output_parser(self.path_isodesign_folder)
+        self.generate_summarize_tvar()
+        self.scoring_handler()
+
+   
+class ScoringHandler:
+    def __init__(self):
+
+        # Dictionary containing the scoring name as the key and the function to be applied as the value 
+        self.SCORES = {
+            "sum_sd" : self.apply_sum_sd, 
+            "flux_sd" : self.apply_flux_number
+            }
 
     def apply_sum_sd(self, sd):
         """
@@ -438,7 +433,7 @@ class OutputParser:
         """
         return (sd < 100).sum()
 
-    def apply_score(self, *scoring : str, weight = 1):
+    def apply_score(self, summarize_dataframe, *scoring : str, weight = 1):
         """
         Method generates a dataframe based on the desired scoring 
 
@@ -447,7 +442,7 @@ class OutputParser:
         """
 
         # Only net flows are kept 
-        df_kind_net = self.output_dataframe.loc[(self.output_dataframe["Kind"] == "NET")]
+        df_kind_net = summarize_dataframe.loc[(summarize_dataframe["Kind"] == "NET")]
         logger.debug(f"Dataframe without XCH {df_kind_net}")
 
         # Selection of columns containing SDs for tvar.sim files
@@ -474,5 +469,5 @@ if __name__ == "__main__":
     test = Process()
     test.initialize_data(r"U:\Projet\IsoDesign\isodesign\test_data\acetate_LLE")
     test.main(mix1)
-  
+    
 
