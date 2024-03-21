@@ -345,7 +345,7 @@ class Process:
             os.chdir(self.path_isodesign_folder)
             # check parameter tells subprocess.run to throw an exception if the command fails
             # If the command returns a non-zero return value, this usually indicates an error 
-            influx_s.main(["--prefix", self.prefix, "--mtf", f"{self.prefix}.vmtf", "--noopt"])
+            influx_s.main(["--prefix", self.prefix, "--mtf", f"{self.prefix}", "--noopt"])
             # subprocess.run(["influx_s", "--prefix", self.prefix, "--mtf", f"{self.prefix}.vmtf", "--noopt"], check=True)
             logger.info("You can check your results in the current directory")
         except Exception as e:
