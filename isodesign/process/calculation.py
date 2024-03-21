@@ -341,12 +341,9 @@ class Process:
         """
         try:
             logger.info("Influx_s is running...")
-            # Going to the folder containing all the file to use for influx_si
-            os.chdir(self.path_isodesign_folder)
-            # check parameter tells subprocess.run to throw an exception if the command fails
-            # If the command returns a non-zero return value, this usually indicates an error 
-            influx_s.main(["--prefix", self.prefix, "--mtf", f"{self.prefix}", "--noopt"])
-            # subprocess.run(["influx_s", "--prefix", self.prefix, "--mtf", f"{self.prefix}.vmtf", "--noopt"], check=True)
+            # Going to the folder containing all the file to use for influx_s
+            os.chdir(self.path_isodesign_folder) 
+            influx_s.main(["--prefix", self.prefix, "--emu", "--noopt", "--noscale", "--ln"])
             logger.info("You can check your results in the current directory")
         except Exception as e:
             logger.exception(f"An error occurred during influx_s execution: {str(e)}")
