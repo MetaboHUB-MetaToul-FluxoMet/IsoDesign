@@ -367,6 +367,7 @@ class Process:
 
         # list of dataframes containing the "NAME", "kind" and "sd" columns from tvar.sim files 
         tvar_sim_dataframes = [pd.read_csv(files_path, sep="\t", usecols=["Name", "Kind", "SD"], index_col=["Name","Kind"]) for files_path in tvar_sim_paths]
+        # logger.debug(f"tvar sim dataframes {tvar_sim_dataframes}")
         # take the flux values from the first tvar.sim file 
         # flux values are the same in all tvar.sim files
         tvar_sim_value = pd.read_csv(tvar_sim_paths[0], sep="\t", usecols=["Value", "Name", "Kind"]) 
@@ -375,7 +376,7 @@ class Process:
             df.rename({
                 "SD": f"file_{idx+1:02d}_SD"
             }, axis=1, inplace=True)
-        logger.debug(f"tvar_sim_dataframes: {tvar_sim_dataframes}")
+        # logger.debug(f"tvar_sim_dataframes: {tvar_sim_dataframes}")
 
         # take the "Name", "Kind" and "Value" columns from the input tvar file
         input_tvar_file=self.imported_files_dict['tvar'].data[["Name","Kind","Value"]]
@@ -386,67 +387,69 @@ class Process:
 
         # merge the "merged_tvar" dataframe with concatenated dataframes from the "tvar_sim_dataframes" list 
         self.summary_dataframe = pd.merge(merged_tvar, pd.concat(tvar_sim_dataframes, axis=1, join="inner"), on=[ "Name","Kind"])
-        logger.debug(f"Summary dataframe", self.summary_dataframe)
+        logger.debug(f"Summary dataframe {self.summary_dataframe}")
         self.summary_dataframe.to_csv(f"{self.path_isodesign_folder}/summary.txt", sep="\t", index=None)
 
-    def initialize_scoring(self):
-        """ 
-        Using the generate_summary class
-        """
-        self.scoring=ScoringHandler()
 
     def main(self, isotopomer_dict : dict):
         self.generate_combinations(isotopomer_dict)
         self.generate_linp_files()
         # self.files_copy()
         # self.generate_vmtf_file()
-        self.influx_simulation()
-        # self.generate_summary()
-        # self.initialize_scoring()
+        # self.influx_simulation()
+        self.generate_summary()
+        test1 = Score(self.summary_dataframe["file_01_SD"])
+        test2 = Score(self.summary_dataframe["file_07_SD"])
+        test3 = Score(self.summary_dataframe["file_11_SD"])
+        handler = ScoringHandler([test1, test2, test3])
+        handler.calculate_score(["sum_sd"], threshold=1)
 
-   
-class ScoringHandler:
-    def __init__(self):
-
+class Score:
+    def __init__(self, data):
         # Dictionary containing the scoring name as the key and the function to be applied as the value 
         self.SCORES = {
             "sum_sd" : self.apply_sum_sd, 
             "flux_sd" : self.apply_flux_number
             }
 
-    def apply_sum_sd(self, sd):
+        self.data = data
+        self.name = data.name
+        
+
+    def __repr__(self) -> str:
+        return f"\n{self.data}\n"
+        
+
+    def apply_sum_sd(self, threshold=None):
         """
         Sum of sd 
         """
-        return sd.sum()
+        return self.data.sum()
     
-    def apply_flux_number(self, sd):
+    def apply_flux_number(self, threshold):
         """
-        Sum of number of flux with sd less than 100
+        Sum of number of flux with sd less than a threshold
         """
-        return (sd < 100).sum()
+        return (self.data < threshold).sum()
 
-    def apply_score(self, summarize_dataframe, *scoring : str, weight = 1):
-        """
-        Method generates a dataframe based on the desired scoring 
+    def apply_sum_selected_flux(self, flux):
+        pass
+    
 
-        :param scoring: desired scoring type
-        :param weight: 
-        """
+class ScoringHandler:
+    def __init__(self, score_objects):
+        self.score_objects = score_objects
 
-        # Only net flows are kept 
-        df_kind_net = summarize_dataframe.loc[(summarize_dataframe["Kind"] == "NET")]
-        logger.debug(f"Dataframe without XCH {df_kind_net}")
+    def __repr__(self) -> str:
+        return f"\n List of files for scoring :\n{self.score_objects}"
 
-        # Selection of columns containing SDs for tvar.sim files
-        sd_files = df_kind_net.iloc[:, 4:]
-
+    def calculate_score(self, score_names, **kwargs):
         df_scoring = pd.DataFrame(
-            {score : func(sd_files) * weight 
-             for score, func in self.SCORES.items() if score in scoring}
-            )
+                {score_name : [obj.SCORES[score_name](**kwargs) for obj in self.score_objects] for score_name in score_names},
+                index=[obj.name for obj in self.score_objects]
+                )
+        logger.info(f"{score_names} : {df_scoring}")
         
-        logger.debug(f"Dataframe with scoring : \n {df_scoring}")
 
 
 if __name__ == "__main__":
@@ -462,5 +465,5 @@ if __name__ == "__main__":
     test = Process()
     test.initialize_data(r"U:\Projet\IsoDesign\isodesign\test_data\acetate_LLE")
     test.main(mix1)
-    
+   
 
