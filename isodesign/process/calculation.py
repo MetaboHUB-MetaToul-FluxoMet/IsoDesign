@@ -398,29 +398,44 @@ class Process:
         # self.generate_vmtf_file()
         # self.influx_simulation()
         self.generate_summary()
-        test1 = Score(self.summary_dataframe["file_01_SD"])
+        test1 = Score(self.summary_dataframe)
         test2 = Score(self.summary_dataframe["file_07_SD"])
         test3 = Score(self.summary_dataframe["file_11_SD"])
-        handler = ScoringHandler([test1, test2, test3])
-        handler.calculate_score(["sum_sd"], threshold=1)
+        handler = ScoreHandler([test2, test3])
+        # handler.apply_scores(["flux_sd","sum_sd"], threshold=10)
+        test1.data_filter(fluxes_names=["BM", "ald", "eno"], files_res=["file_02_SD","file_06_SD"])
 
 class Score:
     def __init__(self, data):
         # Dictionary containing the scoring name as the key and the function to be applied as the value 
         self.SCORES = {
             "sum_sd" : self.apply_sum_sd, 
-            "flux_sd" : self.apply_flux_number
+            "flux_sd" : self.apply_flux_number,
             }
 
         self.data = data
-        self.name = data.name
-        
+        # self.name = data.name  
 
     def __repr__(self) -> str:
         return f"\n{self.data}\n"
-        
 
-    def apply_sum_sd(self, threshold=None):
+    def data_filter(self, fluxes_names:list=None, kind:str=None, files_res:list=None):
+        """
+        Filters self.data according to input parameters. 
+
+        :param fluxes_names: list of fluxes names to be displayed in self.data
+        :param kind: "NET", "XCH", "METAB"
+        :param files_res: name of output files to be displayed 
+        """
+        if fluxes_names:
+            self.data = self.data.loc[self.data["Name"].isin(fluxes_names)]
+        if kind:
+            self.data = self.data.loc[self.data["Kind"] == kind]
+        if files_res:
+            self.data = self.data.loc[:,["Name", "Kind", "Diff_value"] + files_res]
+        logger.info(f"Filtered dataframe :\n{self.data}")
+
+    def apply_sum_sd(self):
         """
         Sum of sd 
         """
@@ -431,26 +446,22 @@ class Score:
         Sum of number of flux with sd less than a threshold
         """
         return (self.data < threshold).sum()
-
-    def apply_sum_selected_flux(self, flux):
-        pass
-    
-
-class ScoringHandler:
-    def __init__(self, score_objects):
+class ScoreHandler:
+    def __init__(self, score_objects :list):
         self.score_objects = score_objects
 
     def __repr__(self) -> str:
         return f"\n List of files for scoring :\n{self.score_objects}"
 
-    def calculate_score(self, score_names, **kwargs):
+    def apply_scores(self, score_names : list, **kwargs):
         df_scoring = pd.DataFrame(
-                {score_name : [obj.SCORES[score_name](**kwargs) for obj in self.score_objects] for score_name in score_names},
+                {score_name : [obj.SCORES.get(score_name)(**kwargs) if score_name == "flux_sd" else obj.SCORES.get(score_name)()
+                                for obj in self.score_objects] for score_name in score_names},
                 index=[obj.name for obj in self.score_objects]
                 )
-        logger.info(f"{score_names} : {df_scoring}")
+        logger.info(f"{score_names} :\n{df_scoring}")
         
-
+    
 
 if __name__ == "__main__":
     gluc_u = Isotopomer("Gluc", "111111", 10, 0, 100)
