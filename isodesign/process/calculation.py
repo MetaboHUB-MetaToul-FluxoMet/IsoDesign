@@ -172,7 +172,11 @@ class LabelInput:
 
 class Process:
     """
-    Class responsible of most of the processes... 
+    The Process class is the main class that uses the other classes to perform various tasks:
+    - importing and reading data files
+    - generating combinations of isotopomers that are stored in influx_si .linp files
+    - runs simulations with influx_s to get predicted fluxes and associated SD's
+    - generates a summary.
 
     """
     FILES_EXTENSION = [".netw", ".tvar", ".mflux", ".miso", ".cnstr"]
@@ -320,18 +324,17 @@ class Process:
 
         logger.debug(f"path isodesign folder {self.path_isodesign_folder}")
         logger.info("Creation of the linp files...")
-        
+
+        # create mapping to associate file number with its respective combinations
         with open(os.path.join(str(self.path_isodesign_folder), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
             for index, pair in enumerate(self.labelinput.isotopomer_combination["combinations"], start=1):
                 df = pd.DataFrame({'Id': None,
                                    'Comment': None,
-                                   'Specie': [],
-                                   'Isotopomer': [],
-                                   'Value': []})
+                                   'Specie': self.labelinput.names,
+                                   'Isotopomer': self.labelinput.labelling_patterns,
+                                   'Value': pair})
 
-                df["Specie"] = list(self.labelinput.names)
-                df["Isotopomer"] = list(self.labelinput.labelling_patterns)
-                df["Value"] = list(pair)
+                # remove rows with value = 0
                 df = df.loc[df["Value"] != 0]
                 logger.debug(f"Folder path : {self.path_isodesign_folder}\n Dataframe {index}:\n {df}")
 
