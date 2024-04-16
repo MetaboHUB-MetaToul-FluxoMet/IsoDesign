@@ -50,7 +50,7 @@ class Isotopomer:
         only values that are between 0 and 1.
         """
 
-        # getcontext().prec = 3
+       
         return np.array([Decimal(fraction) / Decimal(100) for fraction in
                          range(self.lower_bound, self.upper_bound + self.step, self.step)])
 
@@ -140,13 +140,12 @@ class LabelInput:
             # np.meshgrid is used to return matrices corresponding to all possible combinations of vectors present in the list of fractions
             # -1 parameter in reshape permit to adjusts the size of the first dimension (rows) according to the total number of elements in the array
             all_combinations = np.array(np.meshgrid(*fractions)).T.reshape(-1, len(fractions))
-            logger.debug(f"List of all combinations:\n{all_combinations}")
+            # logger.debug(f"List of all combinations:\n{all_combinations}")
 
-            logger.debug("filtering combinations...")
             # filter with sum <= 1 as condition 
             filtered_combinations = np.array(
                 [combination for combination in all_combinations if np.sum(combination) <= Decimal(1)])
-            logger.debug(f"Filtered combinations: \n{filtered_combinations}")
+            # logger.debug(f"Filtered combinations: \n{filtered_combinations}")
 
             # Calculate the difference between 1 and the sum of the fractions of the other isotopomers  
             # Total sum of all fractions must equal 1
@@ -169,7 +168,6 @@ class LabelInput:
             self.isotopomer_combination.update(
                 {"combinations": np.column_stack((deduced_fraction, filtered_combinations))})
 
-
 class Process:
     """
     The Process class is the main class that uses the other classes to perform various tasks:
@@ -184,6 +182,7 @@ class Process:
     def __init__(self):
         # Dictionary to store imported file contents. Key : files extension, value : namedtuple with file path and contents 
         self.imported_files_dict = {}
+        self.netw_files_prefixes = []
         # LabelInput object
         # To use the generate_labelling_combinations method
         self.labelinput = None
@@ -201,55 +200,43 @@ class Process:
         # stores all elements analyzed in the input network 
         self.netan = {}
         # key : file name, value : number of marked shapes 
-        self.marked_shapes = {}
+        self.labeled_species = {}
         self.summary_dataframe = None
         
-    def read_file(self, data):
-        """ 
-        Read tvar, mflux, miso, cnstr and netw files (csv or tsv)
+    
+    def initialize_data(self, directory_path):
+        """
+        This function initializes the data import process by setting the input 
+        folder path and identifying all .netw files in the folder
 
-        :param data: str containing the path to the file
+        :param directory_path: str containing the path to the input folder 
+        """
+        self.path_input_folder = Path(directory_path)
+        logger.debug(f"Input folder directory = {self.path_input_folder}")
+        
+        for file in self.path_input_folder.iterdir():
+            if file.suffix == '.netw':
+                self.netw_files_prefixes.append(file.stem)
+
+        logger.debug(f"Prefixes from netw files in the folder = {self.netw_files_prefixes}")
+
+    def load_file(self, prefix):
+        """ 
+        Load tvar, mflux, miso, cnstr and netw files (csv or tsv)
+        depending on the prefix chosen.
+
+        :param prefix: str containing the prefix of the file to be loaded
 
         """
-
-        if not isinstance(data, str):
-            msg = f"{data} should be of type string and not {type(data)}"
-            logger.error(msg)
-            raise TypeError(msg)
-
-        data_path = Path(data).resolve()
-
-        if not data_path.exists():
-            msg = f"{data_path} doesn't exist."
-            logger.error(msg)
-            raise ValueError(msg)
-
-        ext = data_path.suffix
-        # if ext not in self.FILES_EXTENSION:
-        #     msg = f"{data_path} is not in the good format\n Only .netw, .tvar, .mflux, .miso, .cnstr formats are accepted"
-        #     logger.error(msg)
-        #     raise ValueError(msg)
 
         # namedtuple containing file path and data 
         files_infos = namedtuple("file_info", ['path', 'data'])
-        if ext in self.FILES_EXTENSION:
-            data = pd.read_csv(str(data_path), sep="\t", comment="#", header=None if ext == ".netw" else 'infer')
-            self.imported_files_dict.update({ext[1:]: files_infos(data_path, data)})
+        for files in self.path_input_folder.iterdir():
+            if files.stem == prefix and files.suffix in self.FILES_EXTENSION:
+                data = pd.read_csv(str(files), sep="\t", comment="#", header=None if files.suffix == ".netw" else 'infer')
+                self.imported_files_dict.update({files.suffix[1:]: files_infos(files, data)})
 
-            self.prefix = data_path.stem
-        
-
-    def initialize_data(self, directory):
-        """
-        Imports all files in a folder
-
-        :param directory: folder path 
-        """
-        self.path_input_folder = Path(directory)
-        logger.debug(f"Input folder directory = {self.path_input_folder}")
-
-        for file in self.path_input_folder.iterdir():
-            self.read_file(str(file))
+        self.prefix = prefix
         logger.debug(f"Prefix {self.prefix}")
         logger.debug(f"Imported files dictionary = {self.imported_files_dict}")
 
@@ -260,24 +247,24 @@ class Process:
         """
 
         # temporarily stores files generated by the use of modules
-        with tempfile.TemporaryDirectory() as tmpdir:
-            for contents in self.path_isodesign_folder.iterdir():
-                # copy all files contained in self.path_isodesign_folder (contains input files, linp files and vmtf file) 
-                if contents.is_file():
-                    shutil.copy(contents, tmpdir)
+        # with tempfile.TemporaryDirectory() as tmpdir:
+        #     for contents in self.path_input_folder.iterdir():
+        #         # copy all files contained in self.path_input_folder (contains input files) 
+        #         if contents.is_file():
+        #             shutil.copy(contents, tmpdir)
             # will contain the paths to the ftbl files generated by the txt2ftbl module
-            li_ftbl = []  
+        li_ftbl = []  
             # convert mtf to ftbl
-            txt2ftbl.main(["--prefix", os.path.join(str(tmpdir), self.prefix)], li_ftbl) 
+        txt2ftbl.main(["--prefix", os.path.join(str(self.path_input_folder), self.prefix)], li_ftbl) 
             # parse and analyze first ftbl store in li_ftbl
             # returns a dictionary 
-            ftbl=C13_ftbl.ftbl_parse(li_ftbl[0]) 
+        ftbl=C13_ftbl.ftbl_parse(li_ftbl[0]) 
 
-            emu=False # can be advantageous to set to "True" when there are only mass measurements
-            fullsys=False
-            case_i=False # for influx_i, must be "True"
+        emu=False # can be advantageous to set to "True" when there are only mass measurements
+        fullsys=False
+        case_i=False # for influx_i, must be "True"
             # analyze the ftbl dictionary to find different network elements such as substrates, metabolites...  
-            C13_ftbl.ftbl_netan(ftbl, self.netan, emu, fullsys, case_i)
+        C13_ftbl.ftbl_netan(ftbl, self.netan, emu, fullsys, case_i)
         logger.debug(f"self.netan dictionary keys : {self.netan.keys()}")
         
     def files_copy(self):
@@ -289,7 +276,7 @@ class Process:
         logger.info("Copy of the imported files to folder containing linp files...")
 
         for path in self.imported_files_dict.values():
-            # logger.debug(f"path {path[0]}")
+            logger.debug(f"path {path[0]}")
             shutil.copy(path[0], self.path_isodesign_folder)
         logger.info("Files have been copied \n")
 
@@ -322,7 +309,7 @@ class Process:
         self.path_isodesign_folder = Path(self.path_input_folder/"tmp")
         self.path_isodesign_folder.mkdir(parents=True, exist_ok=True)
 
-        logger.debug(f"path isodesign folder {self.path_isodesign_folder}")
+        # logger.debug(f"path isodesign folder {self.path_isodesign_folder}")
         logger.info("Creation of the linp files...")
 
         # create mapping to associate file number with its respective combinations
@@ -336,14 +323,18 @@ class Process:
 
                 # remove rows with value = 0
                 df = df.loc[df["Value"] != 0]
-                logger.debug(f"Folder path : {self.path_isodesign_folder}\n Dataframe {index}:\n {df}")
+                logger.debug(f"Folder path : {self.path_isodesign_folder}\n Dataframe {index:02d}:\n {df}")
 
                 df.to_csv(os.path.join(str(self.path_isodesign_folder), f"file_{index:02d}.linp"), sep="\t", index=False)
                 f.write(
                     f"File_{index:02d} - {df['Specie'].tolist()}\n \t {df['Isotopomer'].tolist()}\n \t {df['Value'].astype(float).tolist()} \n")
                 # Add a new key "linp" with all the combinations as value
                 self.vmtf_element_dict.update({"linp": [f"file_{number_file:02d}" for number_file in range(1, index+1)]})
-                
+
+                # Counts the number of labeled species in each generated dataframe 
+                count_labeled_species = len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer])
+                self.labeled_species.update({f"file_{index:02d}" : count_labeled_species})
+
         logger.debug(f"Elements in the vmtf dictionary {self.vmtf_element_dict}")
         logger.info("Folder containing linp files has been generated on your current directory.\n")
         
@@ -371,7 +362,7 @@ class Process:
         """
         Methode using influx_si for the test by using subprocess
         """ 
-
+       
         logger.info("Influx_s is running...")
         # Change directory to the folder containing all the file to use for influx_s
         os.chdir(self.path_isodesign_folder) 
@@ -379,24 +370,6 @@ class Process:
             raise Exception("Error in influx_si. Check '.err' files")
         logger.info("You can check your results in the current directory")
 
-    def count_marked_shapes(self):
-        """
-        Counts the number of marked substrates in each linp file 
-        """
-        # use os.walk to generate the names of folders, subfolders and files in a given directory
-        for root, folders_names, files_names in os.walk(self.path_isodesign_folder):
-            # files_name is a list of file names 
-            for file in files_names:
-                if file.endswith(".ftbl"):
-                    ftbl_dict = C13_ftbl.ftbl_parse(f"{root}/{file}")
-                    # stores isotopomers 
-                    ftbl_list_isotopomers = [ftbl["ISOTOPOMER"] for ftbl in ftbl_dict["LABEL_INPUT"]]
-                    logger.debug(f"{file} - list isotopomers : {ftbl_list_isotopomers}")
-
-                    count_marked_shapes = len([isotopomer for isotopomer in ftbl_list_isotopomers if "1" in isotopomer])
-                    # stores the file name as the key and the number of marked shapes as the value in a dictionary
-                    self.marked_shapes.update({ftbl_dict["base_name"] : count_marked_shapes})
-        logger.debug(self.marked_shapes)
 
     def generate_summary(self):
         """
@@ -433,15 +406,23 @@ class Process:
         # take the "Name", "Kind" and "Value" columns from the input tvar file
         input_tvar_file=self.imported_files_dict['tvar'].data[["Name","Kind","Value"]]
         # merge data from the input tvar file with data from tvar.sim files based on flux names and kind
-        merged_tvar = pd.merge(input_tvar_file, tvar_sim_value, on=["Name", "Kind"], how="outer", suffixes=('_tvar', '_tvar.sim'))
-        merged_tvar["Diff_value"] = merged_tvar["Value_tvar"] - merged_tvar["Value_tvar.sim"]
+        merged_tvar = pd.merge(input_tvar_file, tvar_sim_value, on=["Name", "Kind"], how="outer", suffixes=('_tvar', None))
+        merged_tvar["Value difference"] = merged_tvar["Value_tvar"] - merged_tvar["Value"]
         logger.debug(f"Merged_tvar : {merged_tvar}")
 
         # merge the "merged_tvar" dataframe with concatenated dataframes from the "tvar_sim_dataframes" list 
         # delete the "Value_tvar" column, which is not required 
         self.summary_dataframe = pd.merge(merged_tvar, pd.concat(tvar_sim_dataframes, axis=1, join="inner"), on=[ "Name","Kind"]).drop("Value_tvar", axis=1)
-        logger.debug(f"Summary dataframe {self.summary_dataframe}")
-        self.summary_dataframe.to_csv(f"{self.path_isodesign_folder}/summary.txt", sep="\t", index=None)
+        logger.debug(f"{self.summary_dataframe}")
+
+        # Creating a Styler object for the summary_dataframe DataFrame
+        summary_dataframe_styler=self.summary_dataframe.style.apply(
+            # If at least one value is missing in the row, set the style with a pale yellow background color
+            # Repeating the style determined earlier for each cell in the row
+            lambda row: np.repeat('background-color: #fffbcc' if row.isnull().any() else '', row.shape[0]),
+            # Applying the lambda function along the rows of the DataFrame
+            axis=1)
+        summary_dataframe_styler.to_excel(f"{self.path_isodesign_folder}/summary.xlsx", index=None)
 
 
     def main(self, isotopomer_dict : dict):
@@ -451,32 +432,31 @@ class Process:
         self.input_network_analysis()
         self.generate_vmtf_file()
         self.influx_simulation()
-        self.count_marked_shapes()
         self.generate_summary()
 
-        # test for dataframe filtering and number of marked shapes 
-        test1 = Score(self.summary_dataframe)
-        print(test1.data_filter(fluxes_names=["BM", "ald", "eno"], kind="NET", files_res=["file_01_SD", "file_06_SD"]))
-        test1.apply_number_marked_substrates(["file_01", "file_06"], self.marked_shapes)
+        # # test for dataframe filtering and number of marked shapes 
+        # test1 = Score(self.summary_dataframe)
+        # print(test1.data_filter(fluxes_names=["BM", "ald", "eno"], kind="NET", files_res=["file_01_SD", "file_06_SD"]))
+        # test1.apply_number_marked_substrates(["file_01", "file_06"], self.labeled_species)
 
         # sd sum test
-        test2 = Score(self.summary_dataframe["file_07_SD"])
-        print(test2.apply_sum_sd())
+        # test2 = Score(self.summary_dataframe["file_07_SD"])
+        # # print(test2.apply_sum_sd())
 
-        # test for the sum of flows whose sd is below a threshold
-        test3 = Score(self.summary_dataframe["file_11_SD"])
-        print(test3.apply_sum_nb_flux_sd(100))
+        # # # test for the sum of flows whose sd is below a threshold
+        # test3 = Score(self.summary_dataframe["file_11_SD"])
+        # # # print(test3.apply_sum_nb_flux_sd(100))
+        # handler = ScoreHandler([test2.apply_sum_sd(), test3.apply_sum_nb_flux_sd(100)])
+        # print(handler.divide_scores())
 
-        # handler = ScoreHandler([test2, test3])
-        # # handler.apply_scores(["flux_sd","sum_sd"], threshold=10)
-
+ 
 class Score:
     def __init__(self, data):
         # Dictionary containing the scoring name as the key and the function to be applied as the value 
         self.SCORES = {
             "sum_sd" : self.apply_sum_sd, 
             "flux_sd" : self.apply_sum_nb_flux_sd,
-            "number_marked_substs" : self.apply_number_marked_substrates
+            "number_labeled_species" : self.apply_number_labeled_species
             }
 
         self.data = data
@@ -484,6 +464,37 @@ class Score:
     def __repr__(self) -> str:
         return f"\n{self.data}\n"
 
+    def apply_sum_sd(self):
+        """
+        Sum of sd 
+        """
+        return self.data.sum()
+    
+    def apply_sum_nb_flux_sd(self, threshold):
+        """
+        Sum of number of flux with sd less than a threshold
+        """
+        return (self.data < threshold).sum()
+
+    def apply_number_labeled_species(self, results_files :list, dict_labeled_species):
+        """ 
+        Returns number of labeled species according to file(s)
+
+        :param results_files: list of result file names on which to apply the function   
+        :param dict_labeled_species: dictionary containing file names and numbers of marked shapes 
+        """
+        for file_name in results_files:
+            if file_name in dict_labeled_species.keys():
+                print(f"{file_name} {dict_labeled_species[file_name]}")
+
+
+class ScoreHandler:
+    def __init__(self, score_objects :list):
+        self.score_objects = score_objects
+
+    def __repr__(self) -> str:
+        return f"\n List of files for scoring :\n{self.score_objects}"
+    
     def data_filter(self, fluxes_names:list=None, kind:str=None, files_res:list=None):
         """
         Filters self.data according to input parameters. 
@@ -502,46 +513,9 @@ class Score:
             self.data = pd.concat((self.data.iloc[:,:4], self.data[files_res]), axis=1)
         return self.data
         # logger.info(f"Filtered dataframe :\n{self.data}")
-
-    def apply_sum_sd(self):
-        """
-        Sum of sd 
-        """
-        return self.data.sum()
-    
-    def apply_sum_nb_flux_sd(self, threshold):
-        """
-        Sum of number of flux with sd less than a threshold
-        """
-        return (self.data < threshold).sum()
-
-    def apply_number_marked_substrates(self, results_files :list, dict_marked_shapes):
-        """ 
-        Returns number of marked shapes according to file(s)
-
-        :param results_files: list of result file names on which to apply the function   
-        :param dict_marked_shapes: dictionary containing file names and numbers of marked shapes 
-        """
-        for file_name in results_files:
-            if file_name in dict_marked_shapes.keys():
-                print(f"{file_name} {dict_marked_shapes[file_name]}")
-
-
-class ScoreHandler:
-    def __init__(self, score_objects :list):
-        self.score_objects = score_objects
-
-    def __repr__(self) -> str:
-        return f"\n List of files for scoring :\n{self.score_objects}"
-
-    # def apply_scores(self, score_names : list, **kwargs):
-    #     df_scoring = pd.DataFrame(
-    #             {score_name : [obj.SCORES.get(score_name)(**kwargs) if score_name == "flux_sd" else obj.SCORES.get(score_name)()
-    #                             for obj in self.score_objects] for score_name in score_names},
-    #             index=[obj.name for obj in self.score_objects]
-    #             )
-    #     logger.info(f"{score_names} :\n{df_scoring}")
         
+    def divide_scores(self):
+        return self.score_objects[0]/self.score_objects[1]
 
 if __name__ == "__main__":
     gluc_u = Isotopomer("Gluc", "111111", 10, 0, 100)
@@ -554,7 +528,14 @@ if __name__ == "__main__":
         "co2": [co2]
     }
     test = Process()
-    test.initialize_data(r"U:\Projet\IsoDesign\isodesign\test_data\acetate_LLE")
+    # test2 = LabelInput(mix1)
+    # test.initialize_data(r"C:\Users\kouakou\Documents\IsoDesign\isodesign\test_data\acetate_LLE")
+    # test.load_file("design_test_1")
     test.main(mix1)
+    
+
+    
+    
+
     
 
