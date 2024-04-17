@@ -3,6 +3,7 @@ from itertools import product
 from pathlib import Path
 from collections import namedtuple
 import tempfile
+import math
 
 import os
 import shutil
@@ -50,15 +51,17 @@ class Isotopomer:
         only values that are between 0 and 1.
         """
 
-       
         return np.array([Decimal(fraction) / Decimal(100) for fraction in
                          range(self.lower_bound, self.upper_bound + self.step, self.step)])
+    
 
     def __len__(self):
         return self.num_carbon
 
     def __repr__(self) -> str:
         return f"\nNumber of associated carbon(s) : {self.num_carbon},\
+        \nName = {self.name},\
+        \nLabelling = {self.labelling},\
         \nStep = {self.step},\
         \nLower bound = {self.lower_bound},\
         \nUpper bound = {self.upper_bound}"
@@ -126,26 +129,25 @@ class LabelInput:
         a isotopomers group and/or combination between isotopomers group.
 
         """
-        # logger.debug(f"Isotopologue groups:\n{self.isotopomer_group}")
         for isotopomer_name, isotopomer in self.isotopomer_group.items():
-            logger.debug(f"Running combinatory function on {isotopomer_name}")
+            #logger.debug(f"Running combinatory function on {isotopomer_name} group")
             # For all isotopomers present, all possible fractions are generated except for the first 
             # First isotopomer's fraction will be deduced from the other ones
             if len(isotopomer) > 1:
                 fractions = [fracs.generate_fraction() for fracs in isotopomer[1:]]
             else:
                 fractions = [fracs.generate_fraction() for fracs in isotopomer]
-            logger.debug(f"Generated fractions: \n {fractions}")
+
+            # logger.debug(f"Generated fractions:\n {fractions}")
             # fractions : list containing vectors of fractions of each isotopomer 
             # np.meshgrid is used to return matrices corresponding to all possible combinations of vectors present in the list of fractions
             # -1 parameter in reshape permit to adjusts the size of the first dimension (rows) according to the total number of elements in the array
             all_combinations = np.array(np.meshgrid(*fractions)).T.reshape(-1, len(fractions))
-            # logger.debug(f"List of all combinations:\n{all_combinations}")
 
             # filter with sum <= 1 as condition 
             filtered_combinations = np.array(
                 [combination for combination in all_combinations if np.sum(combination) <= Decimal(1)])
-            # logger.debug(f"Filtered combinations: \n{filtered_combinations}")
+            # logger.debug(f"Combinations with a sum <= 1: \n{filtered_combinations}")
 
             # Calculate the difference between 1 and the sum of the fractions of the other isotopomers  
             # Total sum of all fractions must equal 1
@@ -212,6 +214,12 @@ class Process:
         :param directory_path: str containing the path to the input folder 
         """
         self.path_input_folder = Path(directory_path)
+
+        if not self.path_input_folder.exists():
+            msg = f"{self.path_input_folder} doesn't exist."
+            logger.error(msg)
+            raise ValueError(msg)
+        
         logger.debug(f"Input folder directory = {self.path_input_folder}")
         
         for file in self.path_input_folder.iterdir():
@@ -379,15 +387,14 @@ class Process:
             - the difference between the flux values in the input tvar file and the tvar.sim files,
             - flux SDs in each tvar.sim file
         """
-
+        
         # list of all tvar.sim file paths 
         tvar_sim_paths = []
-       
+
         # use os.walk to generate the names of folders, subfolders and files in a given directory
-        for root, folders_names, files_names in os.walk(self.path_isodesign_folder):
+        for (root, folders_names, files_names) in os.walk(self.path_isodesign_folder.absolute()):
             if root.endswith("_res"):
                 tvar_sim_paths += [Path(f"{root}/{files}") for files in files_names if files.endswith('.tvar.sim')]
-
         logger.debug(f"List of tvar.sim file paths : \n {tvar_sim_paths}")
 
         # list of dataframes containing the "NAME", "kind" and "sd" columns from tvar.sim files 
@@ -423,33 +430,8 @@ class Process:
             # Applying the lambda function along the rows of the DataFrame
             axis=1)
         summary_dataframe_styler.to_excel(f"{self.path_isodesign_folder}/summary.xlsx", index=None)
-
-
-    def main(self, isotopomer_dict : dict):
-        self.generate_combinations(isotopomer_dict)
-        self.generate_linp_files()
-        self.files_copy()
-        self.input_network_analysis()
-        self.generate_vmtf_file()
-        self.influx_simulation()
-        self.generate_summary()
-
-        # # test for dataframe filtering and number of marked shapes 
-        # test1 = Score(self.summary_dataframe)
-        # print(test1.data_filter(fluxes_names=["BM", "ald", "eno"], kind="NET", files_res=["file_01_SD", "file_06_SD"]))
-        # test1.apply_number_marked_substrates(["file_01", "file_06"], self.labeled_species)
-
-        # sd sum test
-        # test2 = Score(self.summary_dataframe["file_07_SD"])
-        # # print(test2.apply_sum_sd())
-
-        # # # test for the sum of flows whose sd is below a threshold
-        # test3 = Score(self.summary_dataframe["file_11_SD"])
-        # # # print(test3.apply_sum_nb_flux_sd(100))
-        # handler = ScoreHandler([test2.apply_sum_sd(), test3.apply_sum_nb_flux_sd(100)])
-        # print(handler.divide_scores())
-
  
+
 class Score:
     def __init__(self, data):
         # Dictionary containing the scoring name as the key and the function to be applied as the value 
@@ -464,17 +446,22 @@ class Score:
     def __repr__(self) -> str:
         return f"\n{self.data}\n"
 
-    def apply_sum_sd(self):
+    def apply_sum_sd(self, weight=1):
         """
         Sum of sd 
+
+        :param weight: weight of the score
         """
-        return self.data.sum()
+        return self.data.sum() * weight
     
-    def apply_sum_nb_flux_sd(self, threshold):
+    def apply_sum_nb_flux_sd(self, threshold, weight=1):
         """
         Sum of number of flux with sd less than a threshold
+
+        :param threshold: the threshold value used to filter the flux values
+        :param weight: weight of the score
         """
-        return (self.data < threshold).sum()
+        return (self.data < threshold).sum() * weight
 
     def apply_number_labeled_species(self, results_files :list, dict_labeled_species):
         """ 
@@ -491,6 +478,7 @@ class Score:
 class ScoreHandler:
     def __init__(self, score_objects :list):
         self.score_objects = score_objects
+        
 
     def __repr__(self) -> str:
         return f"\n List of files for scoring :\n{self.score_objects}"
@@ -511,11 +499,42 @@ class ScoreHandler:
         if files_res:
             # join the first 4 columns (Name, Kind, Value_tvar.sim, Diff_value) with the SD columns of the files to be displayed 
             self.data = pd.concat((self.data.iloc[:,:4], self.data[files_res]), axis=1)
+        logger.info(f"Filtered dataframe :\n{self.data}")
         return self.data
-        # logger.info(f"Filtered dataframe :\n{self.data}")
+        
+    
+    def multiply_scores(self):
+        """
+        Multiplies the elements of the `score_objects` attribute together
+        """
+        logger.info(f"Multiplication result = {math.fsum(self.score_objects)}")
+        return math.prod(self.score_objects)
+    
+    def sum_scores(self):
+        """
+        Calculates the sum of the elements in the `score_objects` attribute
+        """
+        logger.info(f"Addition result = {math.fsum(self.score_objects)}")
+        return math.fsum(self.score_objects)
         
     def divide_scores(self):
+        """
+        This function divides the first element of the `score_objects`
+        attribute by the second element.
+        """
+        if len(self.score_objects) < 2:
+            msg = "At least two values are required for division."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        if any(scores == 0 for scores in self.score_objects):
+            msg = "All values must be different from 0."
+            logger.error(msg)
+            raise ValueError(msg)
+        
+        logger.info(f"Division result = {self.score_objects[0]/self.score_objects[1]}")
         return self.score_objects[0]/self.score_objects[1]
+        
 
 if __name__ == "__main__":
     gluc_u = Isotopomer("Gluc", "111111", 10, 0, 100)
@@ -527,12 +546,33 @@ if __name__ == "__main__":
         "fthf": [fthf],
         "co2": [co2]
     }
+
     test = Process()
-    # test2 = LabelInput(mix1)
-    # test.initialize_data(r"C:\Users\kouakou\Documents\IsoDesign\isodesign\test_data\acetate_LLE")
-    # test.load_file("design_test_1")
-    test.main(mix1)
+    test.initialize_data(r"C:\Users\kouakou\Documents\IsoDesign\isodesign\test_data\acetate_LLE")
+    test.load_file("design_test_1")
+    test.input_network_analysis()
+    test.generate_combinations(mix1)
+    test.generate_linp_files()
+    test.files_copy()
+    test.generate_vmtf_file()
+    test.influx_simulation()
+    test.generate_summary()
+
+    # test for dataframe filtering and number of marked shapes 
+    # filtered_dataframe = Score(test.summary_dataframe)
+    # print(filtered_dataframe.data_filter(fluxes_names=["BM", "ald", "eno"], kind="NET", files_res=["file_01_SD", "file_06_SD"]))
+
+    sd_sum = Score(test.summary_dataframe["file_07_SD"])
+
+    fluxes_sd = Score(test.summary_dataframe["file_11_SD"])
+    # test4 = Score(test.summary_dataframe["file_08_SD"])
+
+    # test for 
+    handler = ScoreHandler([sd_sum.apply_sum_sd(), fluxes_sd.apply_sum_nb_flux_sd(100, weight=3)])
     
+    handler.multiply_scores()
+    handler.sum_scores()
+    handler.divide_scores()
 
     
     
