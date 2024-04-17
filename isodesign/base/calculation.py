@@ -184,7 +184,7 @@ class Process:
     def __init__(self):
         # Dictionary to store imported file contents. Key : files extension, value : namedtuple with file path and contents 
         self.imported_files_dict = {}
-        self.netw_files_prefixes = []
+        self.netw_files_prefixes = None
         # LabelInput object
         # To use the generate_labelling_combinations method
         self.labelinput = None
@@ -209,10 +209,17 @@ class Process:
     def initialize_data(self, directory_path):
         """
         This function initializes the data import process by setting the input 
-        folder path and identifying all .netw files in the folder
+        folder path and identifying all .netw files in the folder and store 
+        prefixes found
 
         :param directory_path: str containing the path to the input folder 
         """
+
+        if not isinstance(directory_path, str):
+            msg = f"{directory_path} should be of type string and not {type(directory_path)}"
+            logger.error(msg)
+            raise TypeError(msg)
+
         self.path_input_folder = Path(directory_path)
 
         if not self.path_input_folder.exists():
@@ -222,9 +229,8 @@ class Process:
         
         logger.debug(f"Input folder directory = {self.path_input_folder}")
         
-        for file in self.path_input_folder.iterdir():
-            if file.suffix == '.netw':
-                self.netw_files_prefixes.append(file.stem)
+        # store prefixes found in the folder
+        self.netw_files_prefixes = [file.stem for file in self.path_input_folder.iterdir() if file.suffix == '.netw']
 
         logger.debug(f"Prefixes from netw files in the folder = {self.netw_files_prefixes}")
 
@@ -236,16 +242,21 @@ class Process:
         :param prefix: str containing the prefix of the file to be loaded
 
         """
+        self.prefix = prefix
+        logger.info(f"Prefix {self.prefix}")
 
+        if prefix not in self.netw_files_prefixes:
+            msg = f"Prefix '{prefix}' is not found in this folder."
+            logger.error(msg)
+            raise ValueError(msg)
+    
         # namedtuple containing file path and data 
         files_infos = namedtuple("file_info", ['path', 'data'])
         for files in self.path_input_folder.iterdir():
             if files.stem == prefix and files.suffix in self.FILES_EXTENSION:
                 data = pd.read_csv(str(files), sep="\t", comment="#", header=None if files.suffix == ".netw" else 'infer')
                 self.imported_files_dict.update({files.suffix[1:]: files_infos(files, data)})
-
-        self.prefix = prefix
-        logger.debug(f"Prefix {self.prefix}")
+                
         logger.debug(f"Imported files dictionary = {self.imported_files_dict}")
 
 
