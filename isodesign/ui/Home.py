@@ -13,7 +13,7 @@ st.title("Welcome to IsoDesign 2.0")
 
 session = SessI(
     session_state=st.session_state,
-    page="upload"
+    page="Home"
 )
 
 logging_mode = st.checkbox('Debug mode')
@@ -121,7 +121,7 @@ if session.widget_space["netw_choice"]:
             # stores the output destination 
             # will be reused as the output path for generating files from Isodesign 
             input_folder.path_isodesign_folder = output_path
-            
+
             st.write("**Selected folder** :\n", output_path)
 
     next = st.button("Next page")

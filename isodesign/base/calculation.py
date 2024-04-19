@@ -104,7 +104,6 @@ class Isotopomer:
             raise ValueError("Step for proportions to test must be greater than 0")
         self._step = value
 
-
 class LabelInput:
     def __init__(self, isotopomer_group: dict):
         """
@@ -563,34 +562,35 @@ if __name__ == "__main__":
         "co2": [co2]
     }
 
+
     test = Process()
     test.initialize_data(r"C:\Users\kouakou\Documents\IsoDesign\isodesign\test_data\acetate_LLE")
     test.load_file("design_test_1")
     test.input_network_analysis()
     test.load_file("design_test_2")
     test.input_network_analysis()
-    # test.generate_combinations(mix1)
-    # test.generate_linp_files()
-    # test.files_copy()
-    # test.generate_vmtf_file()
-    # test.influx_simulation()
-    # test.generate_summary()
+    test.generate_combinations(mix1)
+    test.generate_linp_files()
+    test.files_copy()
+    test.generate_vmtf_file()
+    test.influx_simulation()
+    test.generate_summary()
 
     # test for dataframe filtering and number of marked shapes 
-    # filtered_dataframe = Score(test.summary_dataframe)
-    # print(filtered_dataframe.data_filter(fluxes_names=["BM", "ald", "eno"], kind="NET", files_res=["file_01_SD", "file_06_SD"]))
+    filtered_dataframe = Score(test.summary_dataframe)
+    print(filtered_dataframe.data_filter(fluxes_names=["BM", "ald", "eno"], kind="NET", files_res=["file_01_SD", "file_06_SD"]))
 
-    # sd_sum = Score(test.summary_dataframe["file_07_SD"])
+    sd_sum = Score(test.summary_dataframe["file_07_SD"])
 
-    # fluxes_sd = Score(test.summary_dataframe["file_11_SD"])
-    # # test4 = Score(test.summary_dataframe["file_08_SD"])
+    fluxes_sd = Score(test.summary_dataframe["file_11_SD"])
+    # test4 = Score(test.summary_dataframe["file_08_SD"])
 
-    # # test for 
-    # handler = ScoreHandler([sd_sum.apply_sum_sd(), fluxes_sd.apply_sum_nb_flux_sd(100, weight=3)])
+    # test for 
+    handler = ScoreHandler([sd_sum.apply_sum_sd(), fluxes_sd.apply_sum_nb_flux_sd(100, weight=3)])
     
-    # handler.multiply_scores()
-    # handler.sum_scores()
-    # handler.divide_scores()
+    handler.multiply_scores()
+    handler.sum_scores()
+    handler.divide_scores()
 
     
     
