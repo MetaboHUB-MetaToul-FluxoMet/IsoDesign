@@ -1,5 +1,6 @@
 import streamlit as st
 from sess_i.base.main import SessI
+from collections import namedtuple
 from isodesign.base.calculation import Process, Isotopomer, LabelInput
 
 
@@ -18,17 +19,12 @@ def add_substrates(substrate_name, labelling, nb_intervals, lower_b, upper_b):
     :param upper_b: upper_bound
     """
 
-    # counter to increment the number of substrate additions (click on the add button)
-    if f"click_{substrate_name}" not in session.widget_space.widgets:
-        session.widget_space.widgets[f"click_{substrate_name}"] = 0
-    session.widget_space.widgets[f"click_{substrate_name}"] += 1
-    
-    nb_substrates = session.widget_space.widgets[f"click_{substrate_name}"]
     # Create an Isotopomer object with the given parameters
     iso = Isotopomer(substrate_name, labelling, int(nb_intervals), int(lower_b), int(upper_b))
-
-    session.register_object(iso, key=f"{substrate_name}_{nb_substrates}")
-
+    if f"{substrate_name}" not in session.object_space.objects:
+        session.register_object([iso], key=f"{substrate_name}")
+    else:
+        session.object_space.objects[f"{substrate_name}"].append(iso)
 
 
 def get_carbon_length(substrate):
