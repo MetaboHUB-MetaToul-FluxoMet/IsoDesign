@@ -59,8 +59,8 @@ class Isotopomer:
         return self.num_carbon
 
     def __repr__(self) -> str:
-        return f"\nNumber of associated carbon(s) : {self.num_carbon},\
-        \nName = {self.name},\
+        return f"\nName = {self.name},\
+        \nNumber of associated carbon(s) : {self.num_carbon},\
         \nLabelling = {self.labelling},\
         \nStep = {self.step},\
         \nLower bound = {self.lower_bound},\
@@ -104,6 +104,7 @@ class Isotopomer:
             raise ValueError("Step for proportions to test must be greater than 0")
         self._step = value
 
+    
 class LabelInput:
     def __init__(self, isotopomer_group: dict):
         """
@@ -129,7 +130,7 @@ class LabelInput:
 
         """
         for isotopomer_name, isotopomer in self.isotopomer_group.items():
-            #logger.debug(f"Running combinatory function on {isotopomer_name} group")
+            # logger.debug(f"Running combinatory function on {isotopomer_name} group")
             # For all isotopomers present, all possible fractions are generated except for the first 
             # First isotopomer's fraction will be deduced from the other ones
             if len(isotopomer) > 1:
@@ -146,18 +147,19 @@ class LabelInput:
             # filter with sum <= 1 as condition 
             filtered_combinations = np.array(
                 [combination for combination in all_combinations if np.sum(combination) <= Decimal(1)])
-            # logger.debug(f"Combinations with a sum <= 1: \n{filtered_combinations}")
-
+            # logger.debug(f"Combinations with a sum <= 1: \n{len(isotopomer)}")
+            
             # Calculate the difference between 1 and the sum of the fractions of the other isotopomers  
             # Total sum of all fractions must equal 1
             # Permit to find the fractions of the last isotopomer
-            if len(filtered_combinations) > 1:
+            if len(isotopomer) > 1:
                 deduced_fraction = np.array([np.subtract(np.ones([len(filtered_combinations)], dtype=Decimal),
                                                          filtered_combinations.sum(axis=1))]).reshape(len(filtered_combinations),1)
+                logger.debug(f'deduced fraction {deduced_fraction}')
                 self.isotopomer_combination[isotopomer_name] = np.column_stack((deduced_fraction, filtered_combinations))
             else:
                 self.isotopomer_combination[isotopomer_name] = filtered_combinations
-            
+
             self.names += [isotopomers.name for isotopomers in isotopomer]
             self.labelling_patterns += [isotopomers.labelling for isotopomers in isotopomer]
 
@@ -168,7 +170,7 @@ class LabelInput:
         else:
             self.isotopomer_combination.update(
                 {"combinations": np.column_stack((deduced_fraction, filtered_combinations))})
-
+       
 class Process:
     """
     The Process class is the main class that uses the other classes to perform various tasks:
@@ -522,7 +524,7 @@ class ScoreHandler:
         """
         Multiplies the elements of the `score_objects` attribute together
         """
-        logger.info(f"Multiplication result = {math.fsum(self.score_objects)}")
+        logger.info(f"Multiplication result = {math.prod(self.score_objects)}")
         return math.prod(self.score_objects)
     
     def sum_scores(self):
@@ -566,8 +568,6 @@ if __name__ == "__main__":
     test = Process()
     test.initialize_data(r"C:\Users\kouakou\Documents\IsoDesign\isodesign\test_data\acetate_LLE")
     test.load_file("design_test_1")
-    test.input_network_analysis()
-    test.load_file("design_test_2")
     test.input_network_analysis()
     test.generate_combinations(mix1)
     test.generate_linp_files()
