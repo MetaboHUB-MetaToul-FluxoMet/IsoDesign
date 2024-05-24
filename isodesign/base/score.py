@@ -1,68 +1,75 @@
 import pandas as pd
 import os
-import logging 
+import logging
+import functools 
 
+logger = logging.getLogger(f"IsoDesign.{__name__}")  
 
 class Score:
-    def __init__(self, data, method, **kwargs):
-
-        self.data = data
-        self.logger = logging.getLogger(__name__)
-
-
-        # Dictionary containing the scoring name as the key and the function to be applied as the value 
+    """
+    A class to compute the score of a series of values
+    """
+    def __init__(self, series):
+        # The different scoring methods that can be applied. Key: method name, value: method to be applied 
         self.SCORING_METHODS = {
-            "sum_sd" : self.apply_sum_sd, 
-            "flux_sd" : self.apply_sum_nb_flux_sd,
-            "number_labeled_species" : self.apply_number_labeled_species,
-            "nb_identified_structure" : self.identified_structure
-            }
-        
-        if method in list(self.SCORING_METHODS.keys()):
-            self.score =  self.SCORING_METHODS[method](**kwargs) 
-            self.logger.info(self.score)
+        "sum_sd" : self.apply_sum_sd, 
+        "number_of_flux" : self.apply_sum_nb_flux_sd,  
+        "labeled_species" : self.apply_number_labeled_species,
+        }
 
+        # Fluxes SDs according to the different label input's proportions ar contained as columns in the summary dataframe
+        #
+        # The series of values to compute the score
+        self.series = series
+        # The calculated score of the series
+        self.score = None
+
+    def __call__(self):
+        return self.score
+    
+    def compute(self, method, **kwargs):
+        """
+        Computes the score for a given method
+        
+        :param method: the method to apply to the series
+        :param kwargs: additional arguments to pass to the method
+        
+        """
+        self.score =  self.SCORING_METHODS[method](**kwargs)
+        logger.info(self.score)
 
     def apply_sum_sd(self, weight=1):
         """
-        Sum of sd 
+        Returns the sum of standard deviations for a given label input
 
-        :param weight: weight of the score
+        :param weight: he weight to apply to the score
         """
+        return self.series.sum() * weight
         
-        return pd.DataFrame({"Sum_sd" : (self.data.iloc[:, 4:]).sum() * weight})
     
     def apply_sum_nb_flux_sd(self, threshold, weight=1):
         """
-        Sum of number of flux with sd less than a threshold
+        Returns the total number of fluxes with sds below a given threshold.
 
         :param threshold: the threshold value used to filter the flux values
-        :param weight: weight of the score
+        :param weight: he weight to apply to the score
         """
 
-        
-        return pd.DataFrame({"Flux_sd" : (self.data.iloc[:, 4:] < threshold).sum() * weight}) 
-
-    def apply_number_labeled_species(self, labeled_species_dict):
-        """ 
-        Gives the number of shapes marked in each result file. 
-
-        The number of shapes marked for each file is stored in a dictionary 
-        derived from an attribute of a Process class object. 
-
-        :param labeled_species_dict: dictionary containing file names as key and marked shapes 
-                                    count as value from the Process object 
-        
+        return (self.series < threshold).sum() * weight
+    
+    def apply_number_labeled_species(self, labeled_species_dict, weight=1):
         """
+        Returns the number of labelled substrates for each labelled input.
 
-        return pd.DataFrame({"Labeled species": labeled_species_dict})       
- 
-                
-    # def identified_structure(self, tvar_sim_paths_list):
+        :param labeled_species_dict: a dictionary containing the labelled species
+        """
+        if self.series.name in labeled_species_dict.keys():
+            return labeled_species_dict[self.series.name] * weight
+
+
+    # def identified_structures(self, tvar_sim_paths_list):
     #     """
     #     Gives the number of structures identified in each result file.
-
-
         
     #     The method reads each file in the `tvar_sim_paths_list` and counts the number of structures identified
     #     in each file. The result is returned as a pandas DataFrame with the file name and the number of
@@ -71,49 +78,66 @@ class Score:
     #     struc_identified = {}
     #     for file in tvar_sim_paths_list:
     #         file_name = file.name.split(os.extsep)[0]
-    #         struc_identified.update({f"{file_name}_SD" : sum([len(struct) for struct in pd.read_csv(file, sep="\t", usecols=["Struct_identif"]).values if struct == 'yes'])})  
+    #         struc_identified.update({f"{file_name}_SD" : sum([len(struct) for struct in pd.read_csv(file, sep="\t", usecols=["Struct_identif"]).values if struct == 'yes'])}) 
+    #     return struc_identified
+    #     # return pd.DataFrame({"Identified structures": struc_identified})
+    
 
-    #     return pd.DataFrame({"Identified structure": struc_identified})
+class ScoreHandler:
+    """ 
+    This class applies score methods, performs operations between them 
+    and displays them on a given dataset. 
+    """
+    def __init__(self, dataframe):
+        # the summary dataframe (filtered or not) of the results of the various label input proportions following the simulation
+        self.dataframe = dataframe
+        # dictionary containing the results of scoring methods applied to the columns (fluxes SDs based on different proportions of label inputs) of the dataframe
+        # Key : column name, value : dictionary containing the score method as key and the score as value
+        self.columns_scores = {}
+    
 
-    def __add__(self, other):
-        """
-        Define the addition operation.
-
-        :param other: The object to add 
-        """
-        return pd.DataFrame(self.score.values + other.score.values,
-                            index = [self.score.index],
-                            columns = [f"{list(self.score.columns)}+{list(other.score.columns)}"])
+    def apply_scores(self, score_method, **kwargs):
+        """ 
+        Apply a score method to the dataframe columns via the Score class
         
-    
-    def __mul__(self, other):
+        :param score_method: the method to apply to the dataframe columns
+        :param kwargs: additional arguments to pass to the score method
         """
-        Define the mltiplication operation
+        for column in self.dataframe.columns:
+            # Each database column is converted into a Score object to offer flexibility in the subsequent manipulation of each score
+            score = Score(self.dataframe[column])
+            score.compute(score_method, **kwargs)
+            self.columns_scores.update({column: {score_method: score.score}}) if column not in self.columns_scores.keys() else self.columns_scores[column].update({score_method: score.score})
 
-        :param other: The object to multiply
+
+    def get_scores(self, columns_names=None, operation=None):
         """
-        return pd.DataFrame(self.score.values * other.score.values,
-                            index = [self.score.index],
-                            columns = [f"{list(self.score.columns)}*{list(other.score.columns)}"])
-    
+        Returns as a dataframe the results of the scoring method(s) 
+        applied according to the desired columns (fluxes SDs based on 
+        different proportions of label inputs). 
+        Operations can be applied between score results 
 
-    def __truediv__(self, other):
+        :param columns_names: the columns to return the scores for
+        :param operation: the operation to apply to the scores (Addition, Multiply, Divide)
+
         """
-        Define the division operation
-
-        :param other: The object to divide
-        """
-        return pd.DataFrame(self.score.values / other.score.values,
-                            index = [self.score.index],
-                            columns = [f"{list(self.score.columns)}/{list(other.score.columns)}"])
-    
-
-# class ScoreHandler:
-#     def __init__(self, score_objects : Score):
-        
-#         self.score_objects = score_objects
-    
-#     def __repr__(self) -> str:
-#         return f"\n List of files for scoring :\n{self.score_objects}"
-         
-    
+        if columns_names is None:
+            # If no columns are specified, all columns are considered
+            columns_names = self.columns_scores.keys()
+        match operation:
+            case "Addition":
+                # The scores of the columns are added together
+                # functools.reduce() function is used to apply a particular function passed in its argument to all of the list elements mentioned in the sequence passed along.
+                return pd.DataFrame.from_dict({col : functools.reduce(lambda x, y: x + y, self.columns_scores[col].values()) for col in columns_names},
+                                              orient='index')                            
+            case "Multiply":
+                # The scores of the columns are multiplied together
+                return pd.DataFrame.from_dict({col : functools.reduce(lambda x, y: x * y, self.columns_scores[col].values()) for col in columns_names},
+                                              orient='index')
+            case "Divide":
+                # The scores of the columns are divided together
+                return pd.DataFrame.from_dict({col : functools.reduce(lambda x, y: x / y, self.columns_scores[col].values()) for col in columns_names},
+                                              orient='index')
+        # If no operation is specified, the scores are returned as they are
+        return pd.DataFrame.from_dict({col: self.columns_scores[col] for col in columns_names}, 
+                                     orient='index')
