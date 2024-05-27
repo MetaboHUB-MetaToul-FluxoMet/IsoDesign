@@ -1,1 +1,4 @@
 ./README.md
+__pycache__
+isodesign/test_data/acetate_LLE/tmp
+.ipynb_checkpoints

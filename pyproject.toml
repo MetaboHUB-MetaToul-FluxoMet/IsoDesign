@@ -10,7 +10,11 @@ python = "^3.11"
 pandas = "^2.1.4"
 numpy = "^1.26.4"
 influx-si = "^7.0.2"
+streamlit = "^1.33.0"
 
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.1.1"
 
 [build-system]
 requires = ["poetry-core"]
