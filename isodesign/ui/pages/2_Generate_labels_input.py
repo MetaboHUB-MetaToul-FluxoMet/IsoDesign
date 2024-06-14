@@ -1,6 +1,6 @@
 import streamlit as st
 from sess_i.base.main import SessI
-from isodesign.base.calculation import Isotopomer
+from isodesign.base.isotopomer import Isotopomer
 
 
 session = SessI(
@@ -26,6 +26,12 @@ def add_substrates(substrate_name, labelling, nb_intervals, lower_b, upper_b):
     else:
         session.object_space.objects[f"{substrate_name}"].append(iso)
 
+def remove_substrates(substrate_name, labelling):
+    if f"{substrate_name}" in session.object_space.objects:
+        for value in session.object_space.objects[f"{substrate_name}"]:
+            if value.labelling == labelling:
+                session.object_space.objects[f"{substrate_name}"].remove(value)
+        # session.object_space.objects[f"s{substrate_name}"].remove(iso)
 
 def get_carbon_length(substrate):
     """
@@ -39,18 +45,18 @@ def get_carbon_length(substrate):
 
 
 
-def add_form(count):
+def add_form(count=0):
     """
     Create a form to add substrates
 
     :param count: counter
     """
-    count += 1
     
     with st.form(f"form_{substrate_name}_{count}"):
         labelling = st.text_input(f"Number of tracer atoms : {get_carbon_length(substrate_name)}", 
                                   key=f"text_{substrate_name}_{count}", 
                                   value="0" * get_carbon_length(substrate_name))
+        
 
         lb, ub, step = st.columns(3, gap="medium")
         with lb:
@@ -60,13 +66,23 @@ def add_form(count):
         with step:
             nb_intervals = st.text_input("Nb intervals", key=f"step_{substrate_name}_{count}", value=100)
 
-        add = st.form_submit_button("Add")
+        add_col, remove_col = st.columns([1, 10])
+        with add_col:
+            add = st.form_submit_button("Add")
+            if add:
+                session.register_widgets({f"add_{count}_{substrate_name}" : add})
+                add_substrates(substrate_name, labelling, nb_intervals, lower_b, upper_b)
+                st.rerun()
+        if count > 0:
+            with remove_col:
+                remove = st.form_submit_button("Remove")
+                if remove:
+                    remove_substrates(substrate_name, labelling)
+                    session.widget_space.widgets.pop(f"add_{count}_{substrate_name}")
+                    st.rerun()
 
-        if add:
-            session.register_widgets({f"add_{count}_{substrate_name}" : add})
-            add_substrates(substrate_name, labelling, nb_intervals, lower_b, upper_b)
-            
     if session.widget_space[f"add_{count}_{substrate_name}"]:
+        count += 1
         add_form(count)
         
 
@@ -81,47 +97,9 @@ tabs=st.tabs(list(substrates))
 for index, substrate_name in enumerate(substrates):
     with tabs[index]:
         st.header(substrate_name)
+        add_form()
 
-        with st.form(f"form_{substrate_name}"):
-            # Create a text input for labelling with a default value based on the carbon length
-            labelling = st.text_input(f"Number of tracer atoms : {get_carbon_length(substrate_name)}", 
-                                            key=f"text_{substrate_name}", 
-                                            value="0" * get_carbon_length(substrate_name))
-            
-            # Columns for lower bound, upper bound, and number of intervals
-            lb, ub, step = st.columns(3, gap="medium")
-            with lb:
-                lower_b=st.text_input("Lower bound", 
-                                    key=f"lb_{substrate_name}",
-                                    value=100)
-            with ub:
-                upper_b=st.text_input("Upper bound", 
-                                      key=f"ub_{substrate_name}", 
-                                      value=100)
-               
-            with step:
-                nb_intervals = st.text_input("Nb intervals", 
-                                             key=f"step_{substrate_name}", 
-                                             value=100)
-                
-            add_button = st.form_submit_button("Add")
-           
-            if add_button:
-                # Register the state of the add button and the name of the submitted substrate  
-                session.register_widgets({f'{substrate_name}_submit' : add_button})
-                # Creating an isotopomer object 
-                add_substrates(substrate_name, 
-                                        labelling, 
-                                        nb_intervals,
-                                        lower_b, 
-                                        upper_b) 
-                               
-        if session.widget_space[f'{substrate_name}_submit']:
-            # When adding fields, the counter makes each new field unique by assigning it a different number 
-            count = 0
-            # Adds a new field 
-            add_form(count)
-                
+
 submit = st.button("Submit")
 if submit:
     objects_without_process = {key: value for key, value in session.object_space.objects.items() if key != "process_object"}
@@ -129,10 +107,10 @@ if submit:
     # linp file generations 
     session.object_space["process_object"].generate_linp_files()
     session.object_space["process_object"].generate_vmtf_file()
-    session.object_space["process_object"].files_copy()
+    session.object_space["process_object"].copy_files()
     st.switch_page(r"pages\3_Simulation_options.py")
 
-st.write(session)
+# st.write(session)
 
 
     
