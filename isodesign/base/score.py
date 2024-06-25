@@ -14,11 +14,10 @@ class Score:
         self.SCORING_METHODS = {
         "sum_sd" : self.apply_sum_sd, 
         "number_of_flux" : self.apply_sum_nb_flux_sd,  
-        "labeled_species" : self.apply_number_labeled_species,
+        "labeled_input" : self.apply_number_labeled_inputs,
         }
 
         # Fluxes SDs according to the different label input's proportions ar contained as columns in the summary dataframe
-        #
         # The series of values to compute the score
         self.series = series
         # The calculated score of the series
@@ -35,19 +34,25 @@ class Score:
         :param kwargs: additional arguments to pass to the method
         
         """
-        self.score =  self.SCORING_METHODS[method](**kwargs)
+        match method:
+            case "number_of_flux":
+                self.score = self.SCORING_METHODS[method](kwargs["threshold"], kwargs["weight_flux"] if "weight_flux" in kwargs else 1)
+            case "labeled_species":
+                self.score = self.SCORING_METHODS[method](kwargs["labeled_species_dict"], kwargs["weight_labeled_input"] if "weight_labeled_input" in kwargs else 1)
+            case "sum_sd":
+                self.score = self.SCORING_METHODS[method](kwargs["weight_sum_sd"] if "weight_sum_sd" in kwargs else 1)
         logger.info(self.score)
 
-    def apply_sum_sd(self, weight=1):
+    def apply_sum_sd(self, weight_sum_sd=1):
         """
         Returns the sum of standard deviations for a given label input
 
         :param weight: he weight to apply to the score
         """
-        return self.series.sum() * weight
+        return self.series.sum() * weight_sum_sd
         
     
-    def apply_sum_nb_flux_sd(self, threshold, weight=1):
+    def apply_sum_nb_flux_sd(self, threshold, weight_flux=1):
         """
         Returns the total number of fluxes with sds below a given threshold.
 
@@ -55,16 +60,16 @@ class Score:
         :param weight: he weight to apply to the score
         """
 
-        return (self.series < threshold).sum() * weight
+        return (self.series < threshold).sum() * weight_flux
     
-    def apply_number_labeled_species(self, labeled_species_dict, weight=1):
+    def apply_number_labeled_inputs(self, labeled_species_dict, weight_labeled_input=1):
         """
         Returns the number of labelled substrates for each labelled input.
 
         :param labeled_species_dict: a dictionary containing the labelled species
         """
         if self.series.name in labeled_species_dict.keys():
-            return labeled_species_dict[self.series.name] * weight
+            return labeled_species_dict[self.series.name] * weight_labeled_input
 
 
     # def identified_structures(self, tvar_sim_paths_list):
@@ -96,7 +101,7 @@ class ScoreHandler:
         self.columns_scores = {}
     
 
-    def apply_scores(self, score_method, **kwargs):
+    def apply_scores(self, score_method : list, **kwargs):
         """ 
         Apply a score method to the dataframe columns via the Score class
         
@@ -106,8 +111,9 @@ class ScoreHandler:
         for column in self.dataframe.columns:
             # Each database column is converted into a Score object to offer flexibility in the subsequent manipulation of each score
             score = Score(self.dataframe[column])
-            score.compute(score_method, **kwargs)
-            self.columns_scores.update({column: {score_method: score.score}}) if column not in self.columns_scores.keys() else self.columns_scores[column].update({score_method: score.score})
+            for method in score_method:
+                score.compute(method, **kwargs)
+                self.columns_scores.update({column: {method: score.score}}) if column not in self.columns_scores.keys() else self.columns_scores[column].update({method: score.score})
 
 
     def get_scores(self, columns_names=None, operation=None):
