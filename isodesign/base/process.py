@@ -84,12 +84,12 @@ class Process:
             logger.error(msg)
             raise ValueError(msg)
         
-        logger.info(f"Input folder path = {self.input_folder_path}")
+        logger.info(f"Input folder path = {self.input_folder_path}\n")
         
         # store prefixes found in the folder
         self.netw_files_prefixes = [file.stem for file in self.input_folder_path.iterdir() if file.suffix == '.netw']
 
-        logger.debug(f"Prefixes from netw files in the folder = {self.netw_files_prefixes}")
+        logger.info(f"Prefixes from netw files in the folder = {self.netw_files_prefixes}\n")
 
     def load_mtf_files(self, prefix):
         """ 
@@ -101,7 +101,6 @@ class Process:
         """
         
         self.prefix = prefix
-        logger.info(f"Selected prefix = {self.prefix}")
 
         # Reset the dictionary to store imported files
         self.imported_files_dict = {}
@@ -118,8 +117,9 @@ class Process:
                 data = pd.read_csv(str(file), sep="\t", comment="#", header=None if file.suffix == ".netw" else 'infer')
                 self.imported_files_dict.update({file.suffix[1:]: file_info(file, data)})
 
-        logger.info(f"The files have been imported successfully")
-        logger.debug(f"Imported files dictionary = {self.imported_files_dict}")
+        # logger.info(f"The files have been imported successfully.")
+        logger.info(f"Files with the prefix '{self.prefix}' have been imported.\n")
+        logger.debug(f"Imported files dictionary = {self.imported_files_dict}\n")
 
 
     def input_network_analysis(self):
@@ -152,8 +152,8 @@ class Process:
             case_i=False # for influx_i, must be "True"
             # analyze the ftbl dictionary to find different network elements such as substrates, metabolites...  
             C13_ftbl.ftbl_netan(ftbl, self.netan, emu, fullsys, case_i)
-        logger.debug(f"self.netan dictionary keys : {self.netan.keys()}")
-        logger.info("Input network analysis finished successfully")
+        logger.debug(f"self.netan dictionary keys : {self.netan.keys()}\n")
+        logger.info("Input network analysis finished successfully.\n")
 
     
     def copy_files(self):
@@ -162,15 +162,13 @@ class Process:
         All the files that will be passed to influx_si 
         have to be in the same folder.
         """
-        logger.info("Copy of the imported files to folder containing linp files...")
+        logger.info(f"Copy of the imported files to '{self.res_folder_path}'.\n")
 
         
         for file_path in self.imported_files_dict.values():
             # File paths are contained as first elements in the namedtuple
             logger.debug(f"path {file_path[0]}")
             shutil.copy(file_path[0], self.res_folder_path)
-        
-        logger.info(f'Files have been copied in {self.res_folder_path} \n')
         
 
     def generate_isotopomer(self, substrate_name, labelling, nb_intervals, lower_b, upper_b):
@@ -185,7 +183,6 @@ class Process:
            self.isotopomer_dict.update({f"{substrate_name}" : [iso]})
         else:
             self.isotopomer_dict[f"{substrate_name}"].append(iso)    
-
     
     def generate_combinations(self):
         """
@@ -195,9 +192,11 @@ class Process:
 
         # LabelInput class object contained isotopomers group combinations 
         self.labelinput = LabelInput(self.isotopomer_dict)
+        logger.info(f"Isotopomer dictionary :{self.isotopomer_dict}\n")
+
         self.labelinput.generate_labelling_combinations()
-        logger.debug(f"Isotopomers : {self.labelinput.names} {self.labelinput.labelling_patterns}\n")
-        logger.debug(f"Isotopomers combinations : {self.labelinput.isotopomer_combination}")
+        logger.info(f"Isotopomers : {self.labelinput.names} {self.labelinput.labelling_patterns}")
+        logger.info(f"Isotopomers combinations : {self.labelinput.isotopomer_combination}\n")
 
     def generate_linp_files(self):
         """
@@ -218,7 +217,7 @@ class Process:
 
         # create mapping to associate file number with its respective combinations
         with open(os.path.join(str(self.res_folder_path), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
-            for index, pair in enumerate(self.labelinput.isotopomer_combination["combinations"], start=1):
+            for index, pair in enumerate(self.labelinput.isotopomer_combination["All_combinations"], start=1):
                 df = pd.DataFrame({'Id': None,
                                    'Comment': None,
                                    'Specie': self.labelinput.names,
@@ -239,7 +238,7 @@ class Process:
                 count_labeled_species = len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer])
                 self.labeled_species.update({f"file_{index:02d}_SD" : count_labeled_species})
 
-        logger.debug(f"Elements in the vmtf dictionary {self.vmtf_element_dict}")
+        logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated.")
         logger.info(f"Folder containing linp files has been generated on this directory : {self.res_folder_path}.\n")
         
     def generate_vmtf_file(self):
@@ -260,19 +259,19 @@ class Process:
         logger.debug(f"Creation of the vmtf file containing these files :\n {df}")
         df.to_csv(f"{self.res_folder_path}/{self.prefix}.vmtf", sep="\t", index=False)
 
-        logger.info("Vmtf file has been generated in the linp folder.")
+        logger.info(f"Vmtf file has been generated in '{self.res_folder_path}.'\n")
 
     def influx_simulation(self, command_list):
         """
         Run the simulation with influx_si.
         """ 
        
-        logger.info("Influx_s is running...")
+        logger.info("influx_s is running...")
         # Change directory to the folder containing all the file to use for influx_s
         os.chdir(self.res_folder_path)
         if influx_s.main(command_list):
             raise Exception("Error in influx_si. Check '.err' files")
-        logger.info("You can check your results in the current directory")
+        logger.info(f"influx_s has finished running. Results files in '{self.res_folder_path}'\n")
 
 
     def generate_summary(self):
@@ -292,7 +291,6 @@ class Process:
 
         # list of dataframes containing the "NAME", "kind" and "sd" columns from tvar.sim files 
         tvar_sim_dataframes = [pd.read_csv(files_path, sep="\t", usecols=["Name", "Kind", "SD"], index_col=["Name","Kind"]) for files_path in self.tvar_sim_paths]
-        # logger.debug(f"tvar sim dataframes {tvar_sim_dataframes}")
         # take the flux values from the first tvar.sim file 
         # flux values are the same in all tvar.sim files
         tvar_sim_value = pd.read_csv(self.tvar_sim_paths[0], sep="\t", usecols=["Value", "Name", "Kind"]) 
@@ -301,19 +299,19 @@ class Process:
             df.rename({
                 "SD": f"file_{idx+1:02d}_SD"
             }, axis=1, inplace=True)
-        # logger.debug(f"tvar_sim_dataframes: {tvar_sim_dataframes}")
+        logger.debug(f"tvar_sim_dataframes: {tvar_sim_dataframes}")
 
         # take the "Name", "Kind" and "Value" columns from the input tvar file
         input_tvar_file=self.imported_files_dict['tvar'].data[["Name","Kind","Value"]]
         # merge data from the input tvar file with data from tvar.sim files based on flux names and kind
         merged_tvar = pd.merge(input_tvar_file, tvar_sim_value, on=["Name", "Kind"], how="outer", suffixes=('_tvar', None))
         merged_tvar["Value difference"] = merged_tvar["Value_tvar"] - merged_tvar["Value"]
-        logger.debug(f"Merged_tvar : {merged_tvar}")
+        logger.debug(f"Merged_tvar_values : {merged_tvar}")
 
         # merge the "merged_tvar" dataframe with concatenated dataframes from the "tvar_sim_dataframes" list 
         # delete the "Value_tvar" column, which is not required 
         self.summary_dataframe = pd.merge(merged_tvar, pd.concat(tvar_sim_dataframes, axis=1, join="inner"), on=["Name","Kind"]).drop("Value_tvar", axis=1)
-        logger.debug(f"{self.summary_dataframe}")
+        logger.info(f"Summary dataframe present in '{self.res_folder_path}' : {self.summary_dataframe}\n")
 
         # Creating a Styler object for the summary_dataframe DataFrame
         summary_dataframe_styler=self.summary_dataframe.style.apply(
@@ -366,17 +364,16 @@ if __name__ == "__main__":
     test.generate_isotopomer("Gluc", "100000", 10, 0, 100)
     test.generate_isotopomer("FTHF_in", "0", 100, 100, 100)
     test.generate_isotopomer("CO2_in", "0", 100, 100, 100)
-    print(test.isotopomer_dict)
-    # test.generate_combinations()
-    # test.generate_linp_files()
-    # # test.copy_files()
-    # # test.generate_vmtf_file()
+    test.generate_combinations()
+    test.generate_linp_files()
+    test.copy_files()
+    test.generate_vmtf_file()
    
-    # # test.influx_simulation(["--prefix","design_test_1", "--emu","--noscale","--ln","--noopt"])
+    # test.influx_simulation(["--prefix","design_test_1", "--emu","--noscale","--ln","--noopt"])
     
-    # test.generate_summary()
+    test.generate_summary()
     
-    # # # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
+    # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
 
    
     # sd = ScoreHandler(test.summary_dataframe.iloc[:, 4:])
