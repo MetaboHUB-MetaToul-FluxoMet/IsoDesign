@@ -67,7 +67,7 @@ st.set_page_config(page_title="IsoDesign")
 st.title("Welcome to IsoDesign")
 
 # Create a process object if it does not exist in the session object space
-process_object = Process() if not hasattr(session.object_space, "process_object") else session.get_object("process_object")
+process_object = Process() 
 
 
 # Load a pickle file if it exists
@@ -115,14 +115,17 @@ with st.container(border=True):
         # Show folder picker dialog in GUI
         input_folder_path = filedialog.askdirectory(master=root)
         # Store the path to the input folder and get all prefixes via network files 
-        process_object.get_path_input_folder(input_folder_path)
+
+        process_object.input_folder_path = input_folder_path
+        process_object.get_path_input_folder()
         # Register the process object to the session
         session.register_object(process_object, "process_object")
-    
-    # Display folder path if stored in session otherwise displays that no folder has yet been selected
-    st.write("**Folder path** :\n", str(session.object_space["process_object"].input_folder_path 
-                                        if hasattr(session.object_space["process_object"], "input_folder_path") else "No folder selected"))
 
+    # Display folder path if stored in session otherwise displays that no folder has yet been selected
+    st.text_input("**Folder path** :", "No folder selected" if not hasattr(session.object_space["process_object"], "input_folder_path")
+                  else session.object_space["process_object"].input_folder_path, key="input")
+                                            
+    
     st.subheader("Load results folder path")
     output_button= st.button(
             label="Browse folder",
@@ -131,17 +134,18 @@ with st.container(border=True):
     if output_button:
         output_folder_path = filedialog.askdirectory(master=root)
         # Create a folder to store the results
-        session.object_space["process_object"].res_folder_path = Path(f"{output_folder_path}/IsoDesign_tmp")
-        session.object_space["process_object"].res_folder_path.mkdir(parents=True, exist_ok=True)
+        session.object_space["process_object"].res_folder_path = output_folder_path
 
+        tmp_folder = Path(f"{output_folder_path}/IsoDesign_tmp")
+        tmp_folder.mkdir(parents=True, exist_ok=True)
         # Set up the logger
-        logger_setup(session.object_space["process_object"].res_folder_path, debug_mode)
-    st.write("**Folder path** :\n", str(session.object_space["process_object"].res_folder_path 
-                                        if hasattr(session.object_space["process_object"], "res_folder_path") else "No folder selected"))
-    
-    
+        logger_setup(tmp_folder, debug_mode)
+        
+    st.text_input("**Folder path** :", "No folder selected" if not hasattr(session.object_space["process_object"], "res_folder_path")
+                  else session.object_space["process_object"].res_folder_path, key="output")
 
-if session.object_space["process_object"] :
+   
+if session.object_space["process_object"]:
     with st.container(border=True):
         # Selectbox to choose from all prefixes retrieved from the folder   
         prefix_list = session.object_space["process_object"].netw_files_prefixes
