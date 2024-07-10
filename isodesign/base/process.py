@@ -1,29 +1,28 @@
 """ Module for calculation """
 
-import tempfile
+import logging
 import os
 import shutil
-import logging
-import pandas as pd
-import numpy as np
-
-
-from pathlib import Path
+import tempfile
 from collections import namedtuple
+from pathlib import Path
 
+import numpy as np
+import pandas as pd
 from influx_si import influx_s, C13_ftbl, txt2ftbl
+
 from isodesign.base.isotopomer import Isotopomer
 from isodesign.base.label_input import LabelInput
-from isodesign.base.score import Score, ScoreHandler
 
 logger = logging.getLogger(f"IsoDesign.{__name__}")  
 
 class Process:
     """
-    The Process class is the main class that uses the other classes to perform various tasks:
+    The Process class is the main class to organise IsoDesign functionalities.
+    Key features:
     - importing and reading data files
     - generating combinations of isotopomers that are stored in influx_si .linp files
-    - runs simulations with influx_s to get predicted fluxes and associated SD's
+    - runs simulations with influx_s to get predicted fluxes and associated SDs
     - generates a summary.
 
     """
@@ -31,12 +30,13 @@ class Process:
 
     def __init__(self):
 
-        # Dictionary to store imported file contents. Key : files extension, value : namedtuple with file path and contents 
-        self.imported_files_dict = {}
-        self.netw_files_prefixes = None
+        # Dictionary to store imported file contents. Key : files extension,
+        # value : namedtuple with file path and contents
+        self.mtf_files = {}
+        self.model_names = None
         # LabelInput object
         # To use the generate_labelling_combinations method
-        self.labelinput = None
+        self.label_input = None
 
         # Dictionary containing element to build the vmtf file
         self.vmtf_element_dict = {"Id": None, "Comment": None}
@@ -47,17 +47,17 @@ class Process:
         self.res_folder_path = None
         # File names without extensions
         # Used for influx_s
-        self.prefix = None
+        self.model_name = None
         # List of paths to tvar.sim files (after simulation with influx_si)
         self.tvar_sim_paths = []
-        # Elements analyzed (substrates, metabolites, etc.) in the network using the input_network_analysis method
+        # Elements analyzed (substrates, metabolites, etc.) in the network using the network_analysis method
         self.netan = {}
         # key : file name, value : number of marked shapes 
         self.labeled_species = {}
         # summary dataframe generated after simulation with influx_si
         self.summary_dataframe = None
         # filtered dataframe after filter use
-        self.filtered_dataframe=None
+        self.filtered_dataframe = None
         # Dictionary containing isotopomers
         # key : substrate name, value : list of isotopomers
         self.isotopomer_dict = {}
@@ -72,11 +72,11 @@ class Process:
         """
 
         if not isinstance(directory_path, str):
-            msg = f"{directory_path} should be of type string and not {type(directory_path)}"
+            msg = (f"{directory_path} should be of type string and not"
+                   f" {type(directory_path)}")
             logger.error(msg)
             raise TypeError(msg)
 
-        
         self.input_folder_path = Path(directory_path)
 
         if not self.input_folder_path.exists():
@@ -85,49 +85,51 @@ class Process:
             raise ValueError(msg)
         
         logger.info(f"Input folder path = {self.input_folder_path}\n")
-        
+
+        # TODO: separate prefix identification into a separate method
         # store prefixes found in the folder
-        self.netw_files_prefixes = [file.stem for file in self.input_folder_path.iterdir() if file.suffix == '.netw']
+        self.model_names = [file.stem for file in self.input_folder_path.iterdir() if file.suffix == '.netw']
 
-        logger.info(f"Prefixes from netw files in the folder = {self.netw_files_prefixes}\n")
+        logger.info(f"Prefixes from netw files in the folder = {self.model_names}\n")
 
-    def load_mtf_files(self, prefix):
+    def load_model(self, model_name):
         """ 
         Load tvar, mflux, miso, cnstr and netw files (csv or tsv)
         depending on the prefix chosen.
 
-        :param prefix: str containing the prefix of the file to be loaded
+        :param model_name: model name denoted as prefix of mtf files
 
         """
         
-        self.prefix = prefix
+        self.model_name = model_name
 
         # Reset the dictionary to store imported files
-        self.imported_files_dict = {}
+        self.mtf_files = {}
 
-        if prefix not in self.netw_files_prefixes:
-            msg = f"Prefix '{prefix}' is not found in this folder."
+        if model_name not in self.model_names:
+            msg = f"The model '{model_name}' is not found in this folder."
             logger.error(msg)
             raise ValueError(msg)
     
         # namedtuple containing file path and data 
         file_info = namedtuple("file_info", ['path', 'data'])
         for file in self.input_folder_path.iterdir():
-            if file.stem == prefix and file.suffix in self.FILES_EXTENSION:
+            if file.stem == model_name and file.suffix in self.FILES_EXTENSION:
+                # Read the file and store its content in a namedtuple
+                # TODO: Add checks on file paths
                 data = pd.read_csv(str(file), sep="\t", comment="#", header=None if file.suffix == ".netw" else 'infer')
-                self.imported_files_dict.update({file.suffix[1:]: file_info(file, data)})
+                self.mtf_files.update({file.suffix[1:]: file_info(file, data)})
 
-        # logger.info(f"The files have been imported successfully.")
-        logger.info(f"Files with the prefix '{self.prefix}' have been imported.\n")
-        logger.debug(f"Imported files dictionary = {self.imported_files_dict}\n")
+        logger.info(f"'{self.model_name}' has been imported.\n")
+        logger.debug(f"Imported files = {self.mtf_files}\n")
 
 
-    def input_network_analysis(self):
+    def network_analysis(self):
         """
-        Analyzes the input network using modules from influx_si 
+        Analyze model network to identify substrates, metabolites, etc.
         """
         
-        logger.info("Starting input network analysis...")
+        logger.info("Analyzing model...")
 
         # Reset self.netan to a new empty dictionary
         # Useful if you want to reuse the function for another prefix
@@ -138,71 +140,75 @@ class Process:
                 # copy all files contained in self.res_folder_path (contains input files, linp files and vmtf file) 
                 if contents.is_file():
                     shutil.copy(contents, tmpdir)
-        
+
+        # TODO: get tvar.def file from the temporary directory
+
             # will contain the paths to the ftbl files generated by the txt2ftbl module
             li_ftbl = []  
             # convert mtfs to ftbl
-            txt2ftbl.main(["--prefix", os.path.join(str(tmpdir), self.prefix)], li_ftbl) 
-            # parse and analyze first ftbl store in li_ftbl
-            # returns a dictionary 
-            ftbl=C13_ftbl.ftbl_parse(li_ftbl[0]) 
+            txt2ftbl.main(["--prefix", os.path.join(str(tmpdir), self.model_name)], li_ftbl)
+            # parse and analyze ftbl stored in li_ftbl
+            model: dict = C13_ftbl.ftbl_parse(li_ftbl[0])
 
-            emu=False # can be advantageous to set to "True" when there are only mass measurements
-            fullsys=False
-            case_i=False # for influx_i, must be "True"
-            # analyze the ftbl dictionary to find different network elements such as substrates, metabolites...  
-            C13_ftbl.ftbl_netan(ftbl, self.netan, emu, fullsys, case_i)
+            emu = False # can be advantageous to set to "True" when there are
+            # only mass measurements
+            fullsys = False
+            case_i = False # for influx_i, must be "True"
+            # analyze the model dictionary to find different network elements
+            # such as substrates, metabolites...
+            C13_ftbl.ftbl_netan(model, self.netan, emu, fullsys, case_i)
         logger.debug(f"self.netan dictionary keys : {self.netan.keys()}\n")
-        logger.info("Input network analysis finished successfully.\n")
+        logger.info("Network analysis finished successfully.\n")
 
     
     def copy_files(self):
         """
         Copy the imported files in the linp folder. 
-        All the files that will be passed to influx_si 
-        have to be in the same folder.
+        All the files that will be passed to influx_si have to be in the
+        same folder.
         """
+
         logger.info(f"Copy of the imported files to '{self.res_folder_path}'.\n")
 
-        
-        for file_path in self.imported_files_dict.values():
+        for file in self.mtf_files.values():
             # File paths are contained as first elements in the namedtuple
-            logger.debug(f"path {file_path[0]}")
-            shutil.copy(file_path[0], self.res_folder_path)
+            logger.debug(f"File path: {file.path}")
+            shutil.copy(file.path, self.res_folder_path)
         
 
     def generate_isotopomer(self, substrate_name, labelling, nb_intervals, lower_b, upper_b):
         """
-        Initialize isotopomers by calling the Isotopomer class. 
-        Labeled substrates are stored in the dictionary self.isotopomer_dict
-        with the substrate name as key and initialized isotopomers grouped in a list as values.
+        Initialize isotopomer and store in the  dictionary
+        self.isotopomer_dict with the substrate name as key and initialized
+        isotopomers as values.
         """
-        iso = Isotopomer(substrate_name, labelling, nb_intervals, lower_b, upper_b)
+        isotopomer = Isotopomer(substrate_name, labelling, nb_intervals, lower_b, upper_b)
         
         if f"{substrate_name}" not in self.isotopomer_dict:
-           self.isotopomer_dict.update({f"{substrate_name}" : [iso]})
+           self.isotopomer_dict.update({f"{substrate_name}" : [isotopomer]})
         else:
-            self.isotopomer_dict[f"{substrate_name}"].append(iso)    
+            self.isotopomer_dict[f"{substrate_name}"].append(isotopomer)
     
     def generate_combinations(self):
         """
-        Generate combinations from substrates marked in the self.isotopomer_dict dictionary. 
-        Combinations are generated using the LabelInput class. 
+        Generate combinations from stored labeled substrates.
         """
 
-        # LabelInput class object contained isotopomers group combinations 
-        self.labelinput = LabelInput(self.isotopomer_dict)
-        logger.info(f"Isotopomer dictionary :{self.isotopomer_dict}\n")
+        # Initialize LabelInput from stored substrate isotopomers
+        self.label_input = LabelInput(self.isotopomer_dict)
+        logger.info(f"Label Input :{self.label_input}\n")
 
-        self.labelinput.generate_labelling_combinations()
-        logger.info(f"Isotopomers : {self.labelinput.names} {self.labelinput.labelling_patterns}")
-        logger.info(f"Isotopomers combinations : {self.labelinput.isotopomer_combination}\n")
+        self.label_input.generate_labelling_combinations()
+        logger.debug(
+            f"Isotopomers combinations:"
+            f"{self.label_input.isotopomer_combinations}\n"
+        )
 
     def generate_linp_files(self):
         """
         Generates linp files in a folder in the current directory based 
-        on all combinations for one or more isotopomer groups. These files 
-        are used for Influx_si.
+        on all combinations for one or more substrates. These files
+        are used for influx_si.
         Each file contains isotopomer names, labels and fractions.
 
         A file is generated containing a mapping that associates each file 
@@ -217,11 +223,11 @@ class Process:
 
         # create mapping to associate file number with its respective combinations
         with open(os.path.join(str(self.res_folder_path), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
-            for index, pair in enumerate(self.labelinput.isotopomer_combination["All_combinations"], start=1):
+            for index, pair in enumerate(self.label_input.isotopomer_combinations["All_combinations"], start=1):
                 df = pd.DataFrame({'Id': None,
                                    'Comment': None,
-                                   'Specie': self.labelinput.names,
-                                   'Isotopomer': self.labelinput.labelling_patterns,
+                                   'Specie': self.label_input.names,
+                                   'Isotopomer': self.label_input.labelling_patterns,
                                    'Value': pair})
 
                 # remove rows with value = 0
@@ -257,7 +263,7 @@ class Process:
         # These values will be the names of the export folders of the results  
         df["ftbl"] = self.vmtf_element_dict["linp"]
         logger.debug(f"Creation of the vmtf file containing these files :\n {df}")
-        df.to_csv(f"{self.res_folder_path}/{self.prefix}.vmtf", sep="\t", index=False)
+        df.to_csv(f"{self.res_folder_path}/{self.model_name}.vmtf", sep="\t", index=False)
 
         logger.info(f"Vmtf file has been generated in '{self.res_folder_path}.'\n")
 
@@ -302,7 +308,7 @@ class Process:
         logger.debug(f"tvar_sim_dataframes: {tvar_sim_dataframes}")
 
         # take the "Name", "Kind" and "Value" columns from the input tvar file
-        input_tvar_file=self.imported_files_dict['tvar'].data[["Name","Kind","Value"]]
+        input_tvar_file=self.mtf_files['tvar'].data[["Name", "Kind", "Value"]]
         # merge data from the input tvar file with data from tvar.sim files based on flux names and kind
         merged_tvar = pd.merge(input_tvar_file, tvar_sim_value, on=["Name", "Kind"], how="outer", suffixes=('_tvar', None))
         merged_tvar["Value difference"] = merged_tvar["Value_tvar"] - merged_tvar["Value"]
@@ -357,8 +363,8 @@ if __name__ == "__main__":
 
     test = Process()
     test.get_path_input_folder(r"C:\Users\kouakou\Documents\test_ecoli2")
-    test.load_mtf_files("design_test_1")
-    test.input_network_analysis()
+    test.load_model("design_test_1")
+    test.network_analysis()
     test.res_folder_path = r"C:\Users\kouakou\Documents"
     test.generate_isotopomer("Gluc", "111111", 10, 0, 100)
     test.generate_isotopomer("Gluc", "100000", 10, 0, 100)
