@@ -290,7 +290,7 @@ class Process:
     def influx_simulation(self, command_list):
         """
         Run the simulation with influx_si.
-        
+
         :param command_list: list of command line arguments to pass to influx_si
         """ 
        
@@ -312,16 +312,17 @@ class Process:
         """
 
         # use os.walk to generate the names of folders, subfolders and files in a given directory
-        for (root, folders_names, files_names) in os.walk(Path(self.res_folder_path).absolute()):
-            if root.endswith("_res"):
-                self.tvar_sim_paths += [Path(f"{root}/{files}") for files in files_names if files.endswith('.tvar.sim')]
+        self.tvar_sim_paths = [Path(f"{root}/{files}") 
+                              for (root, _ , files_names) in os.walk(self.res_folder_path) 
+                                for files in files_names if files.endswith('.tvar.sim')]
+    
         logger.debug(f"List of tvar.sim file paths : \n {self.tvar_sim_paths}")
-
         # list of dataframes containing the "NAME", "kind" and "sd" columns from tvar.sim files 
-        tvar_sim_dataframes = [pd.read_csv(files_path, sep="\t", usecols=["Name", "Kind", "SD"], index_col=["Name","Kind"]) for files_path in self.tvar_sim_paths]
+        tvar_sim_dataframes = [pd.read_csv(files_path, sep="\t", usecols=["Name", "Kind", "SD"], index_col=["Name","Kind"]) 
+                               for files_path in self.tvar_sim_paths]
         # take the flux values from the first tvar.sim file 
         # flux values are the same in all tvar.sim files
-        tvar_sim_value = pd.read_csv(self.tvar_sim_paths[0], sep="\t", usecols=["Value", "Name", "Kind"]) 
+        tvar_sim_values = pd.read_csv(self.tvar_sim_paths[0], sep="\t", usecols=["Value", "Name", "Kind"]) 
         
         for idx, df in enumerate(tvar_sim_dataframes):
             df.rename({
@@ -330,25 +331,25 @@ class Process:
         logger.debug(f"tvar_sim_dataframes: {tvar_sim_dataframes}")
 
         # take the "Name", "Kind" and "Value" columns from the input tvar file
-        input_tvar_file=self.mtf_files['tvar'].data[["Name", "Kind", "Value"]]
+        input_tvar_file = self.mtf_files['tvar'].data[["Name", "Kind", "Value"]]
         # merge data from the input tvar file with data from tvar.sim files based on flux names and kind
-        merged_tvar = pd.merge(input_tvar_file, tvar_sim_value, on=["Name", "Kind"], how="outer", suffixes=('_tvar', None))
-        merged_tvar["Value difference"] = merged_tvar["Value_tvar"] - merged_tvar["Value"]
+        merged_tvar = pd.merge(input_tvar_file, tvar_sim_values, on=["Name", "Kind"], how="outer", suffixes=('_tvar_init', None))
+        merged_tvar["Value difference"] = merged_tvar["Value_tvar_init"] - merged_tvar["Value"]
         logger.debug(f"Merged_tvar_values : {merged_tvar}")
 
         # merge the "merged_tvar" dataframe with concatenated dataframes from the "tvar_sim_dataframes" list 
-        # delete the "Value_tvar" column, which is not required 
-        self.summary_dataframe = pd.merge(merged_tvar, pd.concat(tvar_sim_dataframes, axis=1, join="inner"), on=["Name","Kind"]).drop("Value_tvar", axis=1)
+        # delete the "Value_tvar_init" column, which is not required 
+        self.summary_dataframe = pd.merge(merged_tvar, pd.concat(tvar_sim_dataframes, axis=1, join="inner"), on=["Name","Kind"]).drop(columns="Value_tvar_init")
         logger.info(f"Summary dataframe present in '{self.res_folder_path}' : {self.summary_dataframe}\n")
 
         # Creating a Styler object for the summary_dataframe DataFrame
         summary_dataframe_styler=self.summary_dataframe.style.apply(
             # If at least one value is missing in the row, set the style with a pale yellow background color
-            # Repeating the style determined earlier for each cell in the row
-            lambda row: np.repeat('background-color: #fffbcc' if row.isnull().any() else '', row.shape[0]),
+            # Repeating the style for each cell in the row
+            lambda row: ['background-color: #fffbcc' if row.isnull().any() else '' for _ in row],
             # Applying the lambda function along the rows of the DataFrame
             axis=1)
-        summary_dataframe_styler.to_excel(f"{self.res_folder_path}/summary.xlsx", index=None)
+        summary_dataframe_styler.to_excel(f"{self.res_folder_path}/summary.xlsx", index=False)
  
     
     def data_filter(self, fluxes_names:list=None, kind:list=None, pathways:list=None):
@@ -398,9 +399,9 @@ if __name__ == "__main__":
     test.copy_files()
     test.generate_vmtf_file()
    
-    # # test.influx_simulation(["--prefix","design_test_1", "--emu","--noscale","--ln","--noopt"])
+    # test.influx_simulation(["--prefix","design_test_1", "--emu","--noscale","--ln","--noopt"])
     
-    # test.generate_summary()
+    test.generate_summary()
     
     # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
 
