@@ -226,13 +226,13 @@ class Process:
 
     def generate_linp_files(self):
         """
-        Generates linp files in a folder in the current directory based 
-        on all combinations for one or more substrates. These files
-        are used for influx_si.
-        Each file contains isotopomer names, labels and fractions.
+        Generates linp files (TSV format) in the results folder (self.res_folder_path). 
+        Each file contains a combination of labelled substrates. 
+        The files contain the names of the isotopomers, their labelling positions and their values.
 
         A file is generated containing a mapping that associates each file 
         number with its respective combinations. 
+
         """
 
         # # Create a folder to store all the linp files
@@ -269,8 +269,8 @@ class Process:
         
     def generate_vmtf_file(self):
         """
-        Generate a vmtf file that permit to combine variable and constant parts in 
-        a set of experiment on the same organism to launch a batch of calculation.
+        Generate a vmtf file (TSV format) that permit to combine variable
+        and constant parts of a network model.
         This file contained columns using imported files extensions. Each row contains
         imported files names that will be used to produce a ftbl file used in the calculation. 
         Each row have ftbl column with unique and non empty name. 
@@ -290,6 +290,8 @@ class Process:
     def influx_simulation(self, command_list):
         """
         Run the simulation with influx_si.
+        
+        :param command_list: list of command line arguments to pass to influx_si
         """ 
        
         logger.info("influx_s is running...")
