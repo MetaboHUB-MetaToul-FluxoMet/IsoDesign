@@ -24,7 +24,8 @@ class LabelInput:
         self.names = []
         self.labelling_patterns = []
 
-    # TODO: add descriptive __repr__ method
+    def __repr__(self):
+        return "\n".join(f"{substrate_name}: {isotopomers}" for substrate_name, isotopomers in self.isotopomer_group.items())
 
     def generate_labelling_combinations(self):
         """
@@ -56,14 +57,9 @@ class LabelInput:
             # Ensure sum of all fractions is equal to 1
             # Permit to find the fractions of the last isotopomer
             if len(isotopomers) > 1:
-                #deduced_fraction = np.array([np.subtract(np.ones([len(
-                # filtered_combinations)], dtype=Decimal),
-                # filtered_combinations.sum(axis=1))]).reshape(len(filtered_combinations),1)
-                # TODO: test this
                 deduced_fraction = 1 - filtered_combinations.sum(axis=1)
                 logger.debug(f'Deduced fraction {deduced_fraction}')
-                #self.isotopomer_combinations[isotopomer_name] =
-                # np.column_stack((deduced_fraction, filtered_combinations))
+                
                 self.isotopomer_combinations[
                     isotopomer_name] = np.column_stack(
                     (deduced_fraction.reshape(-1, 1), filtered_combinations))
@@ -80,10 +76,4 @@ class LabelInput:
                     *self.isotopomer_combinations.values())
             ]
         else:
-            # TODO: test this
-            self.isotopomer_combinations[
-                "combinations"] = filtered_combinations
-
-            #self.isotopomer_combinations.update(
-            #    {"combinations": np.column_stack((deduced_fraction,
-            #    filtered_combinations))})
+            self.isotopomer_combinations["combinations"] = filtered_combinations
