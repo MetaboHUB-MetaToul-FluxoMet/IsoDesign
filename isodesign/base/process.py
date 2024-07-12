@@ -309,6 +309,10 @@ class Process:
             - the flux values in the tvar.sim files, 
             - the difference between the flux values in the input tvar file and the tvar.sim files,
             - flux SDs in each tvar.sim file
+        
+        The summary dataframe is generated in an excel file in the results folder.
+        During the simulation, fluxes are added. These are highlighted in the summary dataframe.
+        
         """
 
         # use os.walk to generate the names of folders, subfolders and files in a given directory
@@ -354,11 +358,13 @@ class Process:
     
     def data_filter(self, fluxes_names:list=None, kind:list=None, pathways:list=None):
         """
-        Filters output dataframe by fluxes names, kind and/or metabolic pathway 
+        Filters summary dataframe by fluxes names, kind and/or metabolic pathway 
 
         :param fluxes_names: list of fluxes names to be displayed 
         :param kind: "NET", "XCH", "METAB"
         :param pathway: name of metabolic pathways to be displayed  
+
+        :return: filtered dataframe
         """
         
         self.filtered_dataframe = self.summary_dataframe.copy()
@@ -370,7 +376,7 @@ class Process:
             # keep only rows with kind in the list
             self.filtered_dataframe = self.filtered_dataframe.loc[self.filtered_dataframe["Kind"].isin(kind)]
         if pathways:
-            # list storing all flows concerned by the selected metabolic pathway(s) 
+            # list storing all fluxes concerned by the selected metabolic pathway(s) 
             all_fluxes = []
             for pathway_name in pathways:
                 # key "pathway" in netan dictionary contains another dictionary as value
