@@ -13,6 +13,7 @@ from influx_si import influx_s, C13_ftbl, txt2ftbl
 
 from isodesign.base.isotopomer import Isotopomer
 from isodesign.base.label_input import LabelInput
+from isodesign.base.score import ScoreHandler
 
 logger = logging.getLogger(f"IsoDesign.{__name__}")  
 
@@ -63,6 +64,8 @@ class Process:
         self.isotopomer_dict = {}
         # Get the tvar.def file generated during the model analysis
         self.tvar_def_file = None
+
+        self.score = None
 
     def get_path_input_folder(self, directory_path):
         """
@@ -387,6 +390,34 @@ class Process:
         logger.info(f"Filtered dataframe :\n{self.filtered_dataframe}")
         return self.filtered_dataframe
         
+    def generate_score(self, method :list, operation = None, **kwargs):
+        """
+        Generate a score for each flux in the summary dataframe.
+        """
+        
+        sd = ScoreHandler(self.filtered_dataframe.iloc[:, 4:] if self.filtered_dataframe is not None else self.summary_dataframe.iloc[:, 4:])
+        sd.apply_criteria(method, **kwargs)
+        if operation:
+            sd.apply_operations(operation)
+            self.score = sd.columns_scores
+        logger.debug(f"Scores applied to the dataframe :\n{sd.columns_scores}")
+
+    def display_scores(self, columns_names=None):
+        """
+        Returns as a dataframe the results of the rating method(s) 
+        applied according to the desired columns. 
+
+        :param columns_names: the columns to return the scores for
+        """
+        if columns_names is None:
+            # If no columns are specified, all columns are considered
+            columns_names = self.score.keys()
+        # Create a dataframe from the dictionary containing the scores
+        scores_table = pd.DataFrame.from_dict({col: self.score[col] for col in columns_names}, 
+                                     orient='index')
+        logger.info(f"Scores table :\n{scores_table}")
+        return scores_table
+        
 
 if __name__ == "__main__":
 
@@ -405,24 +436,13 @@ if __name__ == "__main__":
     test.copy_files()
     test.generate_vmtf_file()
    
-    # test.influx_simulation(["--prefix","design_test_1", "--emu","--noscale","--ln","--noopt"])
+    test.influx_simulation(["--prefix","design_test_1", "--emu","--noscale","--ln","--noopt"])
     
     test.generate_summary()
     
     # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
-
-   
-    # sd = ScoreHandler(test.summary_dataframe.iloc[:, 4:])
-    # sd.apply_scores(["Sum SDs", "nb of labeled input"], weight_sum_sd=1, labeled_species_dict = test.labeled_species)
-    # # sd.apply_scores("number_of_flux", threshold = 100)
-
-    # # # labeled = ScoreHandler(test.summary_dataframe.iloc[:, 4:])
-    # # # labeled.apply_scores("labeled_species", labeled_species_dict = test.labeled_species)
-
-    # print(sd.get_scores(operation="Addition"))
-
-
-    # print(labeled.get_scores())
+    test.generate_score(["sum_sd", "number_of_flux"], operation = "Divide", weight_sum_sd=1, threshold=100)
+    test.display_scores()
     
     
 
