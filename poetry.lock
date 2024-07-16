@@ -245,12 +245,12 @@ files = [
 
 [[package]]
 name = "influx-si"
-version = "7.0.4"
+version = "7.0.3"
 description = "Metabolic flux and concentration estimation based on stable isotope labeling"
 optional = false
 python-versions = "*"
 files = [
-    {file = "influx_si-7.0.4.tar.gz", hash = "sha256:0bbc8f7bd0bbc4ecb8884ea704969c05e924ba8decdb3a9d5013f1383e25ba41"},
+    {file = "influx_si-7.0.3.tar.gz", hash = "sha256:0685631a20ab422ae558fedd4184b2256fa4289f660227b1729ec71d0306116e"},
 ]
 
 [package.dependencies]
@@ -1355,4 +1355,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "b01c4ad21d8b566ea30bc4672ef283e6af70fd52f9b47c6eeea060f377a580c0"
+content-hash = "10ab524598a639085622ed2fcd338ff7364be8dc6d66f58e912129c610504b17"
