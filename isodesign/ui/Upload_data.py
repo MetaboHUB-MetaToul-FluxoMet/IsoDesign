@@ -22,6 +22,7 @@ session = SessI(
 )
 
 
+
 def logger_setup(output_path, debug_mode=False):
     """ 
     Set up a logger for the application. This method creates a logging handler
@@ -58,40 +59,16 @@ def logger_setup(output_path, debug_mode=False):
     return logger
 
 
-def save_pickle(session, path):
-    with open(str(f"{path}/session.pkl"), "wb") as file_handler:
-        pickle.dump(session, file_handler)
+# def save_pickle(session, path):
+#     with open(str(f"{path}/session.pkl"), "wb") as file_handler:
+#         pickle.dump(session, file_handler)
 
 
 st.set_page_config(page_title="IsoDesign")
 st.title("Welcome to IsoDesign")
 
-# Create a process object if it does not exist in the session object space
-process_object = Process() 
-
-
-# Load a pickle file if it exists
-# upload_pickle = st.sidebar.file_uploader("Upload a pickle file.")
-# if upload_pickle:
-#     with upload_pickle as file:
-#         process = pickle.load(file)
-
-#     # Register the process object to the session
-#     session.object_space["process_object"] = process_object
-#     # Set the attributes of the process object
-#     process_object.input_folder_path = process["input_folder_path"]
-#     process_object.res_folder_path = process["output_folder_path"]
-#     process_object.prefix = process["netw_choice"]
-#     process_object.netw_files_prefixes = process["prefix_list"]
-
-#     # Register the widgets to the session
-#     session.set_widget_defaults(
-#         netw_choice=process["netw_choice"],
-#         submit_button=process["submit_button"]
-#     )
-
-
-debug_mode = st.sidebar.checkbox('Verbose logs', help = "Useful in case of trouble. Join it to the issue on github.")
+debug_mode = st.sidebar.checkbox('Verbose logs',
+                                  help = "Useful in case of trouble. Join it to the issue on github.")
 
 with st.container(border=True):
     # Set up tkinter
@@ -111,21 +88,24 @@ with st.container(border=True):
             label="Browse folder",
             key="input_button")
 
+
     if input_button:
         # Show folder picker dialog in GUI
         input_folder_path = filedialog.askdirectory(master=root)
-        # Store the path to the input folder and get all prefixes via network files 
 
-        process_object.input_folder_path = input_folder_path
-        process_object.get_path_input_folder()
+        session.register_widgets({"input_folder_path": input_folder_path})
+        
+        process_object = Process()
+        process_object.get_path_input_folder(input_folder_path)
+        # Store all model names in folder in a list
+        process_object.get_model_names()
         # Register the process object to the session
         session.register_object(process_object, "process_object")
+        
+        
+    st.text_input("**Folder path** :\n", "No folder selected" if not session.widget_space["input_folder_path"]
+                    else session.widget_space["input_folder_path"], key="input_folder_path")
 
-    # Display folder path if stored in session otherwise displays that no folder has yet been selected
-    st.text_input("**Folder path** :", "No folder selected" if not hasattr(session.object_space["process_object"], "input_folder_path")
-                  else session.object_space["process_object"].input_folder_path, key="input")
-                                            
-    
     st.subheader("Load results folder path")
     output_button= st.button(
             label="Browse folder",
@@ -133,52 +113,51 @@ with st.container(border=True):
         
     if output_button:
         output_folder_path = filedialog.askdirectory(master=root)
+        session.register_widgets({"output_folder_path": output_folder_path})
+
         # Create a folder to store the results
-        session.object_space["process_object"].res_folder_path = output_folder_path
-
-        tmp_folder = Path(f"{output_folder_path}/IsoDesign_tmp")
-        tmp_folder.mkdir(parents=True, exist_ok=True)
-        # Set up the logger
-        logger_setup(tmp_folder, debug_mode)
+        session.object_space["process_object"].results_folder_creation(output_folder_path)
         
-    st.text_input("**Folder path** :", "No folder selected" if not hasattr(session.object_space["process_object"], "res_folder_path")
-                  else session.object_space["process_object"].res_folder_path, key="output")
+        # Set up the logger
+        logger_setup(session.object_space["process_object"].res_folder_path, debug_mode)
+        
+    st.text_input("**Folder path** :", "No folder selected" if not session.widget_space["output_folder_path"]
+                    else session.widget_space["output_folder_path"], key="output_folder_path")
 
-   
-if session.object_space["process_object"]:
+# If the folder paths are registered, the user can choose the model to use
+if session.widget_space["input_folder_path"] and session.widget_space["output_folder_path"]:
     with st.container(border=True):
-        # Selectbox to choose from all prefixes retrieved from the folder   
-        prefix_list = session.object_space["process_object"].netw_files_prefixes
+        # Selectbox to choose from all model names retrieved from the folder   
+        model_names = session.object_space["process_object"].model_names
 
-        # If the prefix has already been chosen, it is displayed in the selectbox 
-        # otherwise the first prefix is displayed
+        # If the model name has already been chosen, it is displayed in the selectbox 
+        # otherwise the first model name is displayed
         netw_choice = st.selectbox("Choose your netw file", 
-                            options=prefix_list,
+                            options=model_names,
                             key="netw_choice",
-                            index=prefix_list.index(session.widget_space["netw_choice"]) if session.widget_space["netw_choice"] is not None else 0)
+                            index=model_names.index(session.widget_space["netw_choice"]) if session.widget_space["netw_choice"] is not None else 0)
         
         session.register_widgets({"netw_choice": netw_choice})
         submit = st.button("Submit",
                            key="submit_button")
         
     if submit :
-        # The chosen prefix is stored and will be used again
-        session.object_space["process_object"].prefix=netw_choice 
+        session.object_space["process_object"].model_name=netw_choice 
         # Register the state (TRUE) of the submit button 
         session.register_widgets({"submit_button": submit})               
 
 
 if session.widget_space["submit_button"]:
-    # File upload and network analysis based on registered prefix
-    session.object_space["process_object"].load_mtf_files(session.object_space["process_object"].prefix)
-    session.object_space["process_object"].input_network_analysis()
+    # Import and analysis of model files 
+    session.object_space["process_object"].load_model(session.object_space["process_object"].model_name)
+    session.object_space["process_object"].model_analysis()
 
     with st.container(border=True):
         st.subheader("Network analysis")
-        # Tabs for network analysis
+        # Tabs for network model analysis
         list_tab = ["Label input", "Isotopic measurements", "Inputs/Outputs", "Fluxes", "Network"]
-        # If the mmet file is present in the imported_files_dict, the concentrations tab is added
-        if "mmet" in session.object_space["process_object"].imported_files_dict.keys():
+        # If the mmet file is present in the model files, the concentrations tab is added
+        if "mmet" in session.object_space["process_object"].mtf_files.keys():
             list_tab.append("Concentrations")
 
         tabs = st.tabs(list_tab)
@@ -191,7 +170,7 @@ if session.widget_space["submit_button"]:
 
         with tabs[1]:
             # Display miso file content
-            st.dataframe(session.object_space["process_object"].imported_files_dict["miso"].data, hide_index=True, height=400,width=600)
+            st.dataframe(session.object_space["process_object"].mtf_files["miso"].data, hide_index=True, height=400,width=600)
 
         with tabs[2]:
             # Display inputs, intermediate and outputs metabolites
@@ -212,20 +191,20 @@ if session.widget_space["submit_button"]:
 
         with tabs[3]:
             # Display tvar file content 
-            st.dataframe(session.object_space["process_object"].imported_files_dict["tvar"].data, hide_index=True, height=400, width=600)
+            st.dataframe(session.object_space["process_object"].mtf_files["tvar"].data, hide_index=True, height=400, width=600)
 
         with tabs[4]:
             # Display a dataframe with reactions and their names and metabolic pathways  
             netw_dataframe = pd.DataFrame({
-                        "Name" : session.object_space["process_object"].imported_files_dict['netw'].data[0],
-                        "Reaction" : session.object_space["process_object"].imported_files_dict['netw'].data[1],
+                        "Name" : session.object_space["process_object"].mtf_files['netw'].data[0],
+                        "Reaction" : session.object_space["process_object"].mtf_files['netw'].data[1],
                         })
 
             pathways = []
             
             for reaction_name in netw_dataframe['Name']:
                 # Remove ':' from the name (name-reaction separator in netw file)
-                # Allows you to have exactly the same reaction names as those contained in the netan dictionary
+                # Give exactly the same reaction names as those contained in the netan dictionary
                 reaction_name = reaction_name.replace(":","")
                 # Append a list of pathways associated with the name to the 'pathways' list
                 pathways.append([pathway for pathway, reaction in session.object_space["process_object"].netan["pathway"].items() if reaction_name in reaction])
@@ -237,27 +216,11 @@ if session.widget_space["submit_button"]:
         if "Concentrations" in list_tab:
             with tabs[5]:
                 # Display mmet file content
-                st.dataframe(session.object_space["process_object"].imported_files_dict["mmet"].data, hide_index=True, height=400, width=600)
+                st.dataframe(session.object_space["process_object"].mtf_files["mmet"].data, hide_index=True, height=400, width=600)
 
     next = st.button("Next page")
-    
     if next:
-        # Information to be stored in the pickle file
-        to_save = {
-            "input_folder_path": session.object_space["process_object"].input_folder_path,
-            "output_folder_path": session.object_space["process_object"].res_folder_path,
-            "netw_choice": session.object_space["process_object"].prefix,
-            "prefix_list" : session.object_space["process_object"].netw_files_prefixes,
-            "submit_button": True
-        }
-       
-        save_pickle(to_save, session.object_space["process_object"].res_folder_path)
         # Go to next page
-        st.switch_page(r"pages/2_Generate_labels_input.py")
-st.write(session)
+            st.switch_page(r"pages/2_Generate_labels_input.py")
 
 
-    
-    
-        
-    
