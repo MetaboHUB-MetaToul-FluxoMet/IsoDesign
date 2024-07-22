@@ -1,32 +1,34 @@
 import streamlit as st
 from sess_i.base.main import SessI
-from isodesign.base.score import ScoreHandler
 import pandas as pd
 from matplotlib import pyplot as plt
 
 session = SessI(
         session_state=st.session_state,
-        page="4_Analysis2")
+        page="4_Analysis")
 
-st.set_page_config(page_title="IsoDesign 2.0", layout="wide")
-st.title("Analysis")
 
 def filter(selected_flux, selected_kind,selected_pathway):
-    session.object_space['process_object'].data_filter(fluxes_names = selected_flux, kind = selected_kind, pathways=selected_pathway)
-        
+    """
+    Filter the dataframe based on the selected fluxes, kind and pathways.
+    """
+    process_object.data_filter(fluxes_names = selected_flux, kind = selected_kind, pathways=selected_pathway)
 
-dataframe = session.object_space['process_object'].summary_dataframe
-filtered_dataframe = session.object_space['process_object'].filtered_dataframe
 
-st.data_editor(filtered_dataframe if filtered_dataframe is not None else dataframe,
-               column_config={
-                    "Choose":st.column_config.CheckboxColumn(
-                    "Choose",
-                    default=False
-                    )
-                },
+st.set_page_config(page_title="IsoDesign", layout="wide")
+st.title("Analysis")
+
+process_object = session.object_space['process_object']
+
+dataframe = process_object.summary_dataframe
+filtered_dataframe = process_object.filtered_dataframe
+
+# Display the simulation results dataframe
+st.dataframe(filtered_dataframe if filtered_dataframe is not None else dataframe,
+            use_container_width=True,
             hide_index=True,
-            disabled=False)
+            on_select="rerun",
+            selection_mode="multi-row")
 
 
 with st.expander("**Apply a filter**"):
@@ -46,58 +48,84 @@ with st.expander("**Apply a filter**"):
         
     with pathway:
         selected_pathway=(st.multiselect(label="Pathway", 
-                                         options=session.object_space['process_object'].netan["pathway"].keys(), 
+                                         options=process_object.netan["pathway"].keys(), 
                                          label_visibility="collapsed", placeholder="Pathway"))
         
         
     submit=st.button("Submit",
                      on_click=filter,
-                     args=(selected_flux, selected_kind,selected_pathway))
+                     args=(selected_flux, selected_kind, selected_pathway))
+
+
     
 with st.container(border=True):
+    # Container divided into 2 columns, one for selecting and configuring columns and the other for displaying results 
     methods, result = st.columns([6, 9], gap="large")
     with methods:
-        method_options = st.multiselect("Criterion", 
-                                            options=["Sum SDs", "nb of fluxes with SD < lim", "nb of labeled input"])
-        if "Sum SDs" in method_options:
-            input_weight=st.text_input("Weight_sum_sd", key=f"weight", value=1)
-        if "nb of fluxes with SD < lim" in method_options:
-            weight_flux = st.text_input("Weight_flux", key=f"weight_flux", value=1)
+        method_choice = st.multiselect("Criterion", 
+                                        options=["sum_sd", "number_of_flux", "labeled_input"],
+                                        )
+        session.register_widgets({"method_choice": method_choice})
+
+        if "sum_sd" in method_choice:
+            weight_sd=st.text_input("Weight_sum_sd", 
+                                       key=f"weight_Sds", 
+                                       value=1)
+            
+        if "number_of_flux" in method_choice:
+            weight_flux = st.text_input("Weight_flux",
+                                        key=f"weight_flux", 
+                                        value=1)
             input_threshold = st.text_input("Threshold", 
                                                 key=f"threshold", 
                                                 value=1)
-        if "nb of labeled input" in method_options:
-            input_labeled_input=st.text_input("Weight_labeled_input", key=f"weight_labeled_input", value=1)
-    
-        # if len(method_options) > 1:
-        #     operation = st.selectbox("Operations", options=["Add", "Multiply", "Divide"])
-                
+            
+        if "labeled_input" in method_choice:
+            input_labeled_input=st.text_input("Weight_labeled_input", 
+                                              key=f"weight_labeled_input", 
+                                              value=1)
+            
 
-    submitted = st.button("Submit", key="submit_container")
+        # If more than one method is selected, the user can choose the operation to apply
+        if len(method_choice) > 1:
+            operation = st.selectbox("Operations", 
+                                     options=["Addition", "Multiply", "Divide"],
+                                     index = None
+                                     )
+            
+
+    submitted = st.button("Submit", 
+                          key="submit_container")
     if submitted:
-        score_handler = ScoreHandler(filtered_dataframe.iloc[:, 4:] if filtered_dataframe is not None else dataframe.iloc[:, 4:])
-        score_handler.apply_scores(method_options, 
-                                       weight_sum_sd=int(input_weight) if "Sum SDs" in method_options else 1,
-                                        threshold=int(input_threshold) if "nb of fluxes with SD < lim" in method_options else 1,
-                                        weight_flux=int(weight_flux) if "nb of fluxes with SD < lim" in method_options else 1,
-                                        labeled_species_dict=dict(session.object_space["process_object"].labeled_species) if "nb of labeled input" in method_options else None,
-                                        weight_labeled_input=int(input_labeled_input) if "nb of labeled input" in method_options else 1
-                                        )
-         
-
+        # Generate the score based on the selected methods
+        process_object.generate_score(method_choice,
+                                      operation = operation if len(method_choice) > 1 else None,                         
+                                      weight_sum_sd=int(weight_sd) if "sum_sd" in method_choice else 1,
+                                        threshold=int(input_threshold) if "number_of_flux" in method_choice else 1,
+                                        weight_flux=int(weight_flux) if "number_of_flux" in method_choice else 1,
+                                        labeled_input_dict=dict(process_object.labeled_inputs) if "labeled_input" in method_choice else None,
+                                        weight_labeled_input=int(input_labeled_input) if "labeled_input" in method_choice else 1
+                                      )
+        session.register_widgets({"submit_container": submitted})
+    
+    if session.widget_space["submit_container"]:
         with result:     
             st.write("")
             dataframe, barplot = st.columns([10, 15])
             with dataframe:                          
-                st.dataframe(score_handler.get_scores())
+                table_score = st.dataframe(process_object.display_scores(),
+                             on_select="rerun",
+                            selection_mode="multi-row",
+                            use_container_width=True)
                 
             with barplot:
-                # plt.bar( score_handler.get_scores()[method_options], height=10, color='blue')
-                # st.bar_chart(score_handler.get_scores()
-                st.pyplot(score_handler.get_scores().plot(kind='bar').figure)
-    
-           
+                if session.widget_space["table_score"]:
+                    # Display the selected rows in a bar plot
+                    df = pd.DataFrame(process_object.display_scores().iloc[table_score.selection.rows,:])
+                    st.pyplot(df.plot(kind='bar').figure)
+                # Display the scores in a bar plot
+                st.pyplot(process_object.display_scores().plot(kind='bar').figure)
 
 add_score = st.button("Add score", key=f"add_score")
-    
+st.write(session)
                 
