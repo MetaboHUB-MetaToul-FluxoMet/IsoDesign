@@ -7,7 +7,6 @@ import tempfile
 from collections import namedtuple
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from influx_si import influx_s, C13_ftbl, txt2ftbl
 
@@ -53,8 +52,8 @@ class Process:
         self.tvar_sim_paths = []
         # Elements analyzed (substrates, metabolites, etc.) in the network using the model_analysis method
         self.netan = {}
-        # key : file name, value : number of marked shapes 
-        self.labeled_species = {}
+        # key : file name, value : number of labeled substrates 
+        self.labeled_inputs = {}
         # summary dataframe generated after simulation with influx_si
         self.summary_dataframe = None
         # filtered dataframe after filter use
@@ -64,7 +63,7 @@ class Process:
         self.isotopomer_dict = {}
         # Get the tvar.def file generated during the model analysis
         self.tvar_def_file = None
-
+        # Dictionary containing scores
         self.score = None
 
     def get_path_input_folder(self, directory_path):
@@ -155,9 +154,9 @@ class Process:
             txt2ftbl.main(["--prefix", os.path.join(str(tmpdir), self.model_name)], li_ftbl)
 
             # get the tvar.def file
-            for file in os.listdir(tmpdir):
-                if file.endswith(".tvar.def"):
-                    self.tvar_def_file = pd.read_csv(os.path.join(tmpdir, file), sep="\t", comment="/")
+            # for file in os.listdir(tmpdir):
+            #     if file.endswith(".tvar.def"):
+            #         self.tvar_def_file = pd.read_csv(os.path.join(tmpdir, file), sep="\t", comment="/")
 
             # parse and analyze ftbl stored in li_ftbl
             model: dict = C13_ftbl.ftbl_parse(li_ftbl[0])
@@ -264,8 +263,8 @@ class Process:
                 self.vmtf_element_dict.update({"linp": [f"file_{number_file:02d}" for number_file in range(1, index+1)]})
 
                 # Counts the number of labeled species in each generated dataframe 
-                count_labeled_species = len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer])
-                self.labeled_species.update({f"file_{index:02d}_SD" : count_labeled_species})
+                count_labeled_inputs = len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer])
+                self.labeled_inputs.update({f"file_{index:02d}_SD" : count_labeled_inputs})
 
         logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated.")
         logger.info(f"Folder containing linp files has been generated on this directory : {self.res_folder_path}.\n")
@@ -290,13 +289,14 @@ class Process:
 
         logger.info(f"Vmtf file has been generated in '{self.res_folder_path}.'\n")
 
-    def influx_simulation(self, command_list):
+    def influx_simulation(self, param_list):
         """
         Run the simulation with influx_si.
 
-        :param command_list: list of command line arguments to pass to influx_si
+        :param param_list: list of command line arguments to pass to influx_si
         """ 
-       
+        
+        command_list = ["--prefix", self.model_name] + param_list
         logger.info("influx_s is running...")
         # Change directory to the folder containing all the file to use for influx_s
         os.chdir(self.res_folder_path)
@@ -392,16 +392,21 @@ class Process:
         
     def generate_score(self, method :list, operation = None, **kwargs):
         """
-        Generate a score for each flux in the summary dataframe.
-        """
-        
-        sd = ScoreHandler(self.filtered_dataframe.iloc[:, 4:] if self.filtered_dataframe is not None else self.summary_dataframe.iloc[:, 4:])
-        sd.apply_criteria(method, **kwargs)
-        if operation:
-            sd.apply_operations(operation)
-            self.score = sd.columns_scores
-        logger.debug(f"Scores applied to the dataframe :\n{sd.columns_scores}")
+        Generate a score for each labelled substrate combination according 
+        on the rating method(s) applied.
 
+        :param method: list of rating methods to apply
+        :param operation: operation to apply to the scores (Addition, Multiply, Divide)
+        :param kwargs: additional arguments for the rating methods
+        """
+        score_object= ScoreHandler(self.filtered_dataframe.iloc[:, 4:] if self.filtered_dataframe is not None else self.summary_dataframe.iloc[:, 4:])
+        score_object.apply_criteria(method, **kwargs)
+        if operation:
+            score_object.apply_operations(operation)
+        # Score dictionary storage (present in ScoreHandler class)      
+        self.score = score_object.columns_scores
+        logger.debug(f"Scores applied to the dataframe :\n{score_object.columns_scores}")
+    
     def display_scores(self, columns_names=None):
         """
         Returns as a dataframe the results of the rating method(s) 
@@ -436,12 +441,12 @@ if __name__ == "__main__":
     test.copy_files()
     test.generate_vmtf_file()
    
-    test.influx_simulation(["--prefix","design_test_1", "--emu","--noscale","--ln","--noopt"])
+    test.influx_simulation(["--emu","--noscale","--ln","--noopt"])
     
     test.generate_summary()
     
     # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
-    test.generate_score(["sum_sd", "number_of_flux"], operation = "Divide", weight_sum_sd=1, threshold=100)
+    test.generate_score(["labeled_input", "sum_sd"], operation= "Divide", labeled_input_dict = test.labeled_inputs)
     test.display_scores()
     
     
