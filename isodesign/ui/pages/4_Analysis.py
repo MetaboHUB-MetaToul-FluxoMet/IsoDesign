@@ -11,6 +11,10 @@ session = SessI(
 def filter(selected_flux, selected_kind,selected_pathway):
     """
     Filter the dataframe based on the selected fluxes, kind and pathways.
+
+    :param selected_flux: the selected fluxes
+    :param selected_kind: the selected kind
+    :param selected_pathway: the selected pathway
     """
     process_object.data_filter(fluxes_names = selected_flux, kind = selected_kind, pathways=selected_pathway)
 
@@ -20,11 +24,12 @@ st.title("Analysis")
 
 process_object = session.object_space['process_object']
 
-dataframe = process_object.summary_dataframe
+
+summary_dataframe = process_object.summary_dataframe
 filtered_dataframe = process_object.filtered_dataframe
 
 # Display the simulation results dataframe
-st.dataframe(filtered_dataframe if filtered_dataframe is not None else dataframe,
+display_dataframe = st.dataframe(filtered_dataframe if filtered_dataframe is not None else summary_dataframe,
             use_container_width=True,
             hide_index=True,
             on_select="rerun",
@@ -36,25 +41,25 @@ with st.expander("**Apply a filter**"):
     fluxes_name, kind, pathway = st.columns(3)
     with fluxes_name:
         selected_flux=(st.multiselect(label="Fluxes_name", 
-                                      options=filtered_dataframe["Name"].drop_duplicates() if filtered_dataframe is not None else dataframe["Name"].drop_duplicates(), 
-                                      label_visibility="collapsed",
-                                      placeholder= "Flux"))
+                                    options=filtered_dataframe["Name"].drop_duplicates() if filtered_dataframe is not None else summary_dataframe["Name"].drop_duplicates(), 
+                                    label_visibility="collapsed",
+                                    placeholder= "Flux"))
         
     with kind:
         selected_kind=(st.multiselect(label="kind", 
-                                      options=["NET", "XCH", "METAB"], 
-                                      label_visibility="collapsed", 
-                                      placeholder="Kind"))
+                                    options=["NET", "XCH", "METAB"], 
+                                    label_visibility="collapsed", 
+                                    placeholder="Kind"))
         
     with pathway:
         selected_pathway=(st.multiselect(label="Pathway", 
-                                         options=process_object.netan["pathway"].keys(), 
-                                         label_visibility="collapsed", placeholder="Pathway"))
+                                        options=process_object.netan["pathway"].keys(), 
+                                        label_visibility="collapsed", placeholder="Pathway"))
         
-        
+    
     submit=st.button("Submit",
-                     on_click=filter,
-                     args=(selected_flux, selected_kind, selected_pathway))
+                    on_click=filter,
+                    args=(selected_flux, selected_kind, selected_pathway))
 
 
     
@@ -119,13 +124,14 @@ with st.container(border=True):
                             use_container_width=True)
                 
             with barplot:
-                if session.widget_space["table_score"]:
+                if table_score.selection.rows:
                     # Display the selected rows in a bar plot
                     df = pd.DataFrame(process_object.display_scores().iloc[table_score.selection.rows,:])
                     st.pyplot(df.plot(kind='bar').figure)
-                # Display the scores in a bar plot
-                st.pyplot(process_object.display_scores().plot(kind='bar').figure)
+                else:
+                    # Display the scores in a bar plot
+                    st.pyplot(process_object.display_scores().plot(kind='bar').figure)
 
 add_score = st.button("Add score", key=f"add_score")
-st.write(session)
+# st.write(session)
                 
