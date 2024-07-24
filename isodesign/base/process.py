@@ -8,7 +8,7 @@ from collections import namedtuple
 from pathlib import Path
 
 import pandas as pd
-from influx_si import influx_s, C13_ftbl, txt2ftbl
+from influx_si import influx_s, influx_i, C13_ftbl, txt2ftbl
 
 from isodesign.base.isotopomer import Isotopomer
 from isodesign.base.label_input import LabelInput
@@ -153,7 +153,7 @@ class Process:
             # convert mtfs to ftbl
             txt2ftbl.main(["--prefix", os.path.join(str(tmpdir), self.model_name)], li_ftbl)
 
-            # get the tvar.def file
+            # # get the tvar.def file
             # for file in os.listdir(tmpdir):
             #     if file.endswith(".tvar.def"):
             #         self.tvar_def_file = pd.read_csv(os.path.join(tmpdir, file), sep="\t", comment="/")
@@ -289,7 +289,7 @@ class Process:
 
         logger.info(f"Vmtf file has been generated in '{self.res_folder_path}.'\n")
 
-    def influx_simulation(self, param_list):
+    def influx_simulation(self, param_list, mode):
         """
         Run the simulation with influx_si.
 
@@ -297,12 +297,20 @@ class Process:
         """ 
         
         command_list = ["--prefix", self.model_name] + param_list
-        logger.info("influx_s is running...")
-        # Change directory to the folder containing all the file to use for influx_s
+        
+        # Change directory to the folder containing all the file to use for influx_si
         os.chdir(self.res_folder_path)
-        if influx_s.main(command_list):
-            raise Exception("Error in influx_si. Check '.err' files")
-        logger.info(f"influx_s has finished running. Results files in '{self.res_folder_path}'\n")
+        if mode == "influx_i":
+            logger.info("influx_i is running...")
+            if influx_i.main(command_list):
+                raise Exception("Error in influx_i. Check '.err' files")
+            logger.info(f"influx_i has finished running. Results files in '{self.res_folder_path}'\n")
+        
+        if mode == "influx_s":
+            logger.info("influx_s is running...")
+            if influx_s.main(command_list):
+                raise Exception("Error in influx_si. Check '.err' files")
+            logger.info(f"influx_s has finished running. Results files in '{self.res_folder_path}'\n")
 
 
     def generate_summary(self):
@@ -427,21 +435,23 @@ class Process:
 if __name__ == "__main__":
 
     test = Process()
-    test.get_path_input_folder(r"C:\Users\kouakou\Documents\test_ecoli2")
+    test.get_path_input_folder(r"C:\Users\kouakou\Documents\test\mtf")
     test.get_model_names()
-    test.load_model("design_test_1")
+    test.load_model("e_coli_i")
     test.model_analysis()
     test.results_folder_creation(r"C:\Users\kouakou\Documents")
-    test.generate_isotopomer("Gluc", "111111", 10, 0, 100)
-    test.generate_isotopomer("Gluc", "100000", 10, 0, 100)
-    test.generate_isotopomer("FTHF_in", "0", 100, 100, 100)
-    test.generate_isotopomer("CO2_in", "0", 100, 100, 100)
+    test.generate_isotopomer("Gluc_U", "111111", 10, 0, 100)
+    test.generate_isotopomer("Gluc_U", "000000", 10, 0, 100)
+    test.generate_isotopomer("Gluc_1", "100000", 10, 0, 100)
+    test.generate_isotopomer("Gluc_1", "000000", 10, 0, 100)
+    # test.generate_isotopomer("FTHF_in", "0", 100, 100, 100)
+    # test.generate_isotopomer("CO2_in", "0", 100, 100, 100)
     test.generate_combinations()
     test.generate_linp_files()
     test.copy_files()
     test.generate_vmtf_file()
    
-    test.influx_simulation(["--emu","--noscale","--ln","--noopt"])
+    # test.influx_simulation(["--emu","--noscale","--ln","--noopt"],mode="influx_i")
     
     test.generate_summary()
     
