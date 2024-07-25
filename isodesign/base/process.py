@@ -289,28 +289,31 @@ class Process:
 
         logger.info(f"Vmtf file has been generated in '{self.res_folder_path}.'\n")
 
-    def influx_simulation(self, param_list, mode):
+    def influx_simulation(self, param_list, influx_mode):
         """
-        Run the simulation with influx_si.
+        Run the  simulations with influx_si as a function of experiment type 
+        (influx_i = instationnary or influx_s = stationary) 
 
         :param param_list: list of command line arguments to pass to influx_si
+        :param influx_mode: "influx_i" or "influx_s"
         """ 
         
         command_list = ["--prefix", self.model_name] + param_list
         
         # Change directory to the folder containing all the file to use for influx_si
         os.chdir(self.res_folder_path)
-        if mode == "influx_i":
-            logger.info("influx_i is running...")
+
+        logger.info(f"{influx_mode} is running...")
+
+        if influx_mode == "influx_i":
             if influx_i.main(command_list):
-                raise Exception("Error in influx_i. Check '.err' files")
-            logger.info(f"influx_i has finished running. Results files in '{self.res_folder_path}'\n")
+                raise Exception(f"Error in {influx_mode}. Check '.err' files")
         
-        if mode == "influx_s":
-            logger.info("influx_s is running...")
+        if influx_mode == "influx_s":
             if influx_s.main(command_list):
-                raise Exception("Error in influx_si. Check '.err' files")
-            logger.info(f"influx_s has finished running. Results files in '{self.res_folder_path}'\n")
+                raise Exception(f"Error in {influx_mode}. Check '.err' files")
+        
+        logger.info(f"{influx_mode} has finished running. Results files in '{self.res_folder_path}'\n")
 
 
     def generate_summary(self):
@@ -451,13 +454,13 @@ if __name__ == "__main__":
     test.copy_files()
     test.generate_vmtf_file()
    
-    # test.influx_simulation(["--emu","--noscale","--ln","--noopt"],mode="influx_i")
+    test.influx_simulation(["--emu","--noscale","--ln","--noopt"], mode="influx_i")
     
-    test.generate_summary()
+    # test.generate_summary()
     
-    # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
-    test.generate_score(["labeled_input", "sum_sd"], operation= "Divide", labeled_input_dict = test.labeled_inputs)
-    test.display_scores()
+    # # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
+    # test.generate_score(["labeled_input", "sum_sd"], operation= "Divide", labeled_input_dict = test.labeled_inputs)
+    # test.display_scores()
     
     
 
