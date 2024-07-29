@@ -1157,17 +1157,17 @@ test = ["Cython", "array-api-strict", "asv", "gmpy2", "hypothesis (>=6.30)", "me
 
 [[package]]
 name = "sess-i"
-version = "0.0.2"
-description = ""
+version = "0.1.0"
+description = "A helper package for handling multi-page apps built using Streamlit"
 optional = false
-python-versions = ">=3.9.7"
+python-versions = "!=2.7.*,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,!=3.7.*,>=3.8"
 files = [
-    {file = "sess_i-0.0.2-py3-none-any.whl", hash = "sha256:e164f0f8c47b26cd4c1173d4ef6999748b6c2ff1183da408969dd795222ac070"},
-    {file = "sess_i-0.0.2.tar.gz", hash = "sha256:377116de1f72194d77c1e0f6a25ac2e18a7580f7b3c3ac2df1c2ce44b04de97f"},
+    {file = "sess_i-0.1.0-py3-none-any.whl", hash = "sha256:ca2aec565a4a26926b30322d201ec259d8f28ced6e7ba8decd0b5cdcd8522f92"},
+    {file = "sess_i-0.1.0.tar.gz", hash = "sha256:d00efb87b90711360c16977c586330a8ab8d8cd760aa7a06ec303342686b59b0"},
 ]
 
 [package.dependencies]
-streamlit = "*"
+streamlit = ">=1.33.0,<2.0.0"
 
 [[package]]
 name = "six"
@@ -1369,4 +1369,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "fcf61f5c853f9bd876cedb7ac8518c970e80a5c4e71baf560eceff9c0390423a"
+content-hash = "1c7373fc37472f3cd82bc52e57f6bb631695f009a026022ff658cd7adc9bfce0"
