@@ -5,10 +5,13 @@ description = ""
 authors = ["llegregam <legregam@insa-toulouse.fr>"]
 readme = "README.md"
 
+[tool.poetry.scripts]
+isodesign = 'isodesign.__main__:main'
+
 [tool.poetry.dependencies]
 python = "^3.11"
 pandas = "^2.1.4"
-numpy = "^1.26.4"
+numpy = "^2.0.1"
 influx-si = "^7.0.3"
 streamlit = "^1.36.0"
 sess-i = "^0.1.0"
