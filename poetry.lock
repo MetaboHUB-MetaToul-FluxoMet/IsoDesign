@@ -1156,6 +1156,20 @@ doc = ["jupyterlite-pyodide-kernel", "jupyterlite-sphinx (>=0.13.1)", "jupytext"
 test = ["Cython", "array-api-strict", "asv", "gmpy2", "hypothesis (>=6.30)", "meson", "mpmath", "ninja", "pooch", "pytest", "pytest-cov", "pytest-timeout", "pytest-xdist", "scikit-umfpack", "threadpoolctl"]
 
 [[package]]
+name = "sess-i"
+version = "0.0.2"
+description = ""
+optional = false
+python-versions = ">=3.9.7"
+files = [
+    {file = "sess_i-0.0.2-py3-none-any.whl", hash = "sha256:e164f0f8c47b26cd4c1173d4ef6999748b6c2ff1183da408969dd795222ac070"},
+    {file = "sess_i-0.0.2.tar.gz", hash = "sha256:377116de1f72194d77c1e0f6a25ac2e18a7580f7b3c3ac2df1c2ce44b04de97f"},
+]
+
+[package.dependencies]
+streamlit = "*"
+
+[[package]]
 name = "six"
 version = "1.16.0"
 description = "Python 2 and 3 compatibility utilities"
@@ -1355,4 +1369,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "646c3fde9e6adb0ce0182784f1f791b15ee94a58f94f49cb8901ed66569860b9"
+content-hash = "fcf61f5c853f9bd876cedb7ac8518c970e80a5c4e71baf560eceff9c0390423a"
