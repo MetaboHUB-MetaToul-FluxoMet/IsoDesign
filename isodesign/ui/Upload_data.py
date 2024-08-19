@@ -5,6 +5,7 @@ import pandas as pd
 
 from isodesign.base.process import Process
 
+import isodesign
 import logging 
 import pickle
 
@@ -64,9 +65,26 @@ def logger_setup(output_path, debug_mode=False):
 #         pickle.dump(session, file_handler)
 
 
-st.set_page_config(page_title="IsoDesign")
-st.title("Welcome to IsoDesign")
+st.set_page_config(page_title=f"IsoDesign (v {isodesign.__version__})")
+st.title(f"Welcome to IsoDesign (v {isodesign.__version__})")
 
+# Check if a new version is available
+try:
+    isodesign_path = Path(isodesign.__file__).parent
+    with open(str(Path(isodesign_path, "last_version.txt")), "r") as f:
+        lastversion = f.read()
+    if lastversion != isodesign.__version__:
+        # change the next line to streamlit
+        update_info = st.info(
+            f'New version available ({lastversion}). '
+            f'You can update isodesign with: "pip install --upgrade '
+            f'isodesign". Check the documentation for more '
+            f'information.'
+        )
+except Exception:
+    pass
+
+# checkbox to activate the debug mode  
 debug_mode = st.sidebar.checkbox('Verbose logs',
                                   help = "Useful in case of trouble. Join it to the issue on github.")
 

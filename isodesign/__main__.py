@@ -10,11 +10,11 @@ import isodesign
 def get_last_version():
     """Get last IsoDesign version."""
     try:
-        pf_path = Path(isodesign.__file__).parent
+        isodesign_path = Path(isodesign.__file__).parent
         # Get the version from testpypi
         response = requests.get('https://test.pypi.org/simple/ isodesign')
         latest_version = response.json()['info']['version']
-        with open(str(Path(pf_path, "last_version.txt")), "w") as f:
+        with open(str(Path(isodesign_path, "last_version.txt")), "w") as f:
             f.write(latest_version)
     except Exception:
         pass
