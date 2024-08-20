@@ -88,6 +88,9 @@ except Exception:
 debug_mode = st.sidebar.checkbox('Verbose logs',
                                   help = "Useful in case of trouble. Join it to the issue on github.")
 
+
+process_object = Process() 
+
 with st.container(border=True):
     # Set up tkinter
     root = tk.Tk()
@@ -95,7 +98,7 @@ with st.container(border=True):
 
     # Make folder picker dialog appear on top of other windows
     root.wm_attributes('-topmost', 1)
-    # Folder picker button
+    
     st.subheader('Load your file folder',
                 help = "It must contain at least one \
             .netw file (i.e. metabolic network model),\
@@ -106,76 +109,72 @@ with st.container(border=True):
             label="Browse folder",
             key="input_button")
 
-
     if input_button:
+        # Register the button state (TRUE) in the session
+        session.register_widgets({"input_button": input_button})
         # Show folder picker dialog in GUI
         input_folder_path = filedialog.askdirectory(master=root)
 
         session.register_widgets({"input_folder_path": input_folder_path})
-        
-        process_object = Process()
-        process_object.get_path_input_folder(input_folder_path)
-        # Store all model names in folder in a list
+
+    if session.widget_space["input_button"]:
+        process_object.get_path_input_folder(session.widget_space["input_folder_path"])
+        # Store all folder model names in a list
         process_object.get_model_names()
-        # Register the process object to the session
-        session.register_object(process_object, "process_object")
-        
-        
-    st.text_input("**Folder path** :\n", "No folder selected" if not session.widget_space["input_folder_path"]
-                    else session.widget_space["input_folder_path"], key="input_folder_path")
+     
+    st.text_input("**Folder path** :\n", "No folder selected" if not process_object.input_folder_path
+                    else process_object.input_folder_path, key="input_folder_path")
 
     st.subheader("Load results folder path")
     output_button= st.button(
             label="Browse folder",
             key="output_button")
-        
+
     if output_button:
+        session.register_widgets({"output_button": output_button})
         output_folder_path = filedialog.askdirectory(master=root)
         session.register_widgets({"output_folder_path": output_folder_path})
 
+    if session.widget_space["output_button"]:
         # Create a folder to store the results
-        session.object_space["process_object"].results_folder_creation(output_folder_path)
+        process_object.results_folder_creation(session.widget_space["output_folder_path"])
         
         # Set up the logger
-        logger_setup(session.object_space["process_object"].res_folder_path, debug_mode)
+        logger_setup(process_object.res_folder_path, debug_mode)
         
-    st.text_input("**Folder path** :", "No folder selected" if not session.widget_space["output_folder_path"]
-                    else session.widget_space["output_folder_path"], key="output_folder_path")
+    st.text_input("**Folder path** :", "No folder selected" if not process_object.res_folder_path
+                    else process_object.res_folder_path, key="output_folder_path")
+
 
 # If the folder paths are registered, the user can choose the model to use
-if session.widget_space["input_folder_path"] and session.widget_space["output_folder_path"]:
-    with st.container(border=True):
-        # Selectbox to choose from all model names retrieved from the folder   
-        model_names = session.object_space["process_object"].model_names
-
+if process_object.input_folder_path and process_object.res_folder_path:
+     with st.container(border=True):
         # If the model name has already been chosen, it is displayed in the selectbox 
         # otherwise the first model name is displayed
         netw_choice = st.selectbox("Choose your netw file", 
-                            options=model_names,
+                            options=process_object.model_names,
                             key="netw_choice",
-                            index=model_names.index(session.widget_space["netw_choice"]) if session.widget_space["netw_choice"] is not None else 0)
+                            index=process_object.model_names.index(session.widget_space["netw_choice"]) if session.widget_space["netw_choice"] is not None else 0)
         
         session.register_widgets({"netw_choice": netw_choice})
+
         submit = st.button("Submit",
                            key="submit_button")
-        
-    if submit :
-        session.object_space["process_object"].model_name=netw_choice 
-        # Register the state (TRUE) of the submit button 
-        session.register_widgets({"submit_button": submit})               
-
-
+        if submit: 
+            session.register_widgets({"submit_button": submit})
+                       
 if session.widget_space["submit_button"]:
+    process_object.model_name=session.widget_space["netw_choice"]
     # Import and analysis of model files 
-    session.object_space["process_object"].load_model(session.object_space["process_object"].model_name)
-    session.object_space["process_object"].model_analysis()
+    process_object.load_model(process_object.model_name)
+    process_object.model_analysis()
 
     with st.container(border=True):
         st.subheader("Network analysis")
         # Tabs for network model analysis
         list_tab = ["Label input", "Isotopic measurements", "Inputs/Outputs", "Fluxes", "Network"]
         # If the mmet file is present in the model files, the concentrations tab is added
-        if "mmet" in session.object_space["process_object"].mtf_files.keys():
+        if "mmet" in process_object.mtf_files.keys():
             list_tab.append("Concentrations")
 
         tabs = st.tabs(list_tab)
@@ -183,12 +182,15 @@ if session.widget_space["submit_button"]:
         with tabs[0]:
             # Display labels input
             with st.container(height=400):
-                for inputs in session.object_space["process_object"].netan["input"]:
+                for inputs in process_object.netan["input"]:
                     st.write(inputs)
 
         with tabs[1]:
             # Display miso file content
-            st.dataframe(session.object_space["process_object"].mtf_files["miso"].data, hide_index=True, height=400,width=600)
+            st.dataframe(process_object.mtf_files["miso"].data, 
+                         hide_index=True, 
+                         height=400,
+                         width=600)
 
         with tabs[2]:
             # Display inputs, intermediate and outputs metabolites
@@ -196,26 +198,29 @@ if session.widget_space["submit_button"]:
                 inputs, intermediate, outputs = st.columns(3, gap = 'small')
                 with inputs:
                     st.subheader("Inputs")
-                    for inputs_netw in session.object_space["process_object"].netan["input"]:
+                    for inputs_netw in process_object.netan["input"]:
                         st.write(inputs_netw)
                 with intermediate:
                     st.subheader("Intermediates")
-                    for intermediate in session.object_space["process_object"].netan["metabs"]:
+                    for intermediate in process_object.netan["metabs"]:
                         st.write(intermediate)
                 with outputs:
                     st.subheader("Outputs")
-                    for outputs in session.object_space["process_object"].netan["output"]:
+                    for outputs in process_object.netan["output"]:
                         st.write(outputs)  
 
         with tabs[3]:
             # Display tvar file content 
-            st.dataframe(session.object_space["process_object"].mtf_files["tvar"].data, hide_index=True, height=400, width=600)
+            st.dataframe(process_object.mtf_files["tvar"].data, 
+                         hide_index=True, 
+                         height=400, 
+                         width=600)
 
         with tabs[4]:
             # Display a dataframe with reactions and their names and metabolic pathways  
             netw_dataframe = pd.DataFrame({
-                        "Name" : session.object_space["process_object"].mtf_files['netw'].data[0],
-                        "Reaction" : session.object_space["process_object"].mtf_files['netw'].data[1],
+                        "Name" : process_object.mtf_files['netw'].data[0],
+                        "Reaction" : process_object.mtf_files['netw'].data[1],
                         })
 
             pathways = []
@@ -225,7 +230,7 @@ if session.widget_space["submit_button"]:
                 # Give exactly the same reaction names as those contained in the netan dictionary
                 reaction_name = reaction_name.replace(":","")
                 # Append a list of pathways associated with the name to the 'pathways' list
-                pathways.append([pathway for pathway, reaction in session.object_space["process_object"].netan["pathway"].items() if reaction_name in reaction])
+                pathways.append([pathway for pathway, reaction in process_object.netan["pathway"].items() if reaction_name in reaction])
             
             netw_dataframe["Pathway"] = pathways
 
@@ -234,11 +239,15 @@ if session.widget_space["submit_button"]:
         if "Concentrations" in list_tab:
             with tabs[5]:
                 # Display mmet file content
-                st.dataframe(session.object_space["process_object"].mtf_files["mmet"].data, hide_index=True, height=400, width=600)
-
+                st.dataframe(process_object.mtf_files["mmet"].data, hide_index=True, height=400, width=600)
+    
+    # session.register_object(process_object, "process_object")
     next = st.button("Next page")
+    # session.register_widgets({"next_button": next})
+
     if next:
+        session.register_object(process_object, "process_object")
         # Go to next page
-            st.switch_page(r"pages/2_Generate_labels_input.py")
+        st.switch_page(r"pages/2_Generate_labels_input.py")
 
 
