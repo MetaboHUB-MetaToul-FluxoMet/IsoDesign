@@ -133,7 +133,8 @@ class Process:
 
     def model_analysis(self):
         """
-        Analyze model network to identify substrates, metabolites, etc.
+        Analyze model network to identify substrates, metabolites, etc by using 
+        modules from influx_si.
         """
         
         logger.info("Analyzing model...")
@@ -259,16 +260,14 @@ class Process:
                 df.to_csv(os.path.join(str(self.res_folder_path), f"file_{index:02d}.linp"), sep="\t", index=False)
                 f.write(
                     f"File_{index:02d} - {df['Specie'].tolist()}\n \t {df['Isotopomer'].tolist()}\n \t {df['Value'].astype(float).tolist()} \n")
-                # Add a new key "linp" with all the combinations as value
-                self.vmtf_element_dict.update({"linp": [f"file_{number_file:02d}" for number_file in range(1, index+1)]})
-
+                
+                self.vmtf_element_dict["linp"] = [f"file_{number_file:02d}" for number_file in range(1, index+1)]
                 # Counts the number of labeled species in each generated dataframe 
-                count_labeled_inputs = len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer])
-                self.labeled_inputs.update({f"file_{index:02d}_SD" : count_labeled_inputs})
-
+                self.labeled_inputs[f"file_{index:02d}_SD"] = len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer])
+        
         logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated.")
         logger.info(f"Folder containing linp files has been generated on this directory : {self.res_folder_path}.\n")
-        
+    
     def generate_vmtf_file(self):
         """
         Generate a vmtf file (TSV format) that permit to combine variable
@@ -368,8 +367,8 @@ class Process:
             # Applying the lambda function along the rows of the DataFrame
             axis=1)
         summary_dataframe_styler.to_excel(f"{self.res_folder_path}/summary.xlsx", index=False)
- 
-    
+
+
     def data_filter(self, fluxes_names:list=None, kind:list=None, pathways:list=None):
         """
         Filters summary dataframe by fluxes names, kind and/or metabolic pathway 
@@ -438,28 +437,27 @@ class Process:
 if __name__ == "__main__":
 
     test = Process()
-    test.get_path_input_folder(r"C:\Users\kouakou\Documents\test\mtf")
+    test.get_path_input_folder(r"C:\Users\kouakou\Documents\test_data")
     test.get_model_names()
-    test.load_model("e_coli_i")
+    test.load_model("design_test_1")
     test.model_analysis()
     test.results_folder_creation(r"C:\Users\kouakou\Documents")
-    test.generate_isotopomer("Gluc_U", "111111", 10, 0, 100)
-    test.generate_isotopomer("Gluc_U", "000000", 10, 0, 100)
-    test.generate_isotopomer("Gluc_1", "100000", 10, 0, 100)
-    test.generate_isotopomer("Gluc_1", "000000", 10, 0, 100)
-    # test.generate_isotopomer("FTHF_in", "0", 100, 100, 100)
-    # test.generate_isotopomer("CO2_in", "0", 100, 100, 100)
+    test.generate_isotopomer("Gluc", "111111", 10, 0, 100)
+    test.generate_isotopomer("Gluc", "100000", 10, 0, 100)
+    test.generate_isotopomer("FTHF_in", "0", 100, 100, 100)
+    test.generate_isotopomer("CO2_in", "0", 100, 100, 100)
     test.generate_combinations()
     test.generate_linp_files()
     test.copy_files()
     test.generate_vmtf_file()
    
-    test.influx_simulation(["--emu","--noscale","--ln","--noopt"], mode="influx_i")
+    # test.influx_simulation(["--emu","--noscale","--ln","--noopt"], influx_mode="influx_s")
     
-    # test.generate_summary()
+    test.generate_summary()
     
     # # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
-    # test.generate_score(["labeled_input", "sum_sd"], operation= "Divide", labeled_input_dict = test.labeled_inputs)
+    # test.generate_score(["labeled_input", "sum_sd"], operation= "Addition", labeled_input_dict = test.labeled_inputs)
+    test.generate_score(["number_of_flux", "sum_sd"], threshold=0.1)
     # test.display_scores()
     
     
