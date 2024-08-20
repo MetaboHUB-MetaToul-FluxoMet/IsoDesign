@@ -12,14 +12,15 @@ class Score:
         :param label_input: series containing fluxes SDs for a given label inputs
         """
 
-        # The different rating methods that can be applied. Key: method name, value: method to be applied 
+        # The different rating crieria that can be applied. Key: criterion name, value: method to apply  
         self.SCORING_METHODS = {
         "sum_sd" : self.apply_sum_sd, 
         "number_of_flux" : self.apply_sum_nb_flux_sd,  
-        "labeled_input" : self.apply_number_labeled_inputs,
+        "number_of_labeled_inputs" : self.apply_number_labeled_inputs,
         }
 
         self.label_input = label_input 
+        # The score obtained after applying the criteria
         self.score = None
 
     def __call__(self):
@@ -28,21 +29,23 @@ class Score:
         """
         return self.score
     
-    def compute(self, method, **kwargs):
+    def compute(self, criteria, **kwargs):
         """
-        Computes the score for a given method
+        Computes the score and stores it in self.score according to the given criteria.  
         
-        :param method: the method to apply to the label_input
-        :param kwargs: additional arguments to pass to the method
+        :param criteria: the criteria to apply 
+        :param kwargs: additional arguments to pass to the selected criteria. If the weight is 
+        not provided in kwargs for the selected criteria, the default value is 1.
         
         """
-        match method:
+        match criteria:
+            # Apply the method associated with the criteria and store the result in self.score
             case "number_of_flux":
-                self.score = self.SCORING_METHODS[method](kwargs["threshold"], kwargs["weight_flux"] if "weight_flux" in kwargs else 1)
+                self.score = self.SCORING_METHODS[criteria](kwargs["threshold"], kwargs["weight_flux"] if "weight_flux" in kwargs else 1)
             case "labeled_input":
-                self.score = self.SCORING_METHODS[method](kwargs["labeled_input_dict"], kwargs["weight_labeled_input"] if "weight_labeled_input" in kwargs else 1)
+                self.score = self.SCORING_METHODS[criteria](kwargs["labeled_input_dict"], kwargs["weight_labeled_input"] if "weight_labeled_input" in kwargs else 1)
             case "sum_sd":
-                self.score = self.SCORING_METHODS[method](kwargs["weight_sum_sd"] if "weight_sum_sd" in kwargs else 1)
+                self.score = self.SCORING_METHODS[criteria](kwargs["weight_sum_sd"] if "weight_sum_sd" in kwargs else 1)
        
 
     def apply_sum_sd(self, weight_sum_sd=1):
@@ -138,5 +141,4 @@ class ScoreHandler:
             score_object.update({operation: functools.reduce(operations[operation], score_object.values())})
 
         return score_object
-
 
