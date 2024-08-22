@@ -4,7 +4,7 @@ from sess_i.base.main import SessI
 
 session = SessI(
         session_state=st.session_state,
-        page="2_Generate_labels_input2.py")
+        page="2_Generate_labels_input.py")
 
 # Retrieving substrates names from sessI
 process_object = session.object_space["process_object"]
@@ -18,13 +18,13 @@ def remove_substrates(substrate, labelling):
     to remove the correct substrate. 
     
     :param substrate: substrate name
-    :param labelling: labelling for isotopomer"""
+    :param labelling: labelling for isotopomer
+    
+    """
     
     for substrate in process_object.isotopomer_dict[f"{substrate_name}"]:
         if substrate.labelling == labelling:
             process_object.isotopomer_dict[f"{substrate_name}"].remove(substrate)
-
-
        
 
 def get_carbon_length(substrate):
@@ -42,16 +42,22 @@ def get_carbon_length(substrate):
 
 def add_form(count=0):
     """
-    Create a form to add substrates
+    Create a form to add substrates.
 
-    :param count: counter
     """
     
     with st.form(f"form_{substrate_name}_{count}"):
-        labelling = st.text_input(f"Number of tracer atoms : {get_carbon_length(substrate_name)}", 
+        labelling, price = st.columns(2)
+        with labelling:
+            labelling = st.text_input(f"Number of tracer atoms : {get_carbon_length(substrate_name)}", 
                                   key=f"labelling_{substrate_name}_{count}", 
                                   value="0" * get_carbon_length(substrate_name))
         
+        with price:
+            price = st.text_input("Price", 
+                                  key=f"price_{substrate_name}_{count}", 
+                                  value=0,
+                                  help="Price of the substrate")
 
         lb, ub, step = st.columns(3, gap="medium")
         with lb:
@@ -66,21 +72,20 @@ def add_form(count=0):
             add = st.form_submit_button("Add")
             if add:
                 session.register_widgets({f"add_{count}_{substrate_name}" : add})
-                process_object.generate_isotopomer(substrate_name, labelling, int(nb_intervals), int(lower_b), int(upper_b))
+                process_object.generate_isotopomer(substrate_name, labelling, int(nb_intervals), int(lower_b), int(upper_b), float(price))
         if count > 0:
             with remove_col:
                 remove = st.form_submit_button("Remove")
                 if remove:
                     remove_substrates(substrate_name, labelling)
-                #     session.widget_space.widgets.pop(f"add_{count}_{substrate_name}")                  
-
+                    session.widget_space.widgets.pop(f"add_{count}_{substrate_name}")               
+    # If the add button is clicked, the function is called again to generate a new form
     if session.widget_space[f"add_{count}_{substrate_name}"]:
         count += 1
-        # The function calls itself to generate a new form to add a new substrate 
         add_form(count)
         
 
-st.set_page_config(page_title="IsoDesign 2.0")
+st.set_page_config(page_title="IsoDesign")
 st.title("Generate labels input")
 
 # Add a space between page title and content 
@@ -94,7 +99,6 @@ for index, substrate_name in enumerate(process_object.netan["input"]):
         # Add a form to add labeled substrates
         add_form()
 
-
 submit = st.button("Submit")
 if submit:
     session.object_space["process_object"].generate_combinations()
@@ -105,6 +109,6 @@ if submit:
     st.switch_page(r"pages\3_Simulation_options.py")
 
 st.write(session.object_space["process_object"].isotopomer_dict)
-
+st.write(session)
 
     
