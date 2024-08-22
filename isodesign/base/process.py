@@ -60,11 +60,14 @@ class Process:
         self.filtered_dataframe = None
         # Dictionary containing isotopomers
         # key : substrate name, value : list of isotopomers
-        self.isotopomer_dict = {}
+        self.isotopomers = {}
         # Get the tvar.def file generated during the model analysis
         self.tvar_def_file = None
         # Dictionary containing scores
         self.score = None
+        # Dictionary to store the number of labeled inputs and the total isotopomer prices of each linp file 
+        # Key : linp file name, value : namedtuple containing the number of labeled inputs and the total price
+        self.info_linp_files = {}
 
     def get_path_input_folder(self, directory_path):
         """
@@ -188,29 +191,37 @@ class Process:
             shutil.copy(file.path, self.res_folder_path)
         
 
-    def generate_isotopomer(self, substrate_name, labelling, nb_intervals, lower_b, upper_b):
+    def generate_isotopomer(self, substrate_name, labelling, nb_intervals, lower_b, upper_b, price=None):	
         """
-        Initialize isotopomer and store in the  dictionary
-        self.isotopomer_dict with the substrate name as key and initialized
-        isotopomers as values.
+        Initialize isotopomer object and store it in self.isotopomers dictionary
+        with the substrate name as key and a list of isotopomers objects as value.
+
+        :param substrate_name: name of the substrate
+        :param labelling: labelling of the isotopomer
+        :param nb_intervals: number of intervals to test
+        :param lower_b: lower bound
+        :param upper_b: upper bound
+        :param price: price of the isotopomer. 
         """
-        isotopomer = Isotopomer(substrate_name, labelling, nb_intervals, lower_b, upper_b)
+        isotopomer = Isotopomer(substrate_name, labelling, nb_intervals, lower_b, upper_b, price)
         
-        if f"{substrate_name}" not in self.isotopomer_dict:
-           self.isotopomer_dict.update({f"{substrate_name}" : [isotopomer]})
+        if f"{substrate_name}" not in self.isotopomers:
+            self.isotopomers.update({f"{substrate_name}" : [isotopomer]})
         else:
-            self.isotopomer_dict[f"{substrate_name}"].append(isotopomer)
-    
+            self.isotopomers[f"{substrate_name}"].append(isotopomer)
+
     def generate_combinations(self):
         """
-        Generate combinations from stored labeled substrates.
+        Generate all possible combinations of labelled substrates 
+        using the LabelInput class.
         """
 
-        # Initialize LabelInput from stored substrate isotopomers
-        self.label_input = LabelInput(self.isotopomer_dict)
+        # Initialize the LabelInput object with the isotopomers dictionary
+        self.label_input = LabelInput(self.isotopomers)
         logger.info(f"Label Input - {self.label_input}")
 
         self.label_input.generate_labelling_combinations()
+        
         logger.debug(
             f"Isotopomers combinations:"
             f"{self.label_input.isotopomer_combinations}\n"
@@ -227,6 +238,20 @@ class Process:
 
         logger.info(f"Results folder path '{res_folder_path}'.\n")
 
+    def get_isotopomer_price(self, isotopomer_labelling, isotopomer_name):
+        """ 
+        Get the price of an isotopomer based on its labelling and name 
+        from the isotopomers dictionary.
+        
+        :param isotopomer_labelling: isotopomer labelling
+        :param isotopomer_name: isotopomer name
+        """
+
+        for isotopomers_list in self.isotopomers.values():
+            for isotopomer in isotopomers_list:
+                if isotopomer.labelling == isotopomer_labelling and isotopomer.name == isotopomer_name:
+                    return isotopomer.price
+    
     def generate_linp_files(self):
         """
         Generates linp files (TSV format) in the results folder (self.res_folder_path). 
@@ -238,10 +263,6 @@ class Process:
 
         """
 
-        # # Create a folder to store all the linp files
-        # self.res_folder_path = Path(f"{self.res_folder_path}/IsoDesign_tmp")
-        # self.res_folder_path.mkdir(parents=True, exist_ok=True)
-
         logger.info("Creation of the linp files...")
 
         # create mapping to associate file number with its respective combinations
@@ -251,19 +272,28 @@ class Process:
                                    'Comment': None,
                                    'Specie': self.label_input.names,
                                    'Isotopomer': self.label_input.labelling_patterns,
-                                   'Value': pair})
+                                   'Value': pair.astype(float)})
 
                 # remove rows with value = 0
                 df = df.loc[df["Value"] != 0]
+                # add a column "Price" containing the price of each isotopomer multiplied by its fraction
+                # applies the 'get_isotopomer_price' method to each row (axis=1) in the dataframe 'df'
+                df["Price"] = df.apply(lambda x: self.get_isotopomer_price(x["Isotopomer"], x["Specie"]), axis=1) * df["Value"]
                 logger.debug(f"Folder path : {self.res_folder_path}\n Dataframe {index:02d}:\n {df}")
-
+                
                 df.to_csv(os.path.join(str(self.res_folder_path), f"file_{index:02d}.linp"), sep="\t", index=False)
                 f.write(
-                    f"File_{index:02d} - {df['Specie'].tolist()}\n \t {df['Isotopomer'].tolist()}\n \t {df['Value'].astype(float).tolist()} \n")
+                    f"File_{index:02d} - {df['Specie'].tolist()}\n\
+                    {df['Isotopomer'].tolist()}\n\
+                    {df['Value'].tolist()} \n \
+                    {df['Price'].tolist()} \n")
                 
                 self.vmtf_element_dict["linp"] = [f"file_{number_file:02d}" for number_file in range(1, index+1)]
-                # Counts the number of labeled species in each generated dataframe 
-                self.labeled_inputs[f"file_{index:02d}_SD"] = len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer])
+
+                # namedtuple containing the number of labeled inputs and the total price for each linp file
+                info_linp_file = namedtuple("linp_info", ["nb_labeled_inputs", "total_price"])
+                self.info_linp_files[f"file_{index:02d}_SD"] = info_linp_file(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
+                                                                          df["Price"].sum())
         
         logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated.")
         logger.info(f"Folder containing linp files has been generated on this directory : {self.res_folder_path}.\n")
@@ -442,12 +472,13 @@ if __name__ == "__main__":
     test.load_model("design_test_1")
     test.model_analysis()
     test.results_folder_creation(r"C:\Users\kouakou\Documents")
-    test.generate_isotopomer("Gluc", "111111", 10, 0, 100)
-    test.generate_isotopomer("Gluc", "100000", 10, 0, 100)
+    test.generate_isotopomer("Gluc", "111111", 10, 0, 100, 50)
+    test.generate_isotopomer("Gluc", "100000", 10, 0, 100, 20)
     test.generate_isotopomer("FTHF_in", "0", 100, 100, 100)
     test.generate_isotopomer("CO2_in", "0", 100, 100, 100)
     test.generate_combinations()
     test.generate_linp_files()
+
     test.copy_files()
     test.generate_vmtf_file()
    
@@ -456,9 +487,8 @@ if __name__ == "__main__":
     test.generate_summary()
     
     # # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
-    # test.generate_score(["labeled_input", "sum_sd"], operation= "Addition", labeled_input_dict = test.labeled_inputs)
-    test.generate_score(["number_of_flux", "sum_sd"], threshold=0.1)
-    # test.display_scores()
+    # test.generate_score(["number_of_labeled_inputs", "price"], labeled_input_dict=test.info_linp_file)
+    test.display_scores()
     
     
 
