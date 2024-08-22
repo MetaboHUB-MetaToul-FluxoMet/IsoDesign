@@ -137,7 +137,7 @@ with st.container(border=True):
 
     if session.widget_space["output_button"]:
         # Create a folder to store the results
-        process_object.results_folder_creation(session.widget_space["output_folder_path"])
+        process_object.create_results_folder(session.widget_space["output_folder_path"])
         
         # Set up the logger
         logger_setup(process_object.res_folder_path, debug_mode)
@@ -167,7 +167,7 @@ if session.widget_space["submit_button"]:
     process_object.model_name=session.widget_space["netw_choice"]
     # Import and analysis of model files 
     process_object.load_model(process_object.model_name)
-    process_object.model_analysis()
+    process_object.analyse_model()
 
     with st.container(border=True):
         st.subheader("Network analysis")
