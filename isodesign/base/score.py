@@ -17,6 +17,7 @@ class Score:
         "sum_sd" : self.apply_sum_sd, 
         "number_of_flux" : self.apply_sum_nb_flux_sd,  
         "number_of_labeled_inputs" : self.apply_number_labeled_inputs,
+        "price": self.apply_price
         }
 
         self.label_input = label_input 
@@ -42,17 +43,18 @@ class Score:
             # Apply the method associated with the criteria and store the result in self.score
             case "number_of_flux":
                 self.score = self.SCORING_METHODS[criteria](kwargs["threshold"], kwargs["weight_flux"] if "weight_flux" in kwargs else 1)
-            case "labeled_input":
-                self.score = self.SCORING_METHODS[criteria](kwargs["labeled_input_dict"], kwargs["weight_labeled_input"] if "weight_labeled_input" in kwargs else 1)
+            case "number_of_labeled_inputs":
+                self.score = self.SCORING_METHODS[criteria](kwargs["info_linp_files_dict"], kwargs["weight_labeled_input"] if "weight_labeled_input" in kwargs else 1)
             case "sum_sd":
                 self.score = self.SCORING_METHODS[criteria](kwargs["weight_sum_sd"] if "weight_sum_sd" in kwargs else 1)
-       
+            case "price":
+                self.score = self.SCORING_METHODS[criteria](kwargs["info_linp_files_dict"])
 
     def apply_sum_sd(self, weight_sum_sd=1):
         """
         Returns the sum of standard deviations for a given label input
 
-        :param weight: he weight to apply to the score
+        :param weight_sum_sd: he weight to apply to the score
         """
         return self.label_input.sum() * weight_sum_sd
         
@@ -62,21 +64,34 @@ class Score:
         Returns the total number of fluxes with sds below a given threshold.
 
         :param threshold: the threshold value used to filter the flux values
-        :param weight: he weight to apply to the score
+        :param weight_flux: the weight to apply to the score
         """
 
         return (self.label_input < threshold).sum() * weight_flux
     
-    def apply_number_labeled_inputs(self, labeled_input_dict, weight_labeled_input=1):
+    def apply_number_labeled_inputs(self, info_linp_files_dict, weight_labeled_input=1):
         """
-        Returns the number of labelled substrates for each labelled input.
+        Returns the number of labelled substrates for each label input.
 
-        :param labeled_input_dict: a dictionary containing the labelled species
+        :param info_linp_files_dict: dictionary containing namedtuples with 
+                                    the number of labelled substrates for each label input
+        :param weight_labeled_input: the weight to apply to the score
         """
-        if self.label_input.name in labeled_input_dict.keys():
-            return labeled_input_dict[self.label_input.name] * weight_labeled_input
 
+        for file_name, nb_labeled_species in info_linp_files_dict.items():
+            if self.label_input.name in file_name:
+                return nb_labeled_species.nb_labeled_species * weight_labeled_input
 
+    def apply_price(self, info_linp_files_dict):
+        """
+        Returns the price for each label input.
+
+        :param info_linp_files_dict: dictionary containing namedtuples with 
+                                    the price for each label input
+        """
+        for file_name, price in info_linp_files_dict.items():
+            if self.label_input.name in file_name:
+                return price.total_price
 
     # def identified_structures(self, tvar_sim_paths_list):
     #     """
@@ -139,6 +154,6 @@ class ScoreHandler:
 
         for score_object in self.columns_scores.values():
             score_object.update({operation: functools.reduce(operations[operation], score_object.values())})
-
+        
         return score_object
 
