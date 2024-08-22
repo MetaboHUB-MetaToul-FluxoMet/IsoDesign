@@ -8,13 +8,14 @@ class Isotopomer:
 
     """
 
-    def __init__(self, name, labelling, step=100, lower_bound=100, upper_bound=100):
+    def __init__(self, name, labelling, step=100, lower_bound=100, upper_bound=100, price=None):
         """
         :param name: Isotopomer name
         :param labelling: labelling for isotopomer. 1 denotes heavy isotopes while 0 denotes natural isotope.
         :param step: step for proportions to test
         :param lower_bound: minimum proportion to test
         :param upper_bound: maximum proportion to test 
+        :param price: isotopomer price
 
         """
         self.name = name
@@ -22,9 +23,9 @@ class Isotopomer:
         self.step = step
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
-
-        self.num_carbon = len(self.labelling)
-
+        self.price = price
+        self.num_carbon = len(self.labelling) 
+        
     def generate_fraction(self):
         """
         Generate numpy array containing list of possible fraction 
@@ -32,10 +33,8 @@ class Isotopomer:
         Fractions will be used for influx_si simulations. Influx_si takes 
         only values that are between 0 and 1.
         """
-
         return np.array([Decimal(fraction) / Decimal(100) for fraction in
                          range(self.lower_bound, self.upper_bound + self.step, self.step)])
-    
 
     def __len__(self):
         return self.num_carbon
@@ -46,7 +45,9 @@ class Isotopomer:
         \nLabelling = {self.labelling},\
         \nStep = {self.step},\
         \nLower bound = {self.lower_bound},\
-        \nUpper bound = {self.upper_bound}"
+        \nUpper bound = {self.upper_bound},\
+        \nPrice = {self.price}\n"
+        
 
     @property
     def lower_bound(self):
