@@ -108,7 +108,7 @@ if submit:
     session.object_space["process_object"].copy_files()
     st.switch_page(r"pages\3_Simulation_options.py")
 
-st.write(session.object_space["process_object"].isotopomer_dict)
+st.write(session.object_space["process_object"].isotopomers)
 st.write(session)
 
     
