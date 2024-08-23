@@ -56,7 +56,7 @@ def add_form(count=0):
         with price:
             price = st.text_input("Price", 
                                   key=f"price_{substrate_name}_{count}", 
-                                  value=0,
+                                  value=None,
                                   help="Price of the substrate")
 
         lb, ub, step = st.columns(3, gap="medium")
@@ -72,7 +72,7 @@ def add_form(count=0):
             add = st.form_submit_button("Add")
             if add:
                 session.register_widgets({f"add_{count}_{substrate_name}" : add})
-                process_object.generate_isotopomer(substrate_name, labelling, int(nb_intervals), int(lower_b), int(upper_b), float(price))
+                process_object.generate_isotopomer(substrate_name, labelling, int(nb_intervals), int(lower_b), int(upper_b), float(price) if price else None)
         if count > 0:
             with remove_col:
                 remove = st.form_submit_button("Remove")
@@ -108,7 +108,6 @@ if submit:
     session.object_space["process_object"].copy_files()
     st.switch_page(r"pages\3_Simulation_options.py")
 
-st.write(session.object_space["process_object"].isotopomers)
-st.write(session)
+
 
     

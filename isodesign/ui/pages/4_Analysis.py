@@ -108,7 +108,7 @@ with st.container(border=True):
                                       weight_sum_sd=int(weight_sd) if "sum_sd" in method_choice else 1,
                                         threshold=int(input_threshold) if "number_of_flux" in method_choice else 1,
                                         weight_flux=int(weight_flux) if "number_of_flux" in method_choice else 1,
-                                        labeled_input_dict=dict(process_object.linp_file_info) if "number_of_labeled_inputs" or "price" in method_choice else None,
+                                        info_linp_files_dict=dict(process_object.info_linp_files) if "number_of_labeled_inputs" or "price" in method_choice else None,
                                         weight_labeled_input=int(input_labeled_input) if "number_of_labeled_inputs" in method_choice else 1
                                       )
         session.register_widgets({"submit_container": submitted})

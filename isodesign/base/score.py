@@ -80,7 +80,7 @@ class Score:
 
         for file_name, nb_labeled_species in info_linp_files_dict.items():
             if self.label_input.name in file_name:
-                return nb_labeled_species.nb_labeled_species * weight_labeled_input
+                return nb_labeled_species.nb_labeled_inputs * weight_labeled_input
 
     def apply_price(self, info_linp_files_dict):
         """
