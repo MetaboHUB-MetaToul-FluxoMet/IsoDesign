@@ -189,7 +189,7 @@ class Process:
             shutil.copy(file.path, self.res_folder_path)
         
 
-    def generate_isotopomer(self, substrate_name, labelling, nb_intervals, lower_b, upper_b, price=None):	
+    def add_isotopomer(self, substrate_name, labelling, nb_intervals, lower_b, upper_b, price=None):	
         """
         Initialize isotopomer object and store it in self.isotopomers dictionary
         with the substrate name as key and a list of isotopomers objects as value.
@@ -207,6 +207,20 @@ class Process:
             self.isotopomers.update({f"{substrate_name}" : [isotopomer]})
         else:
             self.isotopomers[f"{substrate_name}"].append(isotopomer)
+
+    def remove_isotopomer(self, substrate, labelling):
+        """
+        Remove isotopomer from the isotopomer dictionary (self.isotopomers) 
+        according to the substrate name and labelling.
+
+        :param substrate: substrate name
+        :param labelling: labelling for isotopomer to remove
+
+        """
+    
+        for isotopomer in self.isotopomers[f"{substrate}"]:
+            if isotopomer.labelling == labelling and isotopomer.name == substrate:
+                self.isotopomers[f"{substrate}"].remove(isotopomer)
 
     def generate_combinations(self):
         """
@@ -470,23 +484,22 @@ if __name__ == "__main__":
     test.load_model("design_test_1")
     test.analyse_model()
     test.create_results_folder(r"C:\Users\kouakou\Documents")
-    test.generate_isotopomer("Gluc", "111111", 10, 0, 100, 50)
-    test.generate_isotopomer("Gluc", "100000", 10, 0, 100, 20)
+    test.generate_isotopomer("Gluc", "111111", 10, 0, 100)
+    test.generate_isotopomer("Gluc", "100000", 10, 0, 100)
     test.generate_isotopomer("FTHF_in", "0", 100, 100, 100)
     test.generate_isotopomer("CO2_in", "0", 100, 100, 100)
-    test.generate_combinations()
-    test.generate_linp_files()
-
-    test.copy_files()
-    test.generate_vmtf_file()
-   
+    # test.generate_combinations()
+    # test.generate_linp_files()
+    # test.generate_vmtf_file()
+    # test.copy_files()
+    
     # test.influx_simulation(["--emu","--noscale","--ln","--noopt"], influx_mode="influx_s")
     
-    test.generate_summary()
+    # test.generate_summary()
     
-    # # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
-    # test.generate_score(["number_of_labeled_inputs", "price"], labeled_input_dict=test.info_linp_file)
-    test.display_scores()
+    # # # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
+    # test.generate_score(["sum_sd", "price"], info_linp_file_dict=test.info_linp_file)
+    # test.display_scores()
     
     
 
