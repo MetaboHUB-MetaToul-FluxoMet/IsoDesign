@@ -16,7 +16,7 @@ influx-si = "7.0.3"
 streamlit = "^1.36.0"
 sess-i = "^0.1.0"
 openpyxl = "^3.1.5"
-matplotlib = "^3.9.2"
+plotly = "^5.23.0"
 
 
 [tool.poetry.group.test.dependencies]
