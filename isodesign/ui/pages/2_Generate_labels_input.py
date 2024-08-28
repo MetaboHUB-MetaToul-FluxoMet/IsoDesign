@@ -57,10 +57,10 @@ with substrates:
                 nb_intervals = st.text_input("Nb intervals", key=f"step_{substrate_name}", value=100)
 
             # When the add button is clicked, the isotopomer is added via the add_isotopomer method from the process class  
-            add = st.form_submit_button("Add",
-                                        on_click=process_object.add_isotopomer,
-                                        args=(substrate_name, labelling, int(nb_intervals), int(lower_b), int(upper_b), float(price) if price else None))
+            add = st.form_submit_button("Add")
+
             if add:
+                process_object.add_isotopomer(substrate_name, labelling, int(nb_intervals), int(lower_b), int(upper_b), float(price) if price else None)
                 st.toast(f"Isotopomer added in {substrate_name}")
 
 
@@ -71,7 +71,7 @@ with configured_substrates:
     else:
         for substrate_name in process_object.isotopomers.keys():
             # Create an expander to display the isotopomers for each labels input
-            with st.expander(f"{substrate_name}"):
+            with st.expander(f"{substrate_name}", expanded=True):
                 for index, isotopomer in enumerate(process_object.isotopomers[substrate_name]):
                     iso_infos, delete = st.columns([10, 1])
                     with iso_infos:
@@ -84,9 +84,9 @@ with configured_substrates:
                                             on_click=process_object.remove_isotopomer,
                                             args=(isotopomer.name, isotopomer.labelling))
                 
-                        
+                     
         submit = st.button("Submit")
-
+        st.write(process_object.isotopomers)
         if submit:
             session.object_space["process_object"].generate_combinations()
             # linp file generations 
