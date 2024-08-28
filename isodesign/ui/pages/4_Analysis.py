@@ -1,7 +1,7 @@
 import streamlit as st
 from sess_i.base.main import SessI
 import pandas as pd
-
+import plotly.express as px
 
 session = SessI(
         session_state=st.session_state,
@@ -127,11 +127,12 @@ with st.container(border=True):
                 if table_score.selection.rows:
                     # Display the selected rows in a bar plot
                     df = pd.DataFrame(process_object.display_scores().iloc[table_score.selection.rows,:])
-                    st.pyplot(df.plot(kind='bar').figure)
+                    fig= px.bar(df, x=df.index, y=df.columns, barmode="group")
+                    st.plotly_chart(fig)
                 else:
                     # Display the scores in a bar plot
-                    st.pyplot(process_object.display_scores().plot(kind='bar').figure)
+                    df = process_object.display_scores()
+                    fig = px.bar(df, x=df.index, y=df.columns, barmode="group")
+                    st.plotly_chart(fig)
 
 add_score = st.button("Add score", key=f"add_score")
-# st.write(session)
-                
