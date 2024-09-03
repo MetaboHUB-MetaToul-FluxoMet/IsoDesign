@@ -34,6 +34,9 @@ substrates, configured_substrates = st.columns(2, gap="large")
 with substrates:
     for substrate_name in process_object.netan["input"]:
         st.header(substrate_name)
+        # If the isotopomers attribute is empty, the unmarked form is configured
+        if not process_object.isotopomers:
+            process_object.configure_unmarked_form()
         # Form to configue an isotopomer for each substrate
         with st.form(f"form_{substrate_name}"):
             labelling, price = st.columns(2)
@@ -55,7 +58,6 @@ with substrates:
                 upper_b = st.text_input("Upper bound", key=f"ub_{substrate_name}", value=100)
             with step:
                 nb_intervals = st.text_input("Nb intervals", key=f"step_{substrate_name}", value=100)
-
             # When the add button is clicked, the isotopomer is added via the add_isotopomer method from the process class  
             add = st.form_submit_button("Add")
 
@@ -66,31 +68,28 @@ with substrates:
 
 with configured_substrates:
     st.header("Configured labels input")
-    if not process_object.isotopomers:
-        st.info("No substrate has been configured yet")
-    else:
-        for substrate_name in process_object.isotopomers.keys():
-            # Create an expander to display the isotopomers for each labels input
-            with st.expander(f"{substrate_name}", expanded=True):
-                for index, isotopomer in enumerate(process_object.isotopomers[substrate_name]):
-                    iso_infos, delete = st.columns([10, 1])
-                    with iso_infos:
-                        st.write(isotopomer)
-                    with delete:
-                        # When the delete button is clicked, the isotopomer is removed via the remove_isotopomer method from the process class
-                        delete = st.button(label=":x:",
-                                            key=f"delete_{substrate_name}_{index}",
-                                            help="Delete isotopomer",
-                                            on_click=process_object.remove_isotopomer,
-                                            args=(isotopomer.name, isotopomer.labelling))
-                
-                     
-        submit = st.button("Submit")
-        st.write(process_object.isotopomers)
-        if submit:
-            session.object_space["process_object"].generate_combinations()
-            # linp file generations 
-            session.object_space["process_object"].generate_linp_files()
-            session.object_space["process_object"].generate_vmtf_file()
-            session.object_space["process_object"].copy_files()
-            st.switch_page(r"pages\3_Simulation_options.py")
+    for substrate_name in process_object.isotopomers.keys():
+        # Create an expander to display the isotopomers for each labels input
+        with st.expander(f"{substrate_name}", expanded=True):
+            for index, isotopomer in enumerate(process_object.isotopomers[substrate_name]):
+                iso_infos, delete = st.columns([10, 1])
+                with iso_infos:
+                    st.write(isotopomer)
+                with delete:
+                    # When the delete button is clicked, the isotopomer is removed via the remove_isotopomer method from the process class
+                    delete = st.button(label=":x:",
+                                        key=f"delete_{substrate_name}_{index}",
+                                        help="Delete isotopomer",
+                                        on_click=process_object.remove_isotopomer,
+                                        args=(isotopomer.name, isotopomer.labelling))
+            
+                    
+    submit = st.button("Submit")
+    
+    if submit:
+        session.object_space["process_object"].generate_combinations()
+        # linp file generations 
+        session.object_space["process_object"].generate_linp_files()
+        session.object_space["process_object"].generate_vmtf_file()
+        session.object_space["process_object"].copy_files()
+        st.switch_page(r"pages\3_Simulation_options.py")
