@@ -187,12 +187,25 @@ class Process:
             # File paths are contained as first elements in the namedtuple
             logger.debug(f"File path: {file.path}")
             shutil.copy(file.path, self.res_folder_path)
-        
+    
+    def configure_unmarked_form(self):
+        """
+        Add the unmarked form of the inputs to the isotopomers dictionary 
+        (key: substrate name, value: list of isotopomers) with default values.
 
+        """
+        for substrates_name in self.netan["input"]:
+            self.isotopomers[substrates_name] = [Isotopomer(substrates_name, 
+                                                       self.netan["Clen"][substrates_name] * "0", 
+                                                       step=100, 
+                                                       lower_bound=100, 
+                                                       upper_bound=100, 
+                                                       price=None)]
+
+    
     def add_isotopomer(self, substrate_name, labelling, nb_intervals, lower_b, upper_b, price=None):	
         """
-        Initialize isotopomer object and store it in self.isotopomers dictionary
-        with the substrate name as key and a list of isotopomers objects as value.
+        Add isotopomer to the isotopomers dictionary (self.isotopomers). 
 
         :param substrate_name: name of the substrate
         :param labelling: labelling of the isotopomer
@@ -201,12 +214,9 @@ class Process:
         :param upper_b: upper bound
         :param price: price of the isotopomer. 
         """
+
         isotopomer = Isotopomer(substrate_name, labelling, nb_intervals, lower_b, upper_b, price)
-        
-        if f"{substrate_name}" not in self.isotopomers:
-            self.isotopomers.update({f"{substrate_name}" : [isotopomer]})
-        else:
-            self.isotopomers[f"{substrate_name}"].append(isotopomer)
+        self.isotopomers[f"{substrate_name}"].append(isotopomer)
 
     def remove_isotopomer(self, substrate, labelling):
         """
@@ -472,6 +482,7 @@ class Process:
         # Create a dataframe from the dictionary containing the scores
         scores_table = pd.DataFrame.from_dict({col: self.score[col] for col in columns_names}, 
                                      orient='index')
+
         logger.info(f"Scores table :\n{scores_table}")
         return scores_table
         
@@ -484,10 +495,11 @@ if __name__ == "__main__":
     test.load_model("design_test_1")
     test.analyse_model()
     test.create_results_folder(r"C:\Users\kouakou\Documents")
-    test.generate_isotopomer("Gluc", "111111", 10, 0, 100)
-    test.generate_isotopomer("Gluc", "100000", 10, 0, 100)
-    test.generate_isotopomer("FTHF_in", "0", 100, 100, 100)
-    test.generate_isotopomer("CO2_in", "0", 100, 100, 100)
+    # test.add_isotopomer("Gluc", "000000", 100, 100, 100)
+    test.add_isotopomer("Gluc", "111111", 10, 0, 100)
+    test.add_isotopomer("Gluc", "100000", 10, 0, 100)
+    # test.add_isotopomer("FTHF_in", "0", 100, 100, 100)
+    # test.add_isotopomer("CO2_in", "0", 100, 100, 100)
     # test.generate_combinations()
     # test.generate_linp_files()
     # test.generate_vmtf_file()
@@ -497,8 +509,8 @@ if __name__ == "__main__":
     
     # test.generate_summary()
     
-    # # # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
-    # test.generate_score(["sum_sd", "price"], info_linp_file_dict=test.info_linp_file)
+    # # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
+    # test.generate_score(["sum_sd", "number_of_flux"], threshold=1)
     # test.display_scores()
     
     
