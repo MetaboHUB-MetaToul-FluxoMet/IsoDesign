@@ -24,7 +24,6 @@ st.title("Analysis")
 
 process_object = session.object_space['process_object']
 
-
 summary_dataframe = process_object.summary_dataframe
 filtered_dataframe = process_object.filtered_dataframe
 
@@ -58,10 +57,11 @@ with st.expander("**Apply a filter**"):
                                         placeholder="Pathway",
                                         disabled=True if not process_object.netan["pathway"] else False)
         
-    
+
     submit=st.button("Submit",
-                    on_click=filter,
-                    args=(selected_flux, selected_kind, selected_pathway))
+                        on_click=filter,
+                        args=(selected_flux, selected_kind, selected_pathway))
+
 
   
 with st.container(border=True):
@@ -124,15 +124,13 @@ with st.container(border=True):
                             use_container_width=True)
                 
             with barplot:
+                df=process_object.display_scores()
                 if table_score.selection.rows:
                     # Display the selected rows in a bar plot
-                    df = pd.DataFrame(process_object.display_scores().iloc[table_score.selection.rows,:])
-                    fig= px.bar(df, x=df.index, y=df.columns, barmode="group")
-                    st.plotly_chart(fig)
-                else:
-                    # Display the scores in a bar plot
-                    df = process_object.display_scores()
-                    fig = px.bar(df, x=df.index, y=df.columns, barmode="group")
-                    st.plotly_chart(fig)
+                    df = process_object.display_scores().iloc[table_score.selection.rows,:]
+                
+                # Display the scores in a bar plot
+                fig = px.bar(df, x=df.index, y=df.columns, barmode="group")
+                st.plotly_chart(fig)
 
 add_score = st.button("Add score", key=f"add_score")
