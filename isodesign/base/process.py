@@ -33,20 +33,18 @@ class Process:
         # Dictionary to store imported file contents. Key : files extension,
         # value : namedtuple with file path and contents
         self.mtf_files = {}
-        self.model_names = None
         # LabelInput object
         # To use the generate_labelling_combinations method
         self.label_input = None
 
         # Dictionary containing element to build the vmtf file
         self.vmtf_element_dict = {"Id": None, "Comment": None}
-
-        # Path to the folder containing all the linp files
-        self.input_folder_path = None
+        self.netw_directory_path = None
+        # Path to the folder containing all the model to analyze
+        self.model_directory_path = None
         # Path to the folder containing the files created by Isodesign
         self.res_folder_path = None
-        # File names without extensions
-        # Used for influx_s
+        # Name of the model to analyze
         self.model_name = None
         # List of paths to tvar.sim files (after simulation with influx_si)
         self.tvar_sim_paths = []
@@ -67,62 +65,53 @@ class Process:
         # Key : linp file name, value : namedtuple containing the number of labeled inputs and the total price
         self.info_linp_files = {}
 
-    def get_path_input_folder(self, directory_path):
+    def get_path_input_netw(self, netw_directory_path):
         """
-        This function initializes the data import process by setting the input 
-        folder path.
+        Get the directory path of the netw file (essential file containing 
+        all reactions and transition labels). From this path, we also store 
+        the directory path and the name of the model to be analyzed. 
 
-        :param directory_path: str containing the path to the input folder 
+        :param netw_directory_path: str containing the path to the netw file 
         """
+        
 
-        if not isinstance(directory_path, str):
-            msg = (f"{directory_path} should be of type string and not"
-                   f" {type(directory_path)}")
+        if not isinstance(netw_directory_path, str):
+            msg = (f'"{netw_directory_path}" should be of type string and not {type(netw_directory_path)}.')
             logger.error(msg)
             raise TypeError(msg)
 
-        self.input_folder_path = Path(directory_path)
+        self.netw_directory_path = Path(netw_directory_path)
 
-        if not self.input_folder_path.exists():
-            msg = f"{self.input_folder_path} doesn't exist."
+        if not self.netw_directory_path.exists():
+            msg = f"{self.netw_directory_path} doesn't exist."
             logger.error(msg)
             raise ValueError(msg)
         
-        logger.info(f"Input folder path = {self.input_folder_path}\n")
-
-
-    def get_model_names(self):
-        """
-        Retrieves all the model names (via .netw files) present in the input folder. 
-
-        """
-
-        self.model_names = [file.stem for file in self.input_folder_path.iterdir() if file.suffix == '.netw']
-
-        logger.info(f"Model names = {self.model_names}\n")
-
-    def load_model(self, model_name):
-        """ 
-        Load MTF files depending on the model name chosen.
-
-        :param model_name: model name denoted as prefix of mtf files
-
-        """
+        if self.netw_directory_path.suffix != ".netw":
+            msg = f'{self.netw_directory_path} is invalid. Please provide a file with ".netw" extension.'
+            logger.error(msg)
+            raise ValueError(msg)
         
-        self.model_name = model_name
+        # Store the model name 
+        self.model_name = Path(netw_directory_path).stem
+        # Store the model directory path 
+        self.model_directory_path = Path(netw_directory_path).parent
 
+        logger.info(f"Input folder path = {self.model_directory_path}\n")
+
+    
+    def load_model(self):
+        """ 
+        Load MTF files depending on the model name.
+
+        """
         # Reset the dictionary to store imported files
         self.mtf_files = {}
-
-        if model_name not in self.model_names:
-            msg = f"The model '{model_name}' is not found in this folder."
-            logger.error(msg)
-            raise ValueError(msg)
     
         # namedtuple containing file path and data 
         file_info = namedtuple("file_info", ['path', 'data'])
-        for file in self.input_folder_path.iterdir():
-            if file.stem == model_name and file.suffix in self.FILES_EXTENSION:
+        for file in self.model_directory_path.iterdir():
+            if file.stem == self.model_name and file.suffix in self.FILES_EXTENSION:
                 # Read the file and store its content in a namedtuple
                 # TODO: Add checks on file paths
                 data = pd.read_csv(str(file), sep="\t", comment="#", header=None if file.suffix == ".netw" else 'infer')
@@ -145,7 +134,7 @@ class Process:
         self.netan = {}
         # temporarily stores files generated by the use of modules
         with tempfile.TemporaryDirectory() as tmpdir:
-            for contents in self.input_folder_path.iterdir():
+            for contents in self.model_directory_path.iterdir():
                 # copy all files contained in self.res_folder_path (contains input files, linp files and vmtf file) 
                 if contents.is_file():
                     shutil.copy(contents, tmpdir)
@@ -451,7 +440,7 @@ class Process:
             self.filtered_dataframe = self.filtered_dataframe.loc[self.filtered_dataframe["Name"].isin(all_fluxes)]
         logger.info(f"Filtered dataframe :\n{self.filtered_dataframe}")
         return self.filtered_dataframe
-        
+
     def generate_score(self, method :list, operation = None, **kwargs):
         """
         Generate a score for each labelled substrate combination according 
@@ -485,32 +474,32 @@ class Process:
 
         logger.info(f"Scores table :\n{scores_table}")
         return scores_table
-        
+
 
 if __name__ == "__main__":
 
     test = Process()
-    test.get_path_input_folder(r"C:\Users\kouakou\Documents\test_data")
-    test.get_model_names()
-    test.load_model("design_test_1")
+    test.get_path_input_netw(r"c:\Users\kouakou\Documents\test_data\design_test_1.netw")
+    test.load_model()
     test.analyse_model()
-    test.create_results_folder(r"C:\Users\kouakou\Documents")
-    # test.add_isotopomer("Gluc", "000000", 100, 100, 100)
-    test.add_isotopomer("Gluc", "111111", 10, 0, 100)
-    test.add_isotopomer("Gluc", "100000", 10, 0, 100)
-    # test.add_isotopomer("FTHF_in", "0", 100, 100, 100)
-    # test.add_isotopomer("CO2_in", "0", 100, 100, 100)
+    # test.create_results_folder(r"C:\Users\kouakou\Documents")
+    # # test.add_isotopomer("Gluc", "000000", 100, 100, 100)
+    # test.configure_unmarked_form()
+    # test.add_isotopomer("Gluc", "111111", 10, 0, 100)
+    # test.add_isotopomer("Gluc", "100000", 10, 0, 100)
     # test.generate_combinations()
     # test.generate_linp_files()
     # test.generate_vmtf_file()
     # test.copy_files()
     
-    # test.influx_simulation(["--emu","--noscale","--ln","--noopt"], influx_mode="influx_s")
+    
+    # # test.influx_simulation(["--emu","--noscale","--ln","--noopt"], influx_mode="influx_s")
     
     # test.generate_summary()
     
     # # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
-    # test.generate_score(["sum_sd", "number_of_flux"], threshold=1)
+    # test.generate_score(["sum_sd", "number_of_flux"], threshold=1, operation="Addition")
+    # test.generate_score(["number_of_flux"], threshold=1)
     # test.display_scores()
     
     
