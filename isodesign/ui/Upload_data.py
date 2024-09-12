@@ -65,8 +65,8 @@ def logger_setup(output_path, debug_mode=False):
 #         pickle.dump(session, file_handler)
 
 
-st.set_page_config(page_title=f"IsoDesign (v {isodesign.__version__})")
-st.title(f"Welcome to IsoDesign (v {isodesign.__version__})")
+st.set_page_config(page_title=f"IsoDesign (v{isodesign.__version__})")
+st.title(f"Welcome to IsoDesign (v{isodesign.__version__})")
 
 # Check if a new version is available
 try:
@@ -84,6 +84,7 @@ try:
 except Exception:
     pass
 
+
 # checkbox to activate the debug mode  
 debug_mode = st.sidebar.checkbox('Verbose logs',
                                   help = "Useful in case of trouble. Join it to the issue on github.")
@@ -99,74 +100,48 @@ with st.container(border=True):
     # Make folder picker dialog appear on top of other windows
     root.wm_attributes('-topmost', 1)
     
-    st.subheader('Load your file folder',
-                help = "It must contain at least one \
-            .netw file (i.e. metabolic network model),\
-            one .miso file (i.e. isotopic measurements) and \
-            one .mflux file (i.e. input and output fluxes). ")
+    st.subheader('Load your network file',
+                help = 'File with ".netw" extension (containing all reactions and transition labels)')
 
     input_button = st.button(
-            label="Browse folder",
+            label="Browse file",
             key="input_button")
 
     if input_button:
         # Register the button state (TRUE) in the session
         session.register_widgets({"input_button": input_button})
         # Show folder picker dialog in GUI
-        input_folder_path = filedialog.askdirectory(master=root)
-
-        session.register_widgets({"input_folder_path": input_folder_path})
+        netw_directory_path = filedialog.askopenfilename(master = root,
+                                                       title = "Select a network file",
+                                                       filetypes=[("netw files", "*.netw")])
+        session.register_widgets({"netw_directory_path": netw_directory_path})
 
     if session.widget_space["input_button"]:
-        process_object.get_path_input_folder(session.widget_space["input_folder_path"])
-        # Store all folder model names in a list
-        process_object.get_model_names()
-     
-    st.text_input("**Folder path** :\n", "No folder selected" if not process_object.input_folder_path
-                    else process_object.input_folder_path, key="input_folder_path")
-
-    st.subheader("Load results folder path")
-    output_button= st.button(
-            label="Browse folder",
-            key="output_button")
-
-    if output_button:
-        session.register_widgets({"output_button": output_button})
-        output_folder_path = filedialog.askdirectory(master=root)
-        session.register_widgets({"output_folder_path": output_folder_path})
-
-    if session.widget_space["output_button"]:
-        # Create a folder to store the results
-        process_object.create_results_folder(session.widget_space["output_folder_path"])
-        
-        # Set up the logger
-        logger_setup(process_object.res_folder_path, debug_mode)
-        
-    st.text_input("**Folder path** :", "No folder selected" if not process_object.res_folder_path
-                    else process_object.res_folder_path, key="output_folder_path")
+        process_object.get_path_input_netw(session.widget_space["netw_directory_path"])
+    
+    st.text_input("**Netw directory path** :\n", 
+                    "No folder selected" if not process_object.netw_directory_path
+                    else process_object.netw_directory_path, 
+                    key="input_directory_path")
 
 
-# If the folder paths are registered, the user can choose the model to use
-if process_object.input_folder_path and process_object.res_folder_path:
-     with st.container(border=True):
-        # If the model name has already been chosen, it is displayed in the selectbox 
-        # otherwise the first model name is displayed
-        netw_choice = st.selectbox("Choose your netw file", 
-                            options=process_object.model_names,
-                            key="netw_choice",
-                            index=process_object.model_names.index(session.widget_space["netw_choice"]) if session.widget_space["netw_choice"] is not None else 0)
-        
-        session.register_widgets({"netw_choice": netw_choice})
-
-        submit = st.button("Submit",
-                           key="submit_button")
-        if submit: 
-            session.register_widgets({"submit_button": submit})
+    st.subheader("Output directory path")
+    output_folder_path = st.text_input("**Folder path** :", 
+                        value="No folder selected" if not process_object.model_directory_path
+                        else process_object.model_directory_path, 
+                        key="output_folder_path")
+    
+    submit = st.button("Submit",
+                       key="submit_button")
+    
+    if submit:
+        session.register_widgets({"submit_button": submit})
+        process_object.create_tmp_folder()
+        logger_setup(process_object.tmp_folder_path, debug_mode)
                        
 if session.widget_space["submit_button"]:
-    process_object.model_name=session.widget_space["netw_choice"]
     # Import and analysis of model files 
-    process_object.load_model(process_object.model_name)
+    process_object.load_model()
     process_object.analyse_model()
 
     with st.container(border=True):
