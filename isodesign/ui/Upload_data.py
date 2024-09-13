@@ -60,9 +60,9 @@ def logger_setup(output_path, debug_mode=False):
     return logger
 
 
-# def save_pickle(session, path):
-#     with open(str(f"{path}/session.pkl"), "wb") as file_handler:
-#         pickle.dump(session, file_handler)
+def save_pickle(session_file):
+    with open(str(f"{process_object.model_directory_path}/session.pkl"), "wb") as file_handler:
+        pickle.dump(session_file, file_handler, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 st.set_page_config(page_title=f"IsoDesign (v{isodesign.__version__})")
@@ -77,20 +77,36 @@ try:
         # change the next line to streamlit
         update_info = st.info(
             f'New version available ({lastversion}). '
-            f'You can update isodesign with: "pip install --upgrade '
+            f'You can update IsoDesign with: "pip install --upgrade '
             f'isodesign". Check the documentation for more '
             f'information.'
         )
 except Exception:
     pass
 
+# Process object creation 
+process_object = Process()
 
+st.sidebar.markdown("## Load a session")
+# Load a pickle file if it exists
+upload_pickle = st.sidebar.file_uploader("Load a previous session file.",
+                                         help = 'File with pickle extension (".pkl").')
+if upload_pickle:
+    with upload_pickle as session_file:
+        old_process = pickle.load(session_file)
+    # Load some attributes from the old session to the new object process "process_object"      
+    process_object.netw_directory_path = old_process["netw_directory_path"]
+    process_object.model_directory_path = old_process["model_directory_path"]
+    session.widget_space.widgets["submit_button"] = old_process["submit_button"]
+    process_object.model_name = old_process["model_name"]
+
+
+st.sidebar.divider()
+st.sidebar.markdown("## Debug mode")
 # checkbox to activate the debug mode  
 debug_mode = st.sidebar.checkbox('Verbose logs',
                                   help = "Useful in case of trouble. Join it to the issue on github.")
 
-
-process_object = Process() 
 
 with st.container(border=True):
     # Set up tkinter
@@ -138,7 +154,7 @@ with st.container(border=True):
         session.register_widgets({"submit_button": submit})
         process_object.create_tmp_folder()
         logger_setup(process_object.tmp_folder_path, debug_mode)
-                       
+
 if session.widget_space["submit_button"]:
     # Import and analysis of model files 
     process_object.load_model()
@@ -215,13 +231,17 @@ if session.widget_space["submit_button"]:
             with tabs[5]:
                 # Display mmet file content
                 st.dataframe(process_object.mtf_files["mmet"].data, hide_index=True, height=400, width=600)
-    
-    # session.register_object(process_object, "process_object")
-    next = st.button("Next page")
-    # session.register_widgets({"next_button": next})
 
+    session.register_object(process_object, "process_object")
+    to_save = {"netw_directory_path": process_object.netw_directory_path,
+                "model_directory_path": process_object.model_directory_path,
+                "submit_button": session.widget_space["submit_button"],
+                "model_name": process_object.model_name
+                }
+    
+    next = st.button("Next page")
     if next:
-        session.register_object(process_object, "process_object")
+        save_pickle(to_save)
         # Go to next page
         st.switch_page(r"pages/2_Generate_labels_input.py")
 
