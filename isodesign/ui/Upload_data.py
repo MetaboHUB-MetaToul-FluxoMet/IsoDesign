@@ -59,12 +59,6 @@ def logger_setup(output_path, debug_mode=False):
     logger.addHandler(stream)
     return logger
 
-
-def save_pickle(session_file):
-    with open(str(f"{process_object.model_directory_path}/session.pkl"), "wb") as file_handler:
-        pickle.dump(session_file, file_handler, protocol=pickle.HIGHEST_PROTOCOL)
-
-
 st.set_page_config(page_title=f"IsoDesign (v{isodesign.__version__})")
 st.title(f"Welcome to IsoDesign (v{isodesign.__version__})")
 
@@ -84,22 +78,23 @@ try:
 except Exception:
     pass
 
-# Process object creation 
-process_object = Process()
+
 
 st.sidebar.markdown("## Load a session")
 # Load a pickle file if it exists
 upload_pickle = st.sidebar.file_uploader("Load a previous session file.",
+                                         key="upload_pickle",
                                          help = 'File with pickle extension (".pkl").')
 if upload_pickle:
     with upload_pickle as session_file:
         old_process = pickle.load(session_file)
-    # Load some attributes from the old session to the new object process "process_object"      
-    process_object.netw_directory_path = old_process["netw_directory_path"]
-    process_object.model_directory_path = old_process["model_directory_path"]
-    session.widget_space.widgets["submit_button"] = old_process["submit_button"]
-    process_object.model_name = old_process["model_name"]
+    
+    session.object_space["process_object"] = old_process
+    # Retrieves the state of the submit button 
+    session.register_widgets({"submit_button": True})
 
+# Process object creation 
+process_object = Process() if not session.object_space["process_object"] else session.object_space["process_object"]
 
 st.sidebar.divider()
 st.sidebar.markdown("## Debug mode")
@@ -231,17 +226,12 @@ if session.widget_space["submit_button"]:
             with tabs[5]:
                 # Display mmet file content
                 st.dataframe(process_object.mtf_files["mmet"].data, hide_index=True, height=400, width=600)
-
+    
     session.register_object(process_object, "process_object")
-    to_save = {"netw_directory_path": process_object.netw_directory_path,
-                "model_directory_path": process_object.model_directory_path,
-                "submit_button": session.widget_space["submit_button"],
-                "model_name": process_object.model_name
-                }
     
     next = st.button("Next page")
     if next:
-        save_pickle(to_save)
+        process_object.save_process_to_file()
         # Go to next page
         st.switch_page(r"pages/2_Generate_labels_input.py")
 
