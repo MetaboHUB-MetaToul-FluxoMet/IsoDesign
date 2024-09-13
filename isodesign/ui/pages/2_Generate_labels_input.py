@@ -87,9 +87,10 @@ with configured_substrates:
     submit = st.button("Submit")
     
     if submit:
-        session.object_space["process_object"].generate_combinations()
+        process_object.generate_combinations()
         # linp file generations 
-        session.object_space["process_object"].generate_linp_files()
-        session.object_space["process_object"].generate_vmtf_file()
-        session.object_space["process_object"].copy_files()
-        st.switch_page(r"pages\3_Simulation_options.py")
+        process_object.generate_linp_files()
+        process_object.generate_vmtf_file()
+        process_object.copy_files()
+        process_object.save_process_to_file()
+        st.switch_page(r"pages/3_Simulation_options.py")
