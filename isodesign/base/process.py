@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import tempfile
+import pickle
 from collections import namedtuple
 from pathlib import Path
 
@@ -16,6 +17,12 @@ from isodesign.base.score import ScoreHandler
 
 logger = logging.getLogger(f"IsoDesign.{__name__}")  
 
+# Namedtuples are placed outside the class to avoid pickling issues when saving the Process object
+# namedtuple containing file path and data 
+file_info = namedtuple("file_info", ['path', 'data']) 
+# namedtuple containing the number of labeled inputs and the total price for each linp file
+linp_info = namedtuple("linp_info", ["nb_labeled_inputs", "total_price"])
+
 class Process:
     """
     The Process class is the main class to organise IsoDesign functionalities.
@@ -27,6 +34,7 @@ class Process:
 
     """
     FILES_EXTENSION = [".netw", ".tvar", ".mflux", ".miso", ".cnstr", ".mmet", ".opt"]
+    
 
     def __init__(self):
 
@@ -64,7 +72,7 @@ class Process:
         self.score = None
         # Dictionary to store the number of labeled inputs and the total isotopomer prices of each linp file 
         # Key : linp file name, value : namedtuple containing the number of labeled inputs and the total price
-        self.info_linp_files = {}
+        self.linp_infos = {}
 
     def get_path_input_netw(self, netw_directory_path):
         """
@@ -109,8 +117,8 @@ class Process:
         # Reset the dictionary to store imported files
         self.mtf_files = {}
     
-        # namedtuple containing file path and data 
-        file_info = namedtuple("file_info", ['path', 'data'])
+        
+        
         for file in self.model_directory_path.iterdir():
             if file.stem == self.model_name and file.suffix in self.FILES_EXTENSION:
                 # Read the file and store its content in a namedtuple
@@ -177,6 +185,22 @@ class Process:
             # File paths are contained as first elements in the namedtuple
             logger.debug(f"File path: {file.path}")
             shutil.copy(file.path, self.tmp_folder_path)
+
+    def save_process_to_file(self):
+        """
+        Save the Process object to a pickle file in the model directory.
+        """
+        
+        output_file_tmp = Path(self.model_directory_path, self.model_name + "_tmp.pkl")
+        output_file = Path(self.model_directory_path, self.model_name + ".pkl")
+
+        try:
+            with open(output_file_tmp, 'wb') as file:
+                pickle.dump(self, file)
+            output_file.unlink(missing_ok=True)
+            output_file_tmp.rename(output_file)
+        except Exception as e:
+            raise ValueError(f"An unknown error has occured when saving the process file: {e}")
     
     def configure_unmarked_form(self):
         """
@@ -302,9 +326,8 @@ class Process:
                 
                 self.vmtf_element_dict["linp"] = [f"file_{number_file:02d}" for number_file in range(1, index+1)]
 
-                # namedtuple containing the number of labeled inputs and the total price for each linp file
-                info_linp_file = namedtuple("linp_info", ["nb_labeled_inputs", "total_price"])
-                self.info_linp_files[f"file_{index:02d}_SD"] = info_linp_file(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
+                
+                self.linp_infos[f"file_{index:02d}_SD"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
                                                                           df["Price"].sum())
         
         logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated.")
@@ -485,20 +508,20 @@ if __name__ == "__main__":
     test.analyse_model()
     test.create_tmp_folder()
     # # test.add_isotopomer("Gluc", "000000", 100, 100, 100)
-    # test.configure_unmarked_form()
-    # test.add_isotopomer("Gluc", "111111", 10, 0, 100)
-    # test.add_isotopomer("Gluc", "100000", 10, 0, 100)
-    # test.generate_combinations()
-    # test.generate_linp_files()
-    # test.generate_vmtf_file()
-    # test.copy_files()
+    test.configure_unmarked_form()
+    test.add_isotopomer("Gluc", "111111", 10, 0, 100)
+    test.add_isotopomer("Gluc", "100000", 10, 0, 100)
+    test.generate_combinations()
+    test.generate_linp_files()
+    test.generate_vmtf_file()
+    test.copy_files()
     
     
-    # test.influx_simulation(["--emu","--noscale","--ln","--noopt"], influx_mode="influx_s")
+    test.influx_simulation(["--emu","--noscale","--ln","--noopt"], influx_mode="influx_s")
     
-    # test.generate_summary()
-    
-    # # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
+    test.generate_summary()
+    test.save_process_to_file()
+    # test.data_filter(pathways=["GLYCOLYSIS"],kind=["NET"])
     # test.generate_score(["sum_sd", "number_of_flux"], threshold=1, operation="Addition")
     # # test.generate_score(["number_of_flux"], threshold=1)
     # test.display_scores()
