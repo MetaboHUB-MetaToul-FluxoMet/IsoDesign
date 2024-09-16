@@ -24,7 +24,7 @@ class Isotopomer:
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
         self.price = price
-        self.num_carbon = len(self.labelling) 
+        # self.num_carbon = len(self.labelling) 
         
     def generate_fraction(self):
         """
@@ -36,12 +36,11 @@ class Isotopomer:
         return np.array([Decimal(fraction) / Decimal(100) for fraction in
                          range(self.lower_bound, self.upper_bound + self.step, self.step)])
 
-    def __len__(self):
-        return self.num_carbon
+    # def __len__(self):
+    #     return self.num_carbon
 
     def __repr__(self) -> str:
         return f"\nName = {self.name},\
-        \nNumber of associated carbon(s) : {self.num_carbon},\
         \nLabelling = {self.labelling},\
         \nStep = {self.step},\
         \nLower bound = {self.lower_bound},\
@@ -86,3 +85,14 @@ class Isotopomer:
         if value <= 0:
             raise ValueError("Step for proportions to test must be greater than 0")
         self._step = value
+
+    @property
+    def labelling(self):
+        return self._labelling
+    
+    @labelling.setter
+    def labelling(self, value):
+        for label in value:
+            if label not in ["0", "1"]:
+                raise ValueError("Labelling must be either 0 (unlabeled) or 1 (labeled).")
+        self._labelling = value
