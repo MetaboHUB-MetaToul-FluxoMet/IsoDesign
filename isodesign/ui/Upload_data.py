@@ -87,9 +87,9 @@ upload_pickle = st.sidebar.file_uploader("Load a previous session file.",
                                          help = 'File with pickle extension (".pkl").')
 if upload_pickle:
     with upload_pickle as session_file:
-        old_process = pickle.load(session_file)
+        process_object = pickle.load(session_file)
     
-    session.object_space["process_object"] = old_process
+    session.object_space["process_object"] = process_object
     # Retrieves the state of the submit button 
     session.register_widgets({"submit_button": True})
 
