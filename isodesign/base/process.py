@@ -117,13 +117,16 @@ class Process:
         # Reset the dictionary to store imported files
         self.mtf_files = {}
     
-        
-        
         for file in self.model_directory_path.iterdir():
             if file.stem == self.model_name and file.suffix in self.FILES_EXTENSION:
                 # Read the file and store its content in a namedtuple
                 # TODO: Add checks on file paths
-                data = pd.read_csv(str(file), sep="\t", comment="#", header=None if file.suffix == ".netw" else 'infer')
+                data = pd.read_csv(str(file),
+                                    sep="\t",
+                                      comment="#",
+                                        header=None if file.suffix == ".netw" else 'infer',
+                                        encoding="utf-8",
+                                        on_bad_lines='skip')
                 self.mtf_files.update({file.suffix[1:]: file_info(file, data)})
 
         logger.info(f"'{self.model_name}' has been imported.\n")
@@ -232,11 +235,12 @@ class Process:
         isotopomer = Isotopomer(substrate_name, labelling, nb_intervals, lower_b, upper_b, price)
         
         # Check if the labelling length is equal to the number of carbons in the substrate
-        # by using the netan dictionary (which contains the number of carbons for each substrate)
+        # by using clen (carbon length) from the netan (network analysis) dictionary
         if len(labelling) != self.netan["Clen"][substrate_name]:
             raise ValueError(f"Labelling length for {substrate_name} should be equal to {self.netan['Clen'][substrate_name]}")
         
-        self.isotopomers[f"{substrate_name}"].append(isotopomer)
+        self.isotopomers[substrate_name].append(isotopomer)
+    
 
     def remove_isotopomer(self, substrate, labelling):
         """
@@ -329,23 +333,27 @@ class Process:
                 # applies the 'get_isotopomer_price' method to each row (axis=1) in the dataframe 'df'
                 df["Price"] = df.apply(lambda x: self.get_isotopomer_price(x["Isotopomer"], x["Specie"]), axis=1) * df["Value"]
                 logger.debug(f"Folder path : {self.tmp_folder_path}\n Dataframe {index:02d}:\n {df}")
-                
-                df.to_csv(os.path.join(str(self.tmp_folder_path), f"file_{index:02d}.linp"), sep="\t", index=False)
+                print(f"Folder path : {self.tmp_folder_path}\n Dataframe {index:02d}:\n {df}")
+                df.to_csv(os.path.join(str(self.tmp_folder_path), f"ID_{index:02d}.linp"), sep="\t", index=False)
                 f.write(
-                    f"File_{index:02d} - {df['Specie'].tolist()}\n\
+                    f"ID_{index:02d} - {df['Specie'].tolist()}\n\
                     {df['Isotopomer'].tolist()}\n\
                     {df['Value'].tolist()} \n \
                     {df['Price'].tolist()} \n")
                 
-                self.vmtf_element_dict["linp"] = [f"file_{number_file:02d}" for number_file in range(1, index+1)]
+                
+
+                self.vmtf_element_dict["linp"] = [f"ID_{number_file:02d}" for number_file in range(1, index+1)]
 
                 
-                self.linp_infos[f"file_{index:02d}_SD"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
+                self.linp_infos[f"ID_{index:02d}_SD"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
                                                                           df["Price"].sum())
         
         logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated.")
         logger.info(f"Folder containing linp files has been generated on this directory : {self.tmp_folder_path}.\n")
     
+    
+
     def generate_vmtf_file(self):
         """
         Generate a vmtf file (TSV format) that permit to combine variable
@@ -516,15 +524,16 @@ class Process:
 if __name__ == "__main__":
 
     test = Process()
-    test.get_path_input_netw(r"c:\Users\kouakou\Documents\test_data\design_test_1.netw")
+    test.get_path_input_netw(r"c:\Users\kouakou\Downloads\microfluxpCC25.netw")
     test.load_model()
     test.analyse_model()
     test.create_tmp_folder()
     # # test.add_isotopomer("Gluc", "000000", 100, 100, 100)
     # test.configure_unmarked_form()
-    # test.add_isotopomer("Gluc", "111111", 10, 0, 100)
     # test.add_isotopomer("Gluc", "100000", 10, 0, 100)
-    test.generate_combinations()
+    # test.add_isotopomer("Gluc", "111111", 10, 0, 100)
+    
+    # test.generate_combinations()
     # test.generate_linp_files()
     # test.generate_vmtf_file()
     # test.copy_files()
