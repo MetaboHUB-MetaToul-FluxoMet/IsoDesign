@@ -5,7 +5,7 @@ import plotly.express as px
 
 session = SessI(
         session_state=st.session_state,
-        page="4_Analysis")
+        page="4_Results_Analysis")
 
 
 def filter(selected_flux, selected_kind,selected_pathway):
@@ -65,7 +65,7 @@ def add_scores(count=0):
             process_object.generate_score(method_choice,
                                         operation = operation if len(method_choice) > 1 else None,                         
                                         weight_sum_sd=int(weight_sd) if "sum_sd" in method_choice else 1,
-                                            threshold=int(input_threshold) if "number_of_flux" in method_choice else 1,
+                                            threshold=float(input_threshold) if "number_of_flux" in method_choice else 1,
                                             weight_flux=int(weight_flux) if "number_of_flux" in method_choice else 1,
                                             info_linp_files_dict=dict(process_object.linp_infos) if "number_of_labeled_inputs" or "price" in method_choice else None,
                                             weight_labeled_input=int(input_labeled_input) if "number_of_labeled_inputs" in method_choice else 1
@@ -102,7 +102,9 @@ def add_scores(count=0):
         add_scores(count)
 
 st.set_page_config(page_title="IsoDesign", layout="wide")
-st.title("Analysis")
+st.title("Results analysis")
+
+st.write(" ")
 
 process_object = session.object_space['process_object']
 
