@@ -10,6 +10,10 @@ session = SessI(
 st.set_page_config(page_title="IsoDesign")
 st.title("Simulation options")
 
+st.sidebar.markdown("## Influx_si documentation ")
+st.sidebar.link_button("Documentation", 
+                       "https://influx-si.readthedocs.io/en/latest/index.html"
+                  )
 st.write(" ")
 
 # Command to be passed to the simulation
@@ -25,10 +29,6 @@ session.register_widgets({"mode": mode})
 
 
 with st.container(border=True):
-    feasability_domain = st.checkbox("Feasibility domain projection",
-                                    help="Project the feasibility domain of the model")
-
-
     emu = st.checkbox("Elementary Metabolite Units (EMU)", 
                     key="emu", 
                     value=True,
@@ -69,7 +69,7 @@ with st.container(border=True):
                             "--noscale": no_scale,
                             "--ln": ln,
                             "add_options": add_options,
-                            "feasability_domain": feasability_domain})
+                            })
 
 
 
@@ -80,5 +80,5 @@ if submit:
     st.success("Simulation completed ! ")
 
     session.object_space["process_object"].generate_summary()
-    st.switch_page(r"pages/4_Analysis.py")
+    st.switch_page(r"pages/4_Results_Analysis.py")
 
