@@ -59,8 +59,8 @@ with st.container(border=True):
             # If the isotopomers attribute is empty, the unmarked form is configured
             if not process_object.isotopomers:
                 process_object.configure_unmarked_form()
-            # Form to configue an isotopomer for each substrate
-            with st.form(f"form_{substrate_name}"):
+            # Container to configure an isotopomer for each substrate
+            with st.container(border=True):
                 labelling, price = st.columns(2)
                 with labelling:
                     labelling = st.text_input(f"Number of tracer atoms : {get_carbon_length(substrate_name)}", 
@@ -73,16 +73,26 @@ with st.container(border=True):
                                         value=None,
                                         help="Price of the substrate")
 
-                lb, ub, step = st.columns(3, gap="medium")
+                lb, ub, nb_intervals = st.columns(3, gap="medium")
                 with lb:
-                    lower_b = st.text_input("Lower bound", key=f"lb_{substrate_name}", value=100)
+                    lower_b = st.text_input("Lower bound", 
+                                            key=f"lb_{substrate_name}", 
+                                            value=100)
                 with ub:
-                    upper_b = st.text_input("Upper bound", key=f"ub_{substrate_name}", value=100)
-                with step:
-                    nb_intervals = st.text_input("Step", key=f"step_{substrate_name}", value=100)
-                # When the add button is clicked, the isotopomer is added via the add_isotopomer method from the process class  
-                add = st.form_submit_button("Add")
-
+                    upper_b = st.text_input("Upper bound", 
+                                            key=f"ub_{substrate_name}", 
+                                            value=100)
+                with nb_intervals:
+                    nb_intervals = st.text_input("Number of intervals", 
+                                                key=f"intervals_nb_{substrate_name}", 
+                                                value=100)
+                # Display the step value if the number of intervals is different from 100  
+                if int(nb_intervals) != 100:
+                    st.info(f"Step = {int(upper_b)/int(nb_intervals)}")
+                
+                # When the add button is clicked, the isotopomer is added via the add_isotopomer method from the process class
+                add = st.button("Add", 
+                                key=f"add_{substrate_name}")
                 if add:
                     process_object.add_isotopomer(substrate_name, labelling, int(nb_intervals), int(lower_b), int(upper_b), float(price) if price else None)
                     st.toast(f"Isotopomer added in {substrate_name}")
