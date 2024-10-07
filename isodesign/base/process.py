@@ -74,6 +74,15 @@ class Process:
         # Key : linp file name, value : namedtuple containing the number of labeled inputs and the total price
         self.linp_infos = {}
 
+        # List of dictionary containing labelled substrates combinations
+        # Each dictionary contains the columns "Specie", "Isotopomer", "Value" and "Price"
+        # These dictionaries will be used to create linp files
+        self.labelled_substrates_combs = []
+        # Dataframe containing labelled substrates combinations
+        self.df_combinations = None
+        # Dataframe containing the combinations that will not be used for the simulation 
+        self.df_unused_combinations = None
+
     def get_path_input_netw(self, netw_directory_path):
         """
         Get the directory path of the netw file (essential file containing 
@@ -103,6 +112,7 @@ class Process:
         
         # Store the model name 
         self.model_name = Path(netw_directory_path).stem
+        
         # Store the model directory path 
         self.model_directory_path = Path(netw_directory_path).parent
 
@@ -305,54 +315,82 @@ class Process:
                 if isotopomer.labelling == isotopomer_labelling and isotopomer.name == isotopomer_name:
                     return isotopomer.price
     
+    def generate_labelled_substrates_dfs(self):
+        """
+        First, dataframes are generated, each containing a combination 
+        of labelled substrates. These dataframes are created using the 
+        linp file format (TSV file used for marking simulations and which 
+        contains label input forms and fractions). They are then stored in 
+        a "self.labelled_substrates_combinations" list. They will be used to create linp files.
+
+        """
+        
+        # Generate a dataframe for each pair of isotopomers 
+        for pair in self.label_input.isotopomer_combinations["All_combinations"]:
+            df = pd.DataFrame({'Id': None,
+                                'Comment': None,
+                                'Specie': self.label_input.names,
+                                'Isotopomer': self.label_input.labelling_patterns,
+                                'Value': pair.astype(float)})
+
+            # remove rows with value = 0
+            df = df.loc[df["Value"] != 0]
+            # add a column "Price" containing the price of each isotopomer multiplied by its fraction
+            # applies the 'get_isotopomer_price' method to each row (axis=1) in the dataframe 'df'
+            df["Price"] = df.apply(lambda x: self.get_isotopomer_price(x["Isotopomer"], x["Specie"]), axis=1) * df["Value"]
+            # logger.debug(f"Folder path : {self.tmp_folder_path}\n Dataframe {index:02d}:\n {df}")
+            
+            # This is useful for efficiently storing and accessing the DataFrame data in a list format,
+            # which can be more convenient for certain operations or further processing.
+            self.labelled_substrates_combs.append(df.to_dict(orient="list"))
+
+    def show_combinations(self):
+        """
+        Display the combinations of labelled substrates
+        present in self.labelled_substrates_combinations in a dataframe. 
+
+        """
+
+        self.df_combinations = pd.DataFrame(self.labelled_substrates_combs, 
+                                      columns=["Specie", "Isotopomer", "Value", "Price"]
+                                      )
+        
+        self.df_combinations.insert(0, "Combination number", [f"{index:03d}" for index in range(1, len(self.labelled_substrates_combs) + 1 )])
+        return self.df_combinations    
+    
     def generate_linp_files(self):
         """
         Generates linp files (TSV format) in the temp folder (self.tmp_folder_path). 
         Each file contains a combination of labelled substrates. 
-        The files contain the names of the isotopomers, their labelling positions and their values.
-
+        
         A file is generated containing a mapping that associates each file 
         number with its respective combinations. 
 
         """
 
         logger.info("Creation of the linp files...")
-
         # create mapping to associate file number with its respective combinations
         with open(os.path.join(str(self.model_directory_path), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
-            for index, pair in enumerate(self.label_input.isotopomer_combinations["All_combinations"], start=1):
-                df = pd.DataFrame({'Id': None,
-                                   'Comment': None,
-                                   'Specie': self.label_input.names,
-                                   'Isotopomer': self.label_input.labelling_patterns,
-                                   'Value': pair.astype(float)})
-
-                # remove rows with value = 0
-                df = df.loc[df["Value"] != 0]
-                # add a column "Price" containing the price of each isotopomer multiplied by its fraction
-                # applies the 'get_isotopomer_price' method to each row (axis=1) in the dataframe 'df'
-                df["Price"] = df.apply(lambda x: self.get_isotopomer_price(x["Isotopomer"], x["Specie"]), axis=1) * df["Value"]
-                logger.debug(f"Folder path : {self.tmp_folder_path}\n Dataframe {index:02d}:\n {df}")
-                print(f"Folder path : {self.tmp_folder_path}\n Dataframe {index:02d}:\n {df}")
-                df.to_csv(os.path.join(str(self.tmp_folder_path), f"ID_{index:02d}.linp"), sep="\t", index=False)
+            for index, dataframes in enumerate(self.labelled_substrates_combs, start=1):
+                df = pd.DataFrame.from_dict(dataframes) 
+                df.to_csv(os.path.join(str(self.tmp_folder_path), f"ID_{index:03d}.linp"), sep="\t", index=False)
                 f.write(
-                    f"ID_{index:02d} - {df['Specie'].tolist()}\n\
+                    f"ID_{index:03d} - {df['Specie'].tolist()}\n\
                     {df['Isotopomer'].tolist()}\n\
                     {df['Value'].tolist()} \n \
                     {df['Price'].tolist()} \n")
-                
-                
+            
+                 
+                self.vmtf_element_dict["linp"] = [f"ID_{number_file:03d}" for number_file in range(1, index+1)]
 
-                self.vmtf_element_dict["linp"] = [f"ID_{number_file:02d}" for number_file in range(1, index+1)]
-
-                
-                self.linp_infos[f"ID_{index:02d}_SD"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
-                                                                          df["Price"].sum())
+                self.linp_infos[f"ID_{index:03d}_SD"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
+                                                                        df["Price"].sum())
+    
         
-        logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated.")
-        logger.info(f"Folder containing linp files has been generated on this directory : {self.tmp_folder_path}.\n")
-    
-    
+        # logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated.")
+        # logger.info(f"Folder containing linp files has been generated on this directory : {self.tmp_folder_path}.\n")
+
+        
 
     def generate_vmtf_file(self):
         """
@@ -376,7 +414,7 @@ class Process:
 
     def influx_simulation(self, param_list, influx_mode):
         """
-        Run the  simulations with influx_si as a function of experiment type 
+        Run the simulations with influx_si as a function of experiment type 
         (influx_i = instationnary or influx_s = stationary) 
 
         :param param_list: list of command line arguments to pass to influx_si
@@ -384,7 +422,6 @@ class Process:
         """ 
         
         command_list = ["--prefix", self.model_name] + param_list
-        
         # Change directory to the folder containing all the file to use for influx_si
         os.chdir(self.tmp_folder_path)
 
@@ -429,7 +466,7 @@ class Process:
         
         for idx, df in enumerate(tvar_sim_dataframes):
             df.rename({
-                "SD": f"file_{idx+1:02d}_SD"
+                "SD": f"ID_{idx+1:03d}_SD"
             }, axis=1, inplace=True)
         logger.debug(f"tvar_sim_dataframes: {tvar_sim_dataframes}")
 
@@ -524,22 +561,25 @@ class Process:
 if __name__ == "__main__":
 
     test = Process()
-    test.get_path_input_netw(r"c:\Users\kouakou\Downloads\microfluxpCC25.netw")
+    test.get_path_input_netw(r"c:\Users\kouakou\Documents\test_data\design_test_1.netw")
     test.load_model()
     test.analyse_model()
     test.create_tmp_folder()
     # # test.add_isotopomer("Gluc", "000000", 100, 100, 100)
-    # test.configure_unmarked_form()
-    # test.add_isotopomer("Gluc", "100000", 10, 0, 100)
-    # test.add_isotopomer("Gluc", "111111", 10, 0, 100)
+    test.configure_unmarked_form()
+    test.add_isotopomer("Gluc", "100000", 10, 0, 100)
+    test.add_isotopomer("Gluc", "111111", 10, 0, 100)
     
-    # test.generate_combinations()
+    test.generate_combinations()
+    test.configure_linp_files()
+    
+    # # test.generate_comb()
     # test.generate_linp_files()
     # test.generate_vmtf_file()
     # test.copy_files()
     
     
-    # test.influx_simulation(["--emu","--noscale","--ln","--noopt"], influx_mode="influx_s")
+    # test.influx_simulation([f"--prefix {test.model_name}","--emu","--noscale","--ln","--noopt"], influx_mode="influx_s")
     
     # test.generate_summary()
     # test.save_process_to_file()
