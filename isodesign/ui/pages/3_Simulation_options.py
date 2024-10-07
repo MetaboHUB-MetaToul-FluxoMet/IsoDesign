@@ -16,8 +16,10 @@ st.sidebar.link_button("Documentation",
                   )
 st.write(" ")
 
+process_object = session.object_space["process_object"]
+
 # Command to be passed to the simulation
-command :list =[]
+command :list = []   
 
 mode = st.selectbox("Influx mode", 
                     options=["influx_s", "influx_i"],
@@ -64,21 +66,20 @@ with st.container(border=True):
                                 key="add_options")
     if add_options:
         command.append(f"--{add_options}")
-
     session.register_widgets({"--emu": emu,
                             "--noscale": no_scale,
                             "--ln": ln,
                             "add_options": add_options,
                             })
 
-
+st.info(f"Selected options : {command}")
 
 submit = st.button("Submit")
 if submit:
     st.info("Simulation in progress...")
-    session.object_space["process_object"].influx_simulation(command, influx_mode=mode)
+    process_object.influx_simulation(command, influx_mode=mode)
     st.success("Simulation completed ! ")
-
-    session.object_space["process_object"].generate_summary()
+    
+    process_object.generate_summary()
     st.switch_page(r"pages/4_Results_Analysis.py")
 
