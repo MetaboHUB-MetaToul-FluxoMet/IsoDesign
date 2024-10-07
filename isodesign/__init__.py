@@ -1,11 +1,3 @@
-import logging 
+import importlib.metadata
 
-
-logger = logging.getLogger("IsoDesign")
-logger.setLevel(logging.DEBUG)
-
-handler = logging.StreamHandler()
-handler.setLevel(logging.INFO)
-handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s: Method %(funcName)s: %(message)s"))
-
-logger.addHandler(handler)
+__version__ = importlib.metadata.version("isodesign")

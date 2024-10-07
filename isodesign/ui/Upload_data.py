@@ -2,114 +2,164 @@ import tkinter as tk
 from tkinter import filedialog
 import pandas as pd
 
+
 from isodesign.base.process import Process
 
+import isodesign
 import logging 
 import pickle
 
 import streamlit as st
 from sess_i.base.main import SessI
+from pathlib import Path
 
-# try:
-#     with open("session.pkl", "rb") as f:
-#         session = pickle.load(f)
-# except FileNotFoundError:
-#     session = SessI(session_state=st.session_state, page="Home")
 
-st.set_page_config(page_title="IsoDesign")
-st.title("Welcome to IsoDesign")
+logger = logging.getLogger("IsoDesign")
+logger.setLevel(logging.DEBUG)
 
 session = SessI(
     session_state=st.session_state,
     page="Upload_data"
 )
 
-process_object = Process() if not hasattr(session.object_space, "process_object") else session.get_object("process_object")
 
 
-logging_mode = st.checkbox('Debug mode')
-if logging_mode:
-    process_object.logger.setLevel(logging.DEBUG)
+def logger_setup(output_path, debug_mode=False):
+    """ 
+    Set up a logger for the application. This method creates a logging handler
+    that writes logs to a file and a stream handler to the console. 
+    The log level is set to INFO by default. If debug_mode is set to True, 
+    the log level is set to DEBUG.
 
+    :param output_path: the path where the log file will be saved
+    :param debug_mode: if True, the logger will be set to debug mode.
+    :return: the configured logger 
 
-st.write(" ")
-
-# st.header("Input/Output folder")
-with st.container(border=True):
+    """
+    try:
+        handler = logging.FileHandler(f"{output_path}/log.txt", mode="w")
+    except FileNotFoundError:  
+        raise FileNotFoundError("The output path does not exist.")
     
+    stream = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    stream.setLevel(logging.INFO)
+
+    if debug_mode:
+        handler.setLevel(logging.DEBUG)
+        stream.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter("%(asctime)s-%(name)s-%(levelname)s-Method %(funcName)s-%(message)s")
+    handler.setFormatter(formatter)
+    stream.setFormatter(formatter)
+
+    if logger.hasHandlers():
+        logger.handlers.clear()
+    logger.addHandler(handler)
+    logger.addHandler(stream)
+    return logger
+
+st.set_page_config(page_title=f"IsoDesign (v{isodesign.__version__})")
+st.title(f"Welcome to IsoDesign (v{isodesign.__version__})")
+
+# Check if a new version is available
+try:
+    isodesign_path = Path(isodesign.__file__).parent
+    with open(str(Path(isodesign_path, "last_version.txt")), "r") as f:
+        lastversion = f.read()
+    if lastversion != isodesign.__version__:
+        # change the next line to streamlit
+        update_info = st.info(
+            f'New version available ({lastversion}). '
+            f'You can update IsoDesign with: "pip install --upgrade '
+            f'isodesign". Check the documentation for more '
+            f'information.'
+        )
+except Exception:
+    pass
+
+
+st.sidebar.markdown("## Load a session")
+# Load a pickle file if it exists
+upload_pickle = st.sidebar.file_uploader("Load a previous session file.",
+                                         key="upload_pickle",
+                                         help = 'File with pickle extension (".pkl").')
+if upload_pickle:
+    with upload_pickle as session_file:
+        process_object = pickle.load(session_file)
+    
+    session.object_space["process_object"] = process_object
+    # Retrieves the state of the submit button 
+    session.register_widgets({"submit_button": True})
+
+# Process object creation 
+process_object = Process() if not session.object_space["process_object"] else session.object_space["process_object"]
+
+st.sidebar.divider()
+st.sidebar.markdown("## Debug mode")
+# checkbox to activate the debug mode  
+debug_mode = st.sidebar.checkbox('Verbose logs',
+                                  help = "Useful in case of trouble. Join it to the issue on github.")
+
+
+with st.container(border=True):
     # Set up tkinter
     root = tk.Tk()
     root.withdraw()
 
     # Make folder picker dialog appear on top of other windows
     root.wm_attributes('-topmost', 1)
-    # Folder picker button
-    st.subheader('Load a folder')
+    
+    st.subheader('Load your network file',
+                help = 'File with ".netw" extension (containing all reactions and transition labels)')
 
     input_button = st.button(
-            label="Browse folder",
+            label="Browse file",
             key="input_button")
 
     if input_button:
+        # Register the button state (TRUE) in the session
+        session.register_widgets({"input_button": input_button})
         # Show folder picker dialog in GUI
-        input_folder_path = filedialog.askdirectory(master=root)
-        session.register_widgets({"input_folder_path": input_folder_path})
-        
-        # Store the path to the input folder and get all prefixes via network files 
-        process_object.get_path_input_folder(input_folder_path)
-        # Register the process object to the session
-        session.register_object(process_object, "process_object")
+        netw_directory_path = filedialog.askopenfilename(master = root,
+                                                       title = "Select a network file",
+                                                       filetypes=[("netw files", "*.netw")])
+        session.register_widgets({"netw_directory_path": netw_directory_path})
 
-    st.write("**Selected folder path** :\n", session.widget_space["input_folder_path"])
-
-    st.subheader("Results output folder")
-    output_button= st.button(
-            label="Browse folder",
-            key="output_button")
-        
-    if output_button:
-        output_folder_path = filedialog.askdirectory(master=root)
-        session.register_widgets({"output_folder_path": output_folder_path})
-        # stores the output destination 
-        # will be reused as the output path for generating files from Isodesign 
-        session.object_space["process_object"].res_folder_path = output_folder_path 
-
-    st.write("**Results output folder path** :\n", session.widget_space["output_folder_path"])
+    if session.widget_space["input_button"]:
+        process_object.get_path_input_netw(session.widget_space["netw_directory_path"])
     
+    st.text_input("**Netw directory path** :\n", 
+                    "No folder selected" if not process_object.netw_directory_path
+                    else process_object.netw_directory_path, 
+                    key="input_directory_path")
 
-# process_object = session.get_object("process_object")
 
-if session.widget_space["output_folder_path"]:
-
-    with st.container(border=True):
-        # Selectbox to choose from all prefixes retrieved from the folder   
-        prefix_list = session.object_space["process_object"].netw_files_prefixes
-        netw_choice = st.selectbox("Choose your netw file", 
-                            options=prefix_list,
-                            key="netw_choice",
-                            index=prefix_list.index(session.widget_space["netw_choice"]) if session.widget_space["netw_choice"] is not None else 0)
-        
-        session.register_widgets({"netw_choice": netw_choice})
-        submit = st.button("Submit",
-                           key="submit_button")
-        
-        if submit :
-            # The chosen prefix is stored and will be used again
-            session.object_space["process_object"].prefix=netw_choice 
-            session.register_widgets({"submit_button": submit})               
-
+    st.subheader("Output directory path")
+    output_folder_path = st.text_input("**Folder path** :", 
+                        value="No folder selected" if not process_object.model_directory_path
+                        else process_object.model_directory_path, 
+                        key="output_folder_path")
+    
+    submit = st.button("Submit",
+                       key="submit_button")
+    
+    if submit:
+        session.register_widgets({"submit_button": submit})
+        process_object.create_tmp_folder()
+        logger_setup(process_object.tmp_folder_path, debug_mode)
 
 if session.widget_space["submit_button"]:
-    # File upload and network analysis based on registered prefix
-    session.object_space["process_object"].load_mtf_files(session.object_space["process_object"].prefix)
-    session.object_space["process_object"].input_network_analysis()
+    # Import and analysis of model files 
+    process_object.load_model()
+    process_object.analyse_model()
 
     with st.container(border=True):
         st.subheader("Network analysis")
-        # Tabs for network analysis
+        # Tabs for network model analysis
         list_tab = ["Label input", "Isotopic measurements", "Inputs/Outputs", "Fluxes", "Network"]
-        
-        if "mmet" in session.object_space["process_object"].imported_files_dict.keys():
+        # If the mmet file is present in the model files, the concentrations tab is added
+        if "mmet" in process_object.mtf_files.keys():
             list_tab.append("Concentrations")
 
         tabs = st.tabs(list_tab)
@@ -117,64 +167,71 @@ if session.widget_space["submit_button"]:
         with tabs[0]:
             # Display labels input
             with st.container(height=400):
-                for inputs in session.object_space["process_object"].netan["input"]:
+                for inputs in process_object.netan["input"]:
                     st.write(inputs)
 
         with tabs[1]:
             # Display miso file content
-            st.dataframe(session.object_space["process_object"].imported_files_dict["miso"].data, hide_index=True, height=400,width=600)
+            st.dataframe(process_object.mtf_files["miso"].data, 
+                         hide_index=True, 
+                         height=400,
+                         width=600)
 
         with tabs[2]:
+            # Display inputs, intermediate and outputs metabolites
             with st.container(height=400):
-                inputs, outputs = st.columns(2)
+                inputs, intermediate, outputs = st.columns(3, gap = 'small')
                 with inputs:
-                    st.header("Inputs")
-                    for inputs_netw in session.object_space["process_object"].netan["input"]:
+                    st.subheader("Inputs")
+                    for inputs_netw in process_object.netan["input"]:
                         st.write(inputs_netw)
+                with intermediate:
+                    st.subheader("Intermediates")
+                    for intermediate in process_object.netan["metabs"]:
+                        st.write(intermediate)
                 with outputs:
-                    st.header("Outputs")
-                    for outputs in session.object_space["process_object"].netan["output"]:
+                    st.subheader("Outputs")
+                    for outputs in process_object.netan["output"]:
                         st.write(outputs)  
 
         with tabs[3]:
             # Display tvar file content 
-            st.dataframe(session.object_space["process_object"].imported_files_dict["tvar"].data, hide_index=True, height=400, width=600)
+            st.dataframe(process_object.mtf_files["tvar"].data, 
+                         hide_index=True, 
+                         height=400, 
+                         width=600)
 
         with tabs[4]:
             # Display a dataframe with reactions and their names and metabolic pathways  
-            data = pd.DataFrame({
-                        "Name" : session.object_space["process_object"].imported_files_dict['netw'].data[0],
-                        "Reaction" : session.object_space["process_object"].imported_files_dict['netw'].data[1],
+            netw_dataframe = pd.DataFrame({
+                        "Name" : process_object.mtf_files['netw'].data[0],
+                        "Reaction" : process_object.mtf_files['netw'].data[1],
                         })
 
             pathways = []
-
-            for name in data['Name']:
-                name = name.replace(":","")
-                # Append a list of pathways associated with the name to the 'pathways' list
-                pathways.append([pathway for pathway, reaction in session.object_space["process_object"].netan["pathway"].items() if name in reaction])
             
-            data["Pathway"] = pathways
+            for reaction_name in netw_dataframe['Name']:
+                # Remove ':' from the name (name-reaction separator in netw file)
+                # Give exactly the same reaction names as those contained in the netan dictionary
+                reaction_name = reaction_name.replace(":","")
+                # Append a list of pathways associated with the name to the 'pathways' list
+                pathways.append([pathway for pathway, reaction in process_object.netan["pathway"].items() if reaction_name in reaction])
+            
+            netw_dataframe["Pathway"] = pathways
 
-            st.dataframe(data, hide_index=True, height=400, width=600)
+            st.dataframe(netw_dataframe, hide_index=True, height=400, width=600)
 
         if "Concentrations" in list_tab:
             with tabs[5]:
                 # Display mmet file content
-                st.dataframe(session.object_space["process_object"].imported_files_dict["mmet"].data, hide_index=True, height=400, width=600)
-
+                st.dataframe(process_object.mtf_files["mmet"].data, hide_index=True, height=400, width=600)
+    
+    session.register_object(process_object, "process_object")
+    
     next = st.button("Next page")
-
     if next:
-        # with open("session.pkl", "wb") as f:
-        #     pickle.dump(session, f)
-        
+        process_object.save_process_to_file()
         # Go to next page
         st.switch_page(r"pages/2_Generate_labels_input.py")
 
 
-
-    
-    
-        
-    

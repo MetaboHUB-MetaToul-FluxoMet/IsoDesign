@@ -1,5 +1,3 @@
-import pandas as pd
-import os
 import logging
 import functools 
 
@@ -7,65 +5,93 @@ logger = logging.getLogger(f"IsoDesign.{__name__}")
 
 class Score:
     """
-    A class to compute the score of a series of values
+    Class containing the implementation of the rating criteria 
     """
-    def __init__(self, series):
-        # The different scoring methods that can be applied. Key: method name, value: method to be applied 
+    def __init__(self, label_input):
+        """
+        :param label_input: series containing fluxes SDs for a given label inputs
+        """
+
+        # The different rating crieria that can be applied. Key: criterion name, value: method to apply  
         self.SCORING_METHODS = {
         "sum_sd" : self.apply_sum_sd, 
         "number_of_flux" : self.apply_sum_nb_flux_sd,  
-        "labeled_species" : self.apply_number_labeled_species,
+        "number_of_labeled_inputs" : self.apply_number_labeled_inputs,
+        "price": self.apply_price
         }
 
-        # Fluxes SDs according to the different label input's proportions ar contained as columns in the summary dataframe
-        #
-        # The series of values to compute the score
-        self.series = series
-        # The calculated score of the series
+        self.label_input = label_input 
+        # The score obtained after applying the criteria
         self.score = None
 
     def __call__(self):
+        """
+        Returns the score obtained after applying the criteria
+        """
         return self.score
     
-    def compute(self, method, **kwargs):
+    def compute(self, criteria, **kwargs):
         """
-        Computes the score for a given method
+        Computes the score and stores it in self.score according to the given criteria.  
         
-        :param method: the method to apply to the series
-        :param kwargs: additional arguments to pass to the method
+        :param criteria: the criteria to apply 
+        :param kwargs: additional arguments to pass to the selected criteria. If the weight is 
+        not provided in kwargs for the selected criteria, the default value is 1.
         
         """
-        self.score =  self.SCORING_METHODS[method](**kwargs)
-        logger.info(self.score)
+        match criteria:
+            # Apply the method associated with the criteria and store the result in self.score
+            case "number_of_flux":
+                self.score = self.SCORING_METHODS[criteria](kwargs["threshold"], kwargs["weight_flux"] if "weight_flux" in kwargs else 1)
+            case "number_of_labeled_inputs":
+                self.score = self.SCORING_METHODS[criteria](kwargs["info_linp_files_dict"], kwargs["weight_labeled_input"] if "weight_labeled_input" in kwargs else 1)
+            case "sum_sd":
+                self.score = self.SCORING_METHODS[criteria](kwargs["weight_sum_sd"] if "weight_sum_sd" in kwargs else 1)
+            case "price":
+                self.score = self.SCORING_METHODS[criteria](kwargs["info_linp_files_dict"])
 
-    def apply_sum_sd(self, weight=1):
+    def apply_sum_sd(self, weight_sum_sd=1):
         """
         Returns the sum of standard deviations for a given label input
 
-        :param weight: he weight to apply to the score
+        :param weight_sum_sd: he weight to apply to the score
         """
-        return self.series.sum() * weight
+        return self.label_input.sum() * weight_sum_sd
         
     
-    def apply_sum_nb_flux_sd(self, threshold, weight=1):
+    def apply_sum_nb_flux_sd(self, threshold, weight_flux=1):
         """
         Returns the total number of fluxes with sds below a given threshold.
 
         :param threshold: the threshold value used to filter the flux values
-        :param weight: he weight to apply to the score
+        :param weight_flux: the weight to apply to the score
         """
 
-        return (self.series < threshold).sum() * weight
+        return (self.label_input < threshold).sum() * weight_flux
     
-    def apply_number_labeled_species(self, labeled_species_dict, weight=1):
+    def apply_number_labeled_inputs(self, info_linp_files_dict, weight_labeled_input=1):
         """
-        Returns the number of labelled substrates for each labelled input.
+        Returns the number of labelled substrates for each label input.
 
-        :param labeled_species_dict: a dictionary containing the labelled species
+        :param info_linp_files_dict: dictionary containing namedtuples with 
+                                    the number of labelled substrates for each label input
+        :param weight_labeled_input: the weight to apply to the score
         """
-        if self.series.name in labeled_species_dict.keys():
-            return labeled_species_dict[self.series.name] * weight
 
+        for file_name, nb_labeled_species in info_linp_files_dict.items():
+            if self.label_input.name in file_name:
+                return nb_labeled_species.nb_labeled_inputs * weight_labeled_input
+
+    def apply_price(self, info_linp_files_dict):
+        """
+        Returns the price for each label input.
+
+        :param info_linp_files_dict: dictionary containing namedtuples with 
+                                    the price for each label input
+        """
+        for file_name, price in info_linp_files_dict.items():
+            if self.label_input.name in file_name:
+                return price.total_price
 
     # def identified_structures(self, tvar_sim_paths_list):
     #     """
@@ -81,63 +107,52 @@ class Score:
     #         struc_identified.update({f"{file_name}_SD" : sum([len(struct) for struct in pd.read_csv(file, sep="\t", usecols=["Struct_identif"]).values if struct == 'yes'])}) 
     #     return struc_identified
     #     # return pd.DataFrame({"Identified structures": struc_identified})
-    
+        
 
 class ScoreHandler:
     """ 
-    This class applies score methods, performs operations between them 
-    and displays them on a given dataset. 
+    This class applies rating methods and performs operations between them.
+    . 
     """
     def __init__(self, dataframe):
-        # the summary dataframe (filtered or not) of the results of the various label input proportions following the simulation
+        """
+        :param dataframe: the summary dataframe (filtered or not) of the results of the various label input proportions following the simulation
+        
+        """
+        
         self.dataframe = dataframe
-        # dictionary containing the results of scoring methods applied to the columns (fluxes SDs based on different proportions of label inputs) of the dataframe
-        # Key : column name, value : dictionary containing the score method as key and the score as value
+        # dictionary containing the results of rating methods applied to the dataframe columns
+        # Key : column name, value : dictionary containing the rating method as key and the score as value
         self.columns_scores = {}
     
 
-    def apply_scores(self, score_method, **kwargs):
+    def apply_criteria(self, criteria : list, **kwargs):
         """ 
-        Apply a score method to the dataframe columns via the Score class
+        Apply criteria to the dataframe columns via the score_object class
         
-        :param score_method: the method to apply to the dataframe columns
-        :param kwargs: additional arguments to pass to the score method
+        :param criteria: method(s) to apply to the columns
+        :param kwargs: additional arguments 
         """
         for column in self.dataframe.columns:
-            # Each database column is converted into a Score object to offer flexibility in the subsequent manipulation of each score
-            score = Score(self.dataframe[column])
-            score.compute(score_method, **kwargs)
-            self.columns_scores.update({column: {score_method: score.score}}) if column not in self.columns_scores.keys() else self.columns_scores[column].update({score_method: score.score})
+            # Each dataframe column is converted into a score_object object to offer flexibility in the subsequent manipulation of each score
+            score_object = Score(self.dataframe[column])
+            for method in criteria:
+                score_object.compute(method, **kwargs)
+                self.columns_scores.update({column: {method: score_object()}}) if column not in self.columns_scores.keys() else self.columns_scores[column].update({method: score_object()})
 
-
-    def get_scores(self, columns_names=None, operation=None):
+    def apply_operations(self, operation):
         """
-        Returns as a dataframe the results of the scoring method(s) 
-        applied according to the desired columns (fluxes SDs based on 
-        different proportions of label inputs). 
-        Operations can be applied between score results 
-
-        :param columns_names: the columns to return the scores for
-        :param operation: the operation to apply to the scores (Addition, Multiply, Divide)
-
+        Apply an operation to the score_objects of the columns
+        
+        :param operation: the operation to apply to the score_objects (Addition, Multiply, Divide)
         """
-        if columns_names is None:
-            # If no columns are specified, all columns are considered
-            columns_names = self.columns_scores.keys()
-        match operation:
-            case "Addition":
-                # The scores of the columns are added together
-                # functools.reduce() function is used to apply a particular function passed in its argument to all of the list elements mentioned in the sequence passed along.
-                return pd.DataFrame.from_dict({col : functools.reduce(lambda x, y: x + y, self.columns_scores[col].values()) for col in columns_names},
-                                              orient='index')                            
-            case "Multiply":
-                # The scores of the columns are multiplied together
-                return pd.DataFrame.from_dict({col : functools.reduce(lambda x, y: x * y, self.columns_scores[col].values()) for col in columns_names},
-                                              orient='index')
-            case "Divide":
-                # The scores of the columns are divided together
-                return pd.DataFrame.from_dict({col : functools.reduce(lambda x, y: x / y, self.columns_scores[col].values()) for col in columns_names},
-                                              orient='index')
-        # If no operation is specified, the scores are returned as they are
-        return pd.DataFrame.from_dict({col: self.columns_scores[col] for col in columns_names}, 
-                                     orient='index')
+        operations = {
+            "Addition": lambda x, y: x + y,
+            "Multiply": lambda x, y: x * y,
+            "Divide": lambda x, y: x / y
+        }
+
+        for score_object in self.columns_scores.values():
+            score_object.update({operation: functools.reduce(operations[operation], score_object.values())})
+        
+        return score_object
