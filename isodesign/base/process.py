@@ -83,6 +83,8 @@ class Process:
         # Dataframe containing the combinations that will not be used for the simulation 
         self.df_unused_combinations = None
 
+        
+
     def get_path_input_netw(self, netw_directory_path):
         """
         Get the directory path of the netw file (essential file containing 
@@ -224,7 +226,7 @@ class Process:
         for substrates_name in self.netan["input"]:
             self.isotopomers[substrates_name] = [Isotopomer(substrates_name, 
                                                        self.netan["Clen"][substrates_name] * "0", 
-                                                       step=100, 
+                                                       intervals_nb=100, 
                                                        lower_bound=100, 
                                                        upper_bound=100, 
                                                        price=None)]
@@ -571,7 +573,7 @@ if __name__ == "__main__":
     test.add_isotopomer("Gluc", "111111", 10, 0, 100)
     
     test.generate_combinations()
-    test.configure_linp_files()
+    
     
     # # test.generate_comb()
     # test.generate_linp_files()
