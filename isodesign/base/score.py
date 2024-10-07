@@ -156,4 +156,3 @@ class ScoreHandler:
             score_object.update({operation: functools.reduce(operations[operation], score_object.values())})
         
         return score_object
-

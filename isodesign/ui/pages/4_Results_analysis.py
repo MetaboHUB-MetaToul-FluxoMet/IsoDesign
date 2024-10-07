@@ -147,5 +147,3 @@ with st.expander("**Apply a filter**"):
                         args=(selected_flux, selected_kind, selected_pathway))
 
 add_scores()
-
-

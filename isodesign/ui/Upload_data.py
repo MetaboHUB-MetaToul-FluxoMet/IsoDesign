@@ -79,7 +79,6 @@ except Exception:
     pass
 
 
-
 st.sidebar.markdown("## Load a session")
 # Load a pickle file if it exists
 upload_pickle = st.sidebar.file_uploader("Load a previous session file.",

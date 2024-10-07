@@ -24,6 +24,7 @@ class Isotopomer:
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
         self.price = price
+        
         # self.num_carbon = len(self.labelling) 
         
     def generate_fraction(self):
