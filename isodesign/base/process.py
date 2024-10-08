@@ -243,15 +243,21 @@ class Process:
         :param upper_b: upper bound
         :param price: price of the isotopomer. 
         """
-
+        
         isotopomer = Isotopomer(substrate_name, labelling, nb_intervals, lower_b, upper_b, price)
         
         # Check if the labelling length is equal to the number of carbons in the substrate
         # by using clen (carbon length) from the netan (network analysis) dictionary
         if len(labelling) != self.netan["Clen"][substrate_name]:
             raise ValueError(f"Labelling length for {substrate_name} should be equal to {self.netan['Clen'][substrate_name]}")
-        
+        # Check if the labelling already exists for the substrate 
+        # each substrate must have unique isotopomers 
+        if labelling in [isotopomer.labelling for isotopomer in self.isotopomers[substrate_name]]:
+            # logger.error(f"Isotopomer {labelling} already exists for {substrate_name}")
+            raise ValueError(f"Isotopomer {labelling} already exists for {substrate_name}")
+            
         self.isotopomers[substrate_name].append(isotopomer)
+            
     
 
     def remove_isotopomer(self, substrate, labelling):
@@ -571,7 +577,6 @@ if __name__ == "__main__":
     test.configure_unmarked_form()
     test.add_isotopomer("Gluc", "100000", 10, 0, 100)
     test.add_isotopomer("Gluc", "111111", 10, 0, 100)
-    
     test.generate_combinations()
     
     
