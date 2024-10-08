@@ -18,68 +18,69 @@ st.write(" ")
 
 process_object = session.object_space["process_object"]
 
-# Command to be passed to the simulation
-command :list = []   
+if not process_object :
+    st.warning("Please load a metabolic network model in 'Upload data' page.")
 
-mode = st.selectbox("Influx mode", 
-                    options=["influx_s", "influx_i"],
-                    index=0,
-                    help="Select the influx mode.\
-                    \ninflux_s: stationary,\
-                    \ninflux_i: instationary")
-session.register_widgets({"mode": mode})
+elif not process_object.isotopomers:
+    st.warning("Please enter labelled substrates in 'Labels input' page.")
+else:
+    # Command to be passed to the simulation
+    # The command is initialized with the prefix and default options
+    command :list = ["--prefix", process_object.model_name, "--noopt"]   
 
-
-with st.container(border=True):
-    emu = st.checkbox("Elementary Metabolite Units (EMU)", 
-                    key="emu", 
-                    value=True,
-                    help="Use Elementary Metabolite Units (EMU) for the simulation")
-
-    if emu == True:
-        command.append("--emu")
+    mode = st.selectbox("Influx mode", 
+                        options=["influx_s", "influx_i"],
+                        index=0,
+                        help="Select the influx mode.\
+                        \ninflux_s: stationary,\
+                        \ninflux_i: instationary")
+    session.register_widgets({"mode": mode})
 
 
-    no_scale = st.checkbox("No scale", 
-                        key="--noscale", 
+    with st.container(border=True):
+        emu = st.checkbox("Elementary Metabolite Units (EMU)", 
+                        key="emu", 
                         value=True,
-                        help="Do not scale the fluxes")
-    if no_scale:
-        command.append("--noscale")
+                        help="Use Elementary Metabolite Units (EMU) for the simulation")
 
-    ln = st.checkbox("Least norm solution (ln)", 
-                    key="--ln", 
-                    value=True,
-                    help="Use the least norm solution (ln) for the simulation")
-    if ln:
-        command.append("--ln")
+        if emu == True:
+            command.append("--emu")
 
-    noopt = st.checkbox("No optmization (noopt)", 
-                        key="--noopt", 
+        if mode == "influx_i":
+            no_scale = st.checkbox("No scale", 
+                                    key="--noscale", 
+                                    value=True,
+                                    help="Do not scale the fluxes")
+            if no_scale:
+                command.append("--noscale")
+
+        ln = st.checkbox("Least norm solution (ln)", 
+                        key="--ln", 
                         value=True,
-                        help="Do not perform optimization")
+                        help="Use the least norm solution (ln) for the simulation")
+        if ln:
+            command.append("--ln")
 
-    if noopt:
-        command.append("--noopt")
-
-    add_options = st.text_input("Add options", 
-                                key="add_options")
-    if add_options:
-        command.append(f"--{add_options}")
-    session.register_widgets({"--emu": emu,
-                            "--noscale": no_scale,
-                            "--ln": ln,
-                            "add_options": add_options,
-                            })
-
-st.info(f"Selected options : {command}")
-
-submit = st.button("Submit")
-if submit:
-    st.info("Simulation in progress...")
-    process_object.influx_simulation(command, influx_mode=mode)
-    st.success("Simulation completed ! ")
+        add_options = st.text_input("Add options", 
+                                    key="add_options")
+        if add_options:
+            command.append(f"--{add_options}")
+   
+    st.info(f"{len(process_object.labelled_substrates_combs)} combinations will be simulated.")
+    st.info(f"Command : {command}")
     
-    process_object.generate_summary()
-    st.switch_page(r"pages/4_Results_Analysis.py")
-
+    submit = st.button("Submit")
+    if submit:
+        st.info("Simulation in progress...")
+        process_object.command_list = command
+        try:
+            process_object.influx_simulation(influx_mode=mode)
+            st.success("Simulation completed ! ")
+            process_object.generate_summary()
+            st.switch_page(r"pages/4_Results_Analysis.py")
+        except Exception as e:
+            st.error(f"An error occured during the simulation : {e}")
+            
+        
+        
+        

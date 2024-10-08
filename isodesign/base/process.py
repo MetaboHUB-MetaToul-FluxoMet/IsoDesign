@@ -82,8 +82,8 @@ class Process:
         self.df_combinations = None
         # Dataframe containing the combinations that will not be used for the simulation 
         self.df_unused_combinations = None
-
-        
+        # List of command line arguments to pass to influx_si
+        self.command_list = None
 
     def get_path_input_netw(self, netw_directory_path):
         """
@@ -249,7 +249,7 @@ class Process:
         # Check if the labelling length is equal to the number of carbons in the substrate
         # by using clen (carbon length) from the netan (network analysis) dictionary
         if len(labelling) != self.netan["Clen"][substrate_name]:
-            raise ValueError(f"Labelling length for {substrate_name} should be equal to {self.netan['Clen'][substrate_name]}")
+            raise ValueError(f"Number of atoms for {substrate_name} should be equal to {self.netan['Clen'][substrate_name]}")
         # Check if the labelling already exists for the substrate 
         # each substrate must have unique isotopomers 
         if labelling in [isotopomer.labelling for isotopomer in self.isotopomers[substrate_name]]:
@@ -420,7 +420,7 @@ class Process:
 
         logger.info(f"Vmtf file has been generated in '{self.tmp_folder_path}.'\n")
 
-    def influx_simulation(self, param_list, influx_mode):
+    def influx_simulation(self, influx_mode):
         """
         Run the simulations with influx_si as a function of experiment type 
         (influx_i = instationnary or influx_s = stationary) 
@@ -429,18 +429,18 @@ class Process:
         :param influx_mode: "influx_i" or "influx_s"
         """ 
         
-        command_list = ["--prefix", self.model_name] + param_list
+        # command_list = ["--prefix", self.model_name] + param_list
         # Change directory to the folder containing all the file to use for influx_si
         os.chdir(self.tmp_folder_path)
 
         logger.info(f"{influx_mode} is running...")
 
         if influx_mode == "influx_i":
-            if influx_i.main(command_list):
+            if influx_i.main(self.command_list):
                 raise Exception(f"Error in {influx_mode}. Check '.err' files")
         
         if influx_mode == "influx_s":
-            if influx_s.main(command_list):
+            if influx_s.main(self.command_list):
                 raise Exception(f"Error in {influx_mode}. Check '.err' files")
         
         logger.info(f"{influx_mode} has finished running. Results files in '{self.tmp_folder_path}'\n")
