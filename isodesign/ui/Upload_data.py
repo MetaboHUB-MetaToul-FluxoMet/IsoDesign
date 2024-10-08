@@ -232,6 +232,6 @@ if session.widget_space["submit_button"]:
     if next:
         process_object.save_process_to_file()
         # Go to next page
-        st.switch_page(r"pages/2_Generate_labels_input.py")
+        st.switch_page(r"pages/2_Labels_input.py")
 
 
