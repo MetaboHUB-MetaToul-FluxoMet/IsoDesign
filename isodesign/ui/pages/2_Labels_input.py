@@ -4,7 +4,7 @@ import pandas as pd
 
 session = SessI(
         session_state=st.session_state,
-        page="2_Generate_labels_input.py")
+        page="2_Labels_input.py")
 
 # Retrieving substrates names from sessI
 process_object = session.object_space["process_object"]
