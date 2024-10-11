@@ -1,6 +1,7 @@
 import streamlit as st
 from sess_i.base.main import SessI
-
+import streamlit.runtime.scriptrunner as scriptrunner
+import concurrent.futures 
 
 session = SessI(
         session_state=st.session_state,
@@ -16,7 +17,25 @@ st.sidebar.link_button("Documentation",
                   )
 st.write(" ")
 
+# Get the script run context
+script_run_ctx = scriptrunner.get_script_run_ctx(suppress_warning=True)
+
 process_object = session.object_space["process_object"]
+
+def influx_sim():
+    """
+    Run the simulations in parallel with the selected mode.
+
+    This function utilizes a ThreadPoolExecutor to run the influx_simulation
+    method of the process_object in parallel. It also adds the script run 
+    context to each thread in the executor.
+    """
+    
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(process_object.influx_simulation, mode)
+        for processes in executor._threads:
+            scriptrunner.add_script_run_ctx(processes, script_run_ctx)
+
 
 if not process_object :
     st.warning("Please load a metabolic network model in 'Upload data' page.")
@@ -67,16 +86,16 @@ else:
             command.append(f"--{add_options}")
    
     st.info(f"{len(process_object.labelled_substrates_combs)} combinations will be simulated.")
-    st.info(f"Command : {command}")
+    st.info(f"Command to run: {command}")
     
     submit = st.button("Submit")
     if submit:
-        st.info("Simulation in progress...")
         process_object.command_list = command
         try:
-            process_object.influx_simulation(influx_mode=mode)
+            with st.spinner("Simulation in progress..."):
+                influx_sim()
+                process_object.generate_summary()
             st.success("Simulation completed ! ")
-            process_object.generate_summary()
             st.switch_page(r"pages/4_Results_Analysis.py")
         except Exception as e:
             st.error(f"An error occured during the simulation : {e}")
