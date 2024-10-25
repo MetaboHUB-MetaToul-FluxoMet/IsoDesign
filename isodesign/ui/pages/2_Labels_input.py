@@ -1,6 +1,5 @@
 import streamlit as st
 from sess_i.base.main import SessI
-import pandas as pd
 
 session = SessI(
         session_state=st.session_state,
@@ -20,26 +19,18 @@ def get_carbon_length(substrate):
     if substrate in carbon_length:
         return carbon_length[substrate]
 
-def remove_combinations():
+def remove_rows(indixes : list):
     """
-    Function for deleting combinations of labelled substrates 
-    (i.e. corresponding to a line in the combination dataframe). 
+    Function for deleting undisired rows (i.e. linp file configuration) 
+    from the linp overview dataframe according to the indixes 
+    selected by the user.
     """
     # Register the widget status
     session.register_widgets({"remove_combination": True})
-    # Retrieve the selected combinations from the dataframe widget 
-    if df_combinations.selection.rows:
-        # If the attribute df_unused_combinations is None, it is initialized with the selected combinations
-        # Otherwise, the selected combinations are concatenated to the existing ones
-        if process_object.df_unused_combinations is None:
-            process_object.df_unused_combinations = process_object.df_combinations.iloc[df_combinations.selection.rows, :]
-        else:
-            process_object.df_unused_combinations = pd.concat([process_object.df_unused_combinations, process_object.df_combinations.iloc[df_combinations.selection.rows, :]])
-        # The selected combinations are removed from the labelled_substrates_combinations attribute
-        for index in sorted(df_combinations.selection.rows, reverse=True):
-            del process_object.labelled_substrates_combs[index]
-            
-    
+    # Use the remove_linp_dataframes method in process_object,
+    # which deletes these linp file configurations 
+    process_object.remove_linp_dataframes(indixes)
+ 
 
 st.set_page_config(page_title="IsoDesign", layout="wide")
 st.title("Labels input")
@@ -129,44 +120,51 @@ else:
         session.register_widgets({"submit_button": submit})
         # Generate the combinations of isotopomers
         process_object.generate_combinations()
-        process_object.generate_labelled_substrates_dfs()
+        process_object.configure_linp_files()
+        # This lines are usefull in case of a re-submission
+        session.widget_space.widgets["show_combinations"] = False
+        session.widget_space.widgets["remove_combination"] = False
+        process_object.linp_dfs_removed = None
         
-    # If the submit button is clicked, the user can choose to show the combinations generated or submit for simulations
-    if session.widget_space["submit_button"]:
-        st.info(f"{len(process_object.labelled_substrates_combs)} combinations were generated.")
+   
+    if process_object.linp_dataframes:
+        st.info(f"{len(process_object.linp_dataframes)} combinations were generated.")
+        # Creates two columns: one for displaying combinations and one for submitting simulations
         show_comb, go_simulations = st.columns([1, 7])
         with show_comb:
+            # Creates a button to display combinations and saves it's state in the session
             show_combinations = st.button("Show combinations",
                                         key="show_combinations")
             if show_combinations:
                 session.register_widgets({"show_combinations": show_combinations})
         
         with go_simulations:
+            # Creates a button for submitting simulations and saves it's status in the session
             simulation_button = st.button("Submit for simulations", key="simulation_button")
             session.register_widgets({"simulation_button": simulation_button})
 
     # If the show_combinations button is clicked, the combinations are displayed in a dataframe
     if session.widget_space["show_combinations"]:
-        df_combinations=st.dataframe(process_object.show_combinations(), 
+        df_combinations=st.dataframe(process_object.display_linp_dataframes(), 
                     hide_index=True, 
                     use_container_width=True,
                     on_select="rerun",
                     selection_mode="multi-row",
                     key="df_combinations")
         
-        remove_combination = st.button("Remove selected combinations",
-                                on_click=remove_combinations,
-                                key="remove_combination",
-                                disabled=True if not df_combinations.selection.rows else False)
-                                
+        remove_combination = st.button("Remove selected combination",
+                                on_click=remove_rows,
+                                args=[df_combinations.selection.rows],
+                                key="remove_combination")
+       
     # If the remove_combination button is clicked, the selected combinations to remove are displayed in a dataframe
-    if session.widget_space["remove_combination"]:
-        st.header("Removed combinations") 
-        df_unused_combs = st.dataframe(process_object.df_unused_combinations, 
-                    hide_index=True, 
-                    use_container_width=True,
-                    on_select="rerun",
-                    selection_mode="multi-row")
+        if process_object.linp_dfs_removed is not None:
+            st.header("Removed combinations") 
+            df_unused_combs = st.dataframe(process_object.linp_dfs_removed, 
+                        hide_index=True, 
+                        use_container_width=True,
+                        on_select="rerun",
+                        selection_mode="multi-row")
 
     # If the simulation_button is clicked, the linp files are generated and the user is redirected to the simulation options page
     if session.widget_space["simulation_button"]:  
