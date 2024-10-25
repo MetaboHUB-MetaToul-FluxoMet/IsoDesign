@@ -74,14 +74,13 @@ class Process:
         # Key : linp file name, value : namedtuple containing the number of labeled inputs and the total price
         self.linp_infos = {}
 
-        # List of dictionary containing labelled substrates combinations
-        # Each dictionary contains the columns "Specie", "Isotopomer", "Value" and "Price"
-        # These dictionaries will be used to create linp files
-        self.labelled_substrates_combs = []
+        # List storing linp file data in the form of dictionaries
+        # each dictionary representing a combination of labelled substrates.
+        self.linp_dataframes = []
         # Dataframe containing labelled substrates combinations
-        self.df_combinations = None
-        # Dataframe containing the combinations that will not be used for the simulation 
-        self.df_unused_combinations = None
+        self.linp_overview_df = None
+        # Dataframe containing the linp files that will not be used for the simulation 
+        self.linp_dfs_removed = None
         # List of command line arguments to pass to influx_si
         self.command_list = None
 
@@ -94,7 +93,6 @@ class Process:
         :param netw_directory_path: str containing the path to the netw file 
         """
         
-
         if not isinstance(netw_directory_path, str):
             msg = (f'"{netw_directory_path}" should be of type string and not {type(netw_directory_path)}.')
             logger.error(msg)
@@ -325,15 +323,17 @@ class Process:
                 if isotopomer.labelling == isotopomer_labelling and isotopomer.name == isotopomer_name:
                     return isotopomer.price
     
-    def generate_labelled_substrates_dfs(self):
+    def configure_linp_files(self):
         """
-        First, dataframes are generated, each containing a combination 
-        of labelled substrates. These dataframes are created using the 
-        linp file format (TSV file used for marking simulations and which 
-        contains label input forms and fractions). They are then stored in 
-        a "self.labelled_substrates_combinations" list. They will be used to create linp files.
+        This method configures the structure and content of future 
+        linp files, a TSV format used for labelled simulations, 
+        grouping label input forms and their fractions. 
+        Dataframes are generated in linp format, each containing
+        a specific combination of labelled substrates. These dataframes 
+        are then stored and used to create the final linp files.
 
         """
+        self.linp_dataframes = []
         
         # Generate a dataframe for each pair of isotopomers 
         for pair in self.label_input.isotopomer_combinations["All_combinations"]:
@@ -350,24 +350,50 @@ class Process:
             df["Price"] = df.apply(lambda x: self.get_isotopomer_price(x["Isotopomer"], x["Specie"]), axis=1) * df["Value"]
             # logger.debug(f"Folder path : {self.tmp_folder_path}\n Dataframe {index:02d}:\n {df}")
             
-            # This is useful for efficiently storing and accessing the DataFrame data in a list format,
-            # which can be more convenient for certain operations or further processing.
-            self.labelled_substrates_combs.append(df.to_dict(orient="list"))
+            # Converts the DataFrame into a list-oriented dictionary to simplify data storage and manipulation
+            # for further processing
+            self.linp_dataframes.append(df.to_dict(orient="list"))
 
-    def show_combinations(self):
+    def display_linp_dataframes(self):
         """
-        Display the combinations of labelled substrates
-        present in self.labelled_substrates_combinations in a dataframe. 
+        Displays the contents of the linp_dataframes list 
+        in a single DataFrame. This provides an overview 
+        of all linp files and the combinations they may contain.  
 
+        :return: a DataFrame containing all the data from all the linp files
         """
 
-        self.df_combinations = pd.DataFrame(self.labelled_substrates_combs, 
+        self.linp_overview_df = None
+
+        self.linp_overview_df = pd.DataFrame(self.linp_dataframes, 
                                       columns=["Specie", "Isotopomer", "Value", "Price"]
                                       )
         
-        self.df_combinations.insert(0, "Combination number", [f"{index:03d}" for index in range(1, len(self.labelled_substrates_combs) + 1 )])
-        return self.df_combinations    
-    
+        # Inserts a "Combination number" column at the start of the DataFrame,
+        # containing three-digit combination numbers (e.g. 001, 002), 
+        # corresponding to the order of the DataFrames in linp_dataframes.
+        self.linp_overview_df.insert(0, "Combination number", [f"{index:03d}" for index in range(1, len(self.linp_dataframes) + 1)])
+        return self.linp_overview_df
+
+    def remove_linp_dataframes(self, indices_to_remove:list):
+        """
+        Removes linp DataFrames from the linp_dataframes 
+        list according to the indices specified in the 
+        list provided. 
+
+        :param indices_to_remove: list of indices to remove 
+                                from linp_dataframes
+        """
+        
+        # Update linp_dfs_removed with the rows to be removed
+        removed_dfs = self.linp_overview_df.iloc[indices_to_remove, :]
+        self.linp_dfs_removed = pd.concat([self.linp_dfs_removed, removed_dfs]) if self.linp_dfs_removed is not None else removed_dfs
+        
+        # The selected combinations are removed from linp_dataframes
+        for index in sorted(indices_to_remove, reverse=True):
+            del self.linp_dataframes[index]
+
+
     def generate_linp_files(self):
         """
         Generates linp files (TSV format) in the temp folder (self.tmp_folder_path). 
@@ -381,7 +407,7 @@ class Process:
         logger.info("Creation of the linp files...")
         # create mapping to associate file number with its respective combinations
         with open(os.path.join(str(self.model_directory_path), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
-            for index, dataframes in enumerate(self.labelled_substrates_combs, start=1):
+            for index, dataframes in enumerate(self.linp_dataframes, start=1):
                 df = pd.DataFrame.from_dict(dataframes) 
                 df.to_csv(os.path.join(str(self.tmp_folder_path), f"ID_{index:03d}.linp"), sep="\t", index=False)
                 f.write(
@@ -568,20 +594,19 @@ class Process:
         return scores_table
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    test = Process()
-    test.get_path_input_netw(r"c:\Users\kouakou\Documents\test_data\design_test_1.netw")
-    test.load_model()
-    test.analyse_model()
-    test.create_tmp_folder()
-    # # test.add_isotopomer("Gluc", "000000", 100, 100, 100)
-    test.configure_unmarked_form()
-    test.add_isotopomer("Gluc", "100000", 10, 0, 100)
-    test.add_isotopomer("Gluc", "111111", 10, 0, 100)
-    test.generate_combinations()
-    test.generate_labelled_substrates_dfs()
-    test.generate_linp_files()
+    # test = Process()
+    # test.get_path_input_netw(r"c:\Users\kouakou\Documents\test_data\design_test_1.netw")
+    # test.load_model()
+    # test.analyse_model()
+    # test.create_tmp_folder()
+    # # # test.add_isotopomer("Gluc", "000000", 100, 100, 100)
+    # test.configure_unmarked_form()
+    # test.add_isotopomer("Gluc", "100000", 10, 0, 100)
+    # test.add_isotopomer("Gluc", "111111", 10, 0, 100)
+    # test.generate_combinations()
+    # test.generate_linp_files()
     
     # test.generate_vmtf_file()
     # test.copy_files()
