@@ -1,5 +1,6 @@
 import streamlit as st
 from sess_i.base.main import SessI
+import pandas as pd
 
 session = SessI(
         session_state=st.session_state,
@@ -19,18 +20,43 @@ def get_carbon_length(substrate):
     if substrate in carbon_length:
         return carbon_length[substrate]
 
-def remove_rows(indixes : list):
+def display_linp_dataframes(data):
+        """
+        Displays the dataframes (dataframe of all linp configurations, 
+        dataframe of linp configurations to be removed) present in 
+        the page in a user-friendly way for easy reading. 
+
+        :return: a dataframe with the linp file configurations
+        """
+
+        df = pd.DataFrame(data, 
+                            columns=["Specie", "Isotopomer", "Value", "Price"],
+                            index=[f"{index:03d}" for index in range(1, len(data) + 1)])
+        return df
+        
+def remove_rows(indexes : list):
     """
     Function for deleting undisired rows (i.e. linp file configuration) 
-    from the linp overview dataframe according to the indixes 
+    from the linp overview dataframe according to the indexes 
     selected by the user.
     """
     # Register the widget status
     session.register_widgets({"remove_combination": True})
-    # Use the remove_linp_dataframes method in process_object,
+    # Use the remove_linp_configuration method in process_object,
     # which deletes these linp file configurations 
-    process_object.remove_linp_dataframes(indixes)
+    process_object.remove_linp_configuration(indexes)
  
+def reintegrate_rows(indexes : list):
+    """
+    Function for reintegrating undisired rows (i.e. linp file configuration) 
+    from the linp overview dataframe according to the indexes 
+    selected by the user.
+    """
+    # Register the widget status
+    session.register_widgets({"reintegrate_combination": True})
+    # Use the reintegrate_linp_configuration method in process_object,
+    # which reintegrates these linp file configurations 
+    process_object.reintegrate_linp_configuration(indexes)
 
 st.set_page_config(page_title="IsoDesign", layout="wide")
 st.title("Labels input")
@@ -124,7 +150,6 @@ else:
         # This lines are usefull in case of a re-submission
         session.widget_space.widgets["show_combinations"] = False
         session.widget_space.widgets["remove_combination"] = False
-        process_object.linp_dfs_removed = None
         
    
     if process_object.linp_dataframes:
@@ -145,8 +170,9 @@ else:
 
     # If the show_combinations button is clicked, the combinations are displayed in a dataframe
     if session.widget_space["show_combinations"]:
-        df_combinations=st.dataframe(process_object.display_linp_dataframes(), 
-                    hide_index=True, 
+
+        df_combinations=st.dataframe(display_linp_dataframes(process_object.linp_dataframes), 
+                    hide_index=False, 
                     use_container_width=True,
                     on_select="rerun",
                     selection_mode="multi-row",
@@ -158,14 +184,18 @@ else:
                                 key="remove_combination")
        
     # If the remove_combination button is clicked, the selected combinations to remove are displayed in a dataframe
-        if process_object.linp_dfs_removed is not None:
+        if process_object.linp_to_remove:
             st.header("Removed combinations") 
-            df_unused_combs = st.dataframe(process_object.linp_dfs_removed, 
+            df_unused_combs = st.dataframe(display_linp_dataframes(process_object.linp_to_remove), 
                         hide_index=True, 
                         use_container_width=True,
                         on_select="rerun",
                         selection_mode="multi-row")
 
+            reintegrate_combination = st.button("Reintegrate selected combination",
+                                            on_click=reintegrate_rows,
+                                            args=[df_unused_combs.selection.rows],
+                                            key="reintegrate_combination")
     # If the simulation_button is clicked, the linp files are generated and the user is redirected to the simulation options page
     if session.widget_space["simulation_button"]:  
         process_object.generate_linp_files()    
