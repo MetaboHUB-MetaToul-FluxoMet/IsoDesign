@@ -77,12 +77,12 @@ class Process:
         # List storing linp file data in the form of dictionaries
         # each dictionary representing a combination of labelled substrates.
         self.linp_dataframes = []
-        # Dataframe containing labelled substrates combinations
-        self.linp_overview_df = None
-        # Dataframe containing the linp files that will not be used for the simulation 
-        self.linp_dfs_removed = None
+
+
         # List of command line arguments to pass to influx_si
         self.command_list = None
+        # List of linp dataframes to remove
+        self.linp_to_remove = []
 
     def get_path_input_netw(self, netw_directory_path):
         """
@@ -354,46 +354,36 @@ class Process:
             # for further processing
             self.linp_dataframes.append(df.to_dict(orient="list"))
 
-    def display_linp_dataframes(self):
-        """
-        Displays the contents of the linp_dataframes list 
-        in a single DataFrame. This provides an overview 
-        of all linp files and the combinations they may contain.  
 
-        :return: a DataFrame containing all the data from all the linp files
-        """
-
-        self.linp_overview_df = None
-
-        self.linp_overview_df = pd.DataFrame(self.linp_dataframes, 
-                                      columns=["Specie", "Isotopomer", "Value", "Price"]
-                                      )
-        
-        # Inserts a "Combination number" column at the start of the DataFrame,
-        # containing three-digit combination numbers (e.g. 001, 002), 
-        # corresponding to the order of the DataFrames in linp_dataframes.
-        self.linp_overview_df.insert(0, "Combination number", [f"{index:03d}" for index in range(1, len(self.linp_dataframes) + 1)])
-        return self.linp_overview_df
-
-    def remove_linp_dataframes(self, indices_to_remove:list):
+    def remove_linp_configuration(self, indexes_to_remove:list):
         """
         Removes linp DataFrames from the linp_dataframes 
         list according to the indices specified in the 
         list provided. 
 
-        :param indices_to_remove: list of indices to remove 
+        :param indexes_to_remove: list of indices to remove 
                                 from linp_dataframes
-        """
-        
-        # Update linp_dfs_removed with the rows to be removed
-        removed_dfs = self.linp_overview_df.iloc[indices_to_remove, :]
-        self.linp_dfs_removed = pd.concat([self.linp_dfs_removed, removed_dfs]) if self.linp_dfs_removed is not None else removed_dfs
-        
+        """   
+            
         # The selected combinations are removed from linp_dataframes
-        for index in sorted(indices_to_remove, reverse=True):
+        for index in sorted(indexes_to_remove, reverse=True):
+            self.linp_to_remove.append(self.linp_dataframes[index])
             del self.linp_dataframes[index]
 
+    def reintegrate_linp_configuration(self, indexes_to_reintegrate:list):
+        """
+        Reintegrates linp DataFrames into the linp_dataframes 
+        list according to the indices specified in the 
+        list provided. 
 
+        :param indexes_to_reintegrate: list of indices to reintegrate 
+                                    into linp_dataframes
+        """
+
+        for index in sorted(indexes_to_reintegrate, reverse=True):
+            self.linp_dataframes.append(self.linp_to_remove[index])
+            del self.linp_to_remove[index]
+    
     def generate_linp_files(self):
         """
         Generates linp files (TSV format) in the temp folder (self.tmp_folder_path). 
