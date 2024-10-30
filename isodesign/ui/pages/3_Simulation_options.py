@@ -129,6 +129,7 @@ else:
         with st.spinner("Simulation in progress..."):
             process_object.influx_simulation(mode)
             process_object.generate_summary()
+            process_object.save_process_to_file()
             st.success("Simulation completed ! ")
         st.switch_page(r"pages/4_Results_Analysis.py")
         
