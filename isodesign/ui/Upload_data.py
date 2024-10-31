@@ -156,10 +156,16 @@ if session.widget_space["submit_button"]:
     process_object.create_tmp_folder()
     logger_setup(process_object.tmp_folder_path, debug_mode)
     # Import and analysis of model files 
-    process_object.load_model()
+    try:
+        process_object.load_model()
+    except Exception as e:
+        st.error(f"An error occured : {e}")
+        st.stop()
     if not process_object.netan:
-        process_object.analyse_model()
-
+        with st.spinner("Uploading files..."):
+            process_object.analyse_model()
+    
+    
 if process_object.netan:        
     with st.container(border=True):
         st.subheader("Network analysis")
