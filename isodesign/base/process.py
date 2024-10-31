@@ -34,7 +34,6 @@ class Process:
 
     """
     FILES_EXTENSION = [".netw", ".tvar", ".mflux", ".miso", ".cnstr", ".mmet", ".opt"]
-    
 
     def __init__(self):
 
@@ -130,18 +129,192 @@ class Process:
         for file in self.model_directory_path.iterdir():
             if file.stem == self.model_name and file.suffix in self.FILES_EXTENSION:
                 # Read the file and store its content in a namedtuple
-                # TODO: Add checks on file paths
                 data = pd.read_csv(str(file),
                                     sep="\t",
-                                      comment="#",
-                                        header=None if file.suffix == ".netw" else 'infer',
-                                        encoding="utf-8",
-                                        on_bad_lines='skip')
+                                    comment="#",
+                                    header=None if file.suffix == ".netw" else 'infer',
+                                    encoding="utf-8",
+                                    on_bad_lines='skip')
+                
+                match file.suffix:
+                    case ".tvar":
+                        self._check_tvar(data, file.name)
+                    case ".netw":
+                        self._check_netw(data, file.name)
+                    case ".miso":
+                        self._check_miso(data, file.name)
+                    case ".mflux":
+                        self._check_mflux(data, file.name)
+                    case ".cnstr":
+                        self._check_cnstr(data, file.name)
+                    case ".mmet":
+                        self._check_mmet(data, file.name)
+                    case ".opt":
+                        self._check_opt(data, file.name)
                 self.mtf_files.update({file.suffix[1:]: file_info(file, data)})
 
         logger.info(f"'{self.model_name}' has been imported.\n")
         logger.debug(f"Imported files = {self.mtf_files}\n")
 
+    def _check_netw(self, data, filename):
+        """
+        Check the contents of a netw file. 
+
+        :param data: Dataframe with file contents
+        :param filename: complete file name
+        """
+
+        # Checks the file contents
+        if len(data.columns) > 2:
+            msg = f"Number of columns isn't correct for {filename} file"
+            logger.error(msg)
+            raise ValueError(msg)
+
+    def _check_tvar(self, data, filename):
+        """
+        Check the contents of a tvar file.
+        
+        :param data : Dataframe with file contents
+        :param filename : complete file name
+        """
+        columns = ["Id", "Comment", "Name", "Kind", "Type", "Value"]
+        
+        # Checks the file contents 
+        for x in columns:
+            if x not in data.columns:
+                msg = f"Columns {x} is missing from {filename}."
+                logger.error(msg)
+                raise ValueError(msg)
+            # Check if the values in the "Value" column are numerical
+            if x == "Value":
+                self._check_numerical_columns(data[x], filename)
+
+        for x in data["Type"]:
+            if x not in ["F", "C", "D"]:
+                msg = f"'{x}' type from {filename} is not accepted in 'Type' column. Only F, D or C type are accepted."
+                logger.error(msg)
+                raise ValueError(msg)
+        
+
+        for x in data["Kind"]:
+            if x not in ["NET", "XCH", "METAB"]:
+                msg = f"'{x} type from {filename} is not accepted in 'Kind' column. Only NET, XCH or METAB type are accepted."
+                logger.error(msg)
+                raise ValueError(msg)
+
+        
+    def _check_miso(self, data, filename):
+        """
+        Check the contents of a miso file. 
+        
+        :param data : Dataframe with file contents
+        :param filename : complete file name
+        """
+
+        columns = ["Id", "Comment", "Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time"]
+        
+        # Check the file contents
+        for x in columns:
+            if x not in data.columns:
+                msg = f"Columns {x} is missing from {filename}"
+                logger.error(msg)
+                raise ValueError(msg)
+            
+        for value in ["Value", "SD"]:
+            self._check_numerical_columns(data[value], filename)
+            
+    def _check_mflux(self, data, filename):
+        """
+        Check the contents of a mflux file. 
+        
+        :param data : Dataframe with file contents
+        :param filename : complete file name
+
+        """
+        columns = ["Flux", "Value", "SD"]
+
+        # Check the file contents
+        for x in columns:
+            if x not in data.columns:
+                msg = f"Columns {x} is missing from {filename}"
+                logger.error(msg)
+                raise ValueError(msg)
+            
+        for value in ["Value", "SD"]:
+            self._check_numerical_columns(data[value], filename)
+            
+    def _check_cnstr(self, data, filename):
+        """
+        Check the contents of a cnstr file. 
+
+        :param data : Dataframe with file contents
+        :param filename : complete file name
+        """
+        columns = ["Id", "Comment", "Kind", "Formula", "Operator", "Value"]
+        
+        # Check the file contents
+        for x in columns:
+            if x not in data.columns:
+                msg = f"Columns {x} is missing from {filename}."
+                logger.error(msg)
+                raise ValueError(msg)
+            # Check if the values in the "Value" column are numerical
+            if x == "Value":
+                self._check_numerical_columns(data[x], filename)
+
+    def _check_mmet(self, data, filename):
+        """
+        Check the contents of a mmet file.
+        
+        :param data : Dataframe with file contents
+        :param filename : complete file name
+        """
+
+        columns = ["Id", "Comment", "Name", "Value", "SD"]
+
+        # Check the file contents
+        for x in columns:
+            if x not in data.columns:
+                msg = f"Columns {x} is missing from {filename}"
+                logger.error(msg)
+                raise ValueError(msg)
+            
+        for value in ["Value", "SD"]:
+            self._check_numerical_columns(data[value], filename)
+    
+    def _check_opt(self, data, filename):
+        """
+        Check the contents of a opt file. 
+        
+        :param data : Dataframe with file contents
+        :param filename : complete file name
+        """
+        columns = ["Id", "Comment", "Name", "Value"]
+
+        # Check the file contents
+        for x in columns:
+            if x not in data.columns:
+                msg = f"Columns {x} is missing from {filename}"
+                logger.error(msg)
+                raise ValueError(msg)
+        
+
+    def _check_numerical_columns(self, column, file_name):
+        """ 
+        Check that column contain numerical values.
+
+        :param column: the column to be checked 
+        :param file_name: name of the file 
+
+        """
+        for value in column:
+            # Convert all values to float to avoid other value types
+            try:
+                float(value)
+            except ValueError:
+                msg = (f"'{value}' in the '{column.name}' column from the '{file_name}' file is incorrect."
+                        f"Only numeric values are accepted.")
+                raise ValueError(msg)
 
     def analyse_model(self):
         """
@@ -580,7 +753,7 @@ class Process:
         scores_table = pd.DataFrame.from_dict({col: self.score[col] for col in columns_names}, 
                                      orient='index')
 
-        logger.info(f"Scores table :\n{scores_table}")
+        # logger.info(f"Scores table :\n{scores_table}")
         return scores_table
 
 
