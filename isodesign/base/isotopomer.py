@@ -8,7 +8,7 @@ class Isotopomer:
 
     """
 
-    def __init__(self, name, labelling, intervals_nb=100, lower_bound=100, upper_bound=100, price=None):
+    def __init__(self, name, labelling, intervals_nb=10, lower_bound=100, upper_bound=100, price=None):
         """
         :param name: Isotopomer name
         :param labelling: labelling for isotopomer. 1 denotes heavy isotopes while 0 denotes natural isotope.
@@ -24,9 +24,7 @@ class Isotopomer:
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
         self.price = price
-        # Step value for the fraction generation 
-        self.step = self.upper_bound / self.intervals_nb
-    
+
     def generate_fraction(self):
         """
         Generate numpy array containing list of possible fraction 
@@ -36,8 +34,15 @@ class Isotopomer:
 
         :return: numpy array containing list of possible fraction
         """
+        # If the step value is 0, we cannot generate a range of fractions as it would cause a ZeroDivisionError.
+        # In this case, we return a numpy array containing a single value of 1.
+        # This represents 100% of the substrate by default.
+        # This is useful for isotopomers that are not supposed to be tested for different proportions.
+        if self.step == 0:
+            return np.array([Decimal(1)])
 
-        return np.array([Decimal(fraction) / Decimal(100) for fraction in
+        # Convert "fraction" to int to avoid type errors when using np.arange
+        return np.array([Decimal(int(fraction)) / Decimal(100) for fraction in
                          np.arange(self.lower_bound, self.upper_bound + self.step, self.step)])
 
 
@@ -98,4 +103,8 @@ class Isotopomer:
             if label not in ["0", "1"]:
                 raise ValueError("Labelling must be either 0 (unlabeled) or 1 (labeled).")
         self._labelling = value
+
+    @property
+    def step(self): 
+        return (self.upper_bound - self.lower_bound) / self.intervals_nb
 
