@@ -17,10 +17,9 @@ from pathlib import Path
 logger = logging.getLogger("IsoDesign")
 logger.setLevel(logging.DEBUG)
 
-session = SessI(
-    session_state=st.session_state,
-    page="Upload_data"
-)
+#############
+# FUNCTIONS #
+#############
 
 def get_path_netw():
     """ 
@@ -74,6 +73,15 @@ def logger_setup(output_path, debug_mode=False):
     logger.addHandler(handler)
     logger.addHandler(stream)
     return logger
+
+########
+# MAIN #
+########
+
+session = SessI(
+    session_state=st.session_state,
+    page="Upload_data"
+)
 
 st.set_page_config(page_title=f"IsoDesign (v{isodesign.__version__})")
 st.title(f"Welcome to IsoDesign (v{isodesign.__version__})")

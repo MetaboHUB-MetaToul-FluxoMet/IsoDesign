@@ -1,21 +1,10 @@
 import streamlit as st
 from sess_i.base.main import SessI
 
-session = SessI(
-        session_state=st.session_state,
-        page="3_Simulation_options.py")
 
-
-st.set_page_config(page_title="IsoDesign")
-st.title("Simulation options")
-
-st.sidebar.markdown("## Influx_si documentation ")
-st.sidebar.link_button("Documentation", 
-                       "https://influx-si.readthedocs.io/en/latest/index.html"
-                  )
-st.write(" ")
-
-process_object = session.object_space["process_object"]
+#############
+# FUNCTIONS #
+#############
 
 def clear_text_input():
     """ 
@@ -32,6 +21,26 @@ def delete_option(option):
     """
     session.widget_space["list_added_options"].remove(option)
     process_object.command_list.remove(f"--{option}")    
+
+
+########
+# MAIN #
+########
+
+session = SessI(
+        session_state=st.session_state,
+        page="3_Simulation_options.py")
+
+
+st.set_page_config(page_title="IsoDesign")
+st.title("Simulation options")
+
+st.sidebar.markdown("## Influx_si documentation ")
+st.sidebar.link_button("Documentation", 
+                       "https://influx-si.readthedocs.io/en/latest/index.html"
+                  )
+
+process_object = session.object_space["process_object"]
 
 if not process_object :
     st.warning("Please load a metabolic network model in 'Upload data' page.")
@@ -68,8 +77,7 @@ else:
         if mode == "influx_i":
             no_scale = st.checkbox("No scale", 
                                     key="--noscale", 
-                                    value=True,
-                                    help="Do not scale the fluxes")
+                                    value=True)
             session.register_widgets({"no_scale": no_scale})
             
             if no_scale:
@@ -78,8 +86,7 @@ else:
         # Least norm solution option
         ln = st.checkbox("Least norm solution (ln)", 
                         key="--ln", 
-                        value=True,
-                        help="Use the least norm solution (ln) for the simulation")
+                        value=True)
         
         session.register_widgets({"ln": ln})
         
