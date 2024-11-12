@@ -2,12 +2,9 @@ import streamlit as st
 from sess_i.base.main import SessI
 import pandas as pd
 
-session = SessI(
-        session_state=st.session_state,
-        page="2_Labels_input.py")
-
-# Retrieving substrates names from sessI
-process_object = session.object_space["process_object"]
+#############
+# FUNCTIONS #
+#############
 
 def get_carbon_length(substrate):
     """
@@ -21,22 +18,22 @@ def get_carbon_length(substrate):
         return carbon_length[substrate]
 
 def display_linp_dataframes(data):
-        """
-        Displays the dataframes (dataframe of all linp configurations, 
-        dataframe of linp configurations to be removed) present in 
-        the page in a user-friendly way for easy reading. 
+    """
+    Displays the dataframes (dataframe of all linp configurations, 
+    dataframe of linp configurations to be removed) present in 
+    the page in a user-friendly way for easy reading. 
 
-        :return: a dataframe with the linp file configurations
-        """
+    :return: a dataframe with the linp file configurations
+    """
 
-        df = pd.DataFrame(data, 
-                            columns=["Specie", "Isotopomer", "Value", "Price"],
-                            index=[f"{index:03d}" for index in range(1, len(data) + 1)])
-        return df
+    df = pd.DataFrame(data,
+                        columns=["Specie", "Isotopomer", "Value", "Price"],
+                        index=[f"{index:03d}" for index in range(1, len(data) + 1)])
+    return df
         
 def remove_rows(indexes : list):
     """
-    Function for deleting undisired rows (i.e. linp file configuration) 
+    Function for deleting undesired rows (i.e. linp file configuration) 
     from the linp overview dataframe according to the indexes 
     selected by the user.
     """
@@ -58,13 +55,25 @@ def reintegrate_rows(indexes : list):
     # which reintegrates these linp file configurations 
     process_object.reintegrate_linp_configuration(indexes)
 
-st.set_page_config(page_title="IsoDesign", layout="wide")
+
+########
+# MAIN #
+########
+
+st.set_page_config(page_title="IsoDesign", 
+                   layout="wide")
 st.title("Labels input")
 
-if not process_object:
-    # Display a warning message if the metabolic network model is not loaded
-    st.warning("Please load a metabolic network model.")
+session = SessI(
+        session_state=st.session_state,
+        page="2_Labels_input.py")
 
+# Retrieving substrates names from sessI
+process_object = session.object_space["process_object"]
+
+if not process_object.netan:
+    # Display a warning message if the metabolic network model is not loaded
+    st.warning("Please load a metabolic network model in 'Upload data' page.")
 else:
     # Add a space between page title and content 
     st.write(" ")
@@ -77,9 +86,9 @@ else:
         with substrates:
             for substrate_name in process_object.netan["input"]:
                 st.header(substrate_name)
-                # If the isotopomers attribute is empty, the unmarked form is configured
+                # If the isotopomers attribute is empty, the unlabelled form is configured
                 if not process_object.isotopomers:
-                    process_object.configure_unmarked_form()
+                    process_object.configure_unlabelled_form()
                 # Container to configure an isotopomer for each substrate
                 with st.container(border=True):
                     labelling, price = st.columns(2)
@@ -109,7 +118,7 @@ else:
                                                     value=100)
                     # Display the step value if the number of intervals is different from 100  
                     if int(nb_intervals) != 100:
-                        st.info(f"Step = {int(upper_b)/int(nb_intervals)}")
+                        st.info(f"Step = {(int(upper_b)-int(lower_b))/int(nb_intervals)}")
                     
                     # When the add button is clicked, the isotopomer is added via the add_isotopomer method from the process class
                     add = st.button("Add", 
