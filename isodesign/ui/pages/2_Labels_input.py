@@ -71,7 +71,7 @@ session = SessI(
 # Retrieving substrates names from sessI
 process_object = session.object_space["process_object"]
 
-if not process_object.netan:
+if not process_object or not process_object.netan:
     # Display a warning message if the metabolic network model is not loaded
     st.warning("Please load a metabolic network model in 'Upload data' page.")
 else:
@@ -103,7 +103,7 @@ else:
                                             value=None,
                                             help="Price of the substrate")
 
-                    lb, ub, nb_intervals = st.columns(3, gap="medium")
+                    lb, ub, intervals_nb = st.columns(3, gap="medium")
                     with lb:
                         lower_b = st.text_input("Lower bound", 
                                                 key=f"lb_{substrate_name}", 
@@ -112,20 +112,27 @@ else:
                         upper_b = st.text_input("Upper bound", 
                                                 key=f"ub_{substrate_name}", 
                                                 value=100)
-                    with nb_intervals:
-                        nb_intervals = st.text_input("Number of intervals", 
+                    with intervals_nb:
+                        intervals_nb = st.text_input("Number of intervals", 
                                                     key=f"intervals_nb_{substrate_name}", 
-                                                    value=100)
+                                                    value=10)
+                    
                     # Display the step value if the number of intervals is different from 100  
-                    if int(nb_intervals) != 100:
-                        st.info(f"Step = {(int(upper_b)-int(lower_b))/int(nb_intervals)}")
+                    if int(lower_b) != 100 :
+                        st.info(f"Step = {(int(upper_b)-int(lower_b))/int(intervals_nb)}")
                     
                     # When the add button is clicked, the isotopomer is added via the add_isotopomer method from the process class
                     add = st.button("Add", 
                                     key=f"add_{substrate_name}")
                     if add:
                         try:
-                            process_object.add_isotopomer(substrate_name, labelling, int(nb_intervals), int(lower_b), int(upper_b), float(price) if price else None)
+                            process_object.add_isotopomer(
+                                substrate_name = substrate_name, 
+                                labelling = labelling, 
+                                intervals_nb = int(intervals_nb), 
+                                lower_b = int(lower_b),
+                                upper_b = int(upper_b), 
+                                price = float(price) if price else None)
                             st.toast(f"Isotopomer added in {substrate_name}")
                         except ValueError as e:
                             st.error(f"An error occurred: {e}")
