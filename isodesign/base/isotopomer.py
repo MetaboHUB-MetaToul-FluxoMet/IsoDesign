@@ -34,12 +34,11 @@ class Isotopomer:
 
         :return: numpy array containing list of possible fraction
         """
-        # If the step value is 0, we cannot generate a range of fractions as it would cause a ZeroDivisionError.
-        # In this case, we return a numpy array containing a single value of 1.
-        # This represents 100% of the substrate by default.
-        # This is useful for isotopomers that are not supposed to be tested for different proportions.
+        # If the step value is 0, self.upper_bound and self.lower_bound are equal.
+        # Thus, there is no longer any notion of step. 
+        # There will be only one value to take into account as a fraction (self.upper_bound or self.lower_bound, since their values are equal).
         if self.step == 0:
-            return np.array([Decimal(1)])
+            return np.array([Decimal(self.upper_bound) / Decimal(100)])
 
         # Convert "fraction" to int to avoid type errors when using np.arange
         return np.array([Decimal(int(fraction)) / Decimal(100) for fraction in
@@ -107,4 +106,3 @@ class Isotopomer:
     @property
     def step(self): 
         return (self.upper_bound - self.lower_bound) / self.intervals_nb
-
