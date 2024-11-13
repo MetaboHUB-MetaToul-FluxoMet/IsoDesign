@@ -45,8 +45,9 @@ process_object = session.object_space["process_object"]
 if not process_object :
     st.warning("Please load a metabolic network model in 'Upload data' page.")
 
-elif not process_object.isotopomers:
-    st.warning("Please enter labelled substrates in 'Labels input' page.")
+elif not process_object.linp_infos:
+    # This warning appears if the user has not submitted the combinations generated on page 2 for simulation. 
+    st.warning("Please click on the “Submit for simulations” button on the previous page.")
 else:
     # Command to be passed to the simulation
     # The command is initialized with the prefix and default options
@@ -138,7 +139,7 @@ else:
             process_object.generate_summary()
             process_object.save_process_to_file()
             st.success("Simulation completed ! ")
-        st.switch_page(r"pages/4_Results_Analysis.py")
+        st.switch_page(r"pages/4_Results.py")
         
         
         
