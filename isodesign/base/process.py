@@ -572,23 +572,26 @@ class Process:
         number with its respective combinations. 
 
         """
-
+        # Calculate the number of digits based on the total number of files
+        total_files = len(self.linp_dataframes)
+        num_digits = len(str(total_files))
+        
         logger.info("Creation of the linp files...")
         # create mapping to associate file number with its respective combinations
         with open(os.path.join(str(self.model_directory_path), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
             for index, dataframes in enumerate(self.linp_dataframes, start=1):
                 df = pd.DataFrame.from_dict(dataframes) 
-                df.to_csv(os.path.join(str(self.tmp_folder_path), f"ID_{index:03d}.linp"), sep="\t", index=False)
+                df.to_csv(os.path.join(str(self.tmp_folder_path), f"ID_{index:0{num_digits}d}.linp"), sep="\t", index=False)
                 f.write(
-                    f"ID_{index:03d} - {df['Specie'].tolist()}\n\
+                    f"ID_{index:0{num_digits}d} - {df['Specie'].tolist()}\n\
                     {df['Isotopomer'].tolist()}\n\
                     {df['Value'].tolist()} \n \
                     {df['Price'].tolist()} \n")
             
                  
-                self.vmtf_element_dict["linp"] = [f"ID_{number_file:03d}" for number_file in range(1, index+1)]
+                self.vmtf_element_dict["linp"] = [f"ID_{number_file:0{num_digits}d}" for number_file in range(1, index+1)]
 
-                self.linp_infos[f"ID_{index:03d}_SD"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
+                self.linp_infos[f"ID_{index:0{num_digits}d}_SD"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
                                                                         df["Price"].sum())
     
         
@@ -841,11 +844,10 @@ class Process:
 #     test.configure_unlabelled_form()
 #     test.add_isotopomer("Gluc", "100000", 10, 0, 100)
 #     test.add_isotopomer("Gluc", "111111", 10, 0, 100)
-#     # test.generate_combinations()
+#     test.generate_combinations()
 
-#     # test.configure_linp_files()
-#     # test.generate_linp_files()
-    
+#     test.configure_linp_files()
+#     test.generate_linp_files()
 #     # test.generate_vmtf_file()
 #     # test.copy_files()
     
