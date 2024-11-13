@@ -117,8 +117,8 @@ else:
                                                     key=f"intervals_nb_{substrate_name}", 
                                                     value=10)
                     
-                    # Display the step value if the number of intervals is different from 100  
-                    if int(lower_b) != 100 :
+                    # Display the step size between the lower and upper bounds  
+                    if int(lower_b) != int(upper_b) :
                         st.info(f"Step = {(int(upper_b)-int(lower_b))/int(intervals_nb)}")
                     
                     # When the add button is clicked, the isotopomer is added via the add_isotopomer method from the process class
