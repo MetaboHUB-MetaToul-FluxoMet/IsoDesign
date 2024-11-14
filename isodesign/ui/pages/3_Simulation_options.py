@@ -51,7 +51,7 @@ elif not process_object.linp_infos:
 else:
     # Command to be passed to the simulation
     # The command is initialized with the prefix and default options
-    process_object.command_list = ["--prefix", process_object.model_name, "--noopt", "--np=1"]   
+    process_object.command_list = ["--prefix", process_object.model_name, "--noopt"]   
 
     # Select the influx mode
     mode = st.selectbox("Influx mode", 
