@@ -120,7 +120,7 @@ class ScoreHandler:
         
         """
         
-        self.dataframe = dataframe
+        self.dataframe = dataframe.iloc[:, 5:]
         # dictionary containing the results of rating methods applied to the dataframe columns
         # Key : column name, value : dictionary containing the rating method as key and the score as value
         self.columns_scores = {}
@@ -151,8 +151,9 @@ class ScoreHandler:
             "Multiply": lambda x, y: x * y,
             "Divide": lambda x, y: x / y
         }
-
-        for score_object in self.columns_scores.values():
+        
+        for key, score_object in self.columns_scores.items():
+            # if key != 'dataframe':
             score_object.update({operation: functools.reduce(operations[operation], score_object.values())})
         
         return score_object
