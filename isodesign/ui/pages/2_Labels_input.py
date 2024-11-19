@@ -155,8 +155,11 @@ else:
     if submit:
         session.register_widgets({"submit_button": submit})
         # Generate the combinations of isotopomers
-        process_object.generate_combinations()
-        process_object.configure_linp_files()
+        try:
+            process_object.generate_combinations()
+            process_object.configure_linp_files()
+        except ValueError as e:
+            st.error(f"An error occurred: {e}")
         # This lines are usefull in case of a re-submission
         session.widget_space.widgets["show_combinations"] = False
         session.widget_space.widgets["remove_combination"] = False
