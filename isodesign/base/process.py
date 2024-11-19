@@ -75,11 +75,11 @@ class Process:
 
         # List storing linp file data in the form of dictionaries
         # each dictionary representing a combination of labelled substrates.
-        self.linp_dataframes = []
+        self.linp_dataframes = {}
         # List of command line arguments to pass to influx_si
         self.command_list = None
         # List of linp dataframes to remove
-        self.linp_to_remove = []
+        self.linp_to_remove = {}
 
         # Stores the scores generated after application of the scoring criteria 
         self.scores : pd.DataFrame = None
@@ -142,185 +142,12 @@ class Process:
                                     encoding="utf-8",
                                     on_bad_lines='skip')
                 
-                match file.suffix:
-                    case ".tvar":
-                        self._check_tvar(data, file.name)
-                    case ".netw":
-                        self._check_netw(data, file.name)
-                    case ".miso":
-                        self._check_miso(data, file.name)
-                    case ".mflux":
-                        self._check_mflux(data, file.name)
-                    case ".cnstr":
-                        self._check_cnstr(data, file.name)
-                    case ".mmet":
-                        self._check_mmet(data, file.name)
-                    case ".opt":
-                        self._check_opt(data, file.name)
                 self.mtf_files.update({file.suffix[1:]: file_info(file, data)})
 
         logger.info(f"'{self.model_name}' has been imported.\n")
         logger.debug(f"Imported files = {self.mtf_files}\n")
 
-    def _check_netw(self, data, filename):
-        """
-        Check the contents of a netw file. 
-
-        :param data: Dataframe with file contents
-        :param filename: complete file name
-        """
-
-        # Checks the file contents
-        if len(data.columns) > 2:
-            msg = f"Number of columns isn't correct for {filename} file"
-            logger.error(msg)
-            raise ValueError(msg)
-
-    def _check_tvar(self, data, filename):
-        """
-        Check the contents of a tvar file.
-        
-        :param data : Dataframe with file contents
-        :param filename : complete file name
-        """
-        columns = ["Id", "Comment", "Name", "Kind", "Type", "Value"]
-        
-        # Checks the file contents 
-        for x in columns:
-            if x not in data.columns:
-                msg = f"Columns {x} is missing from {filename}."
-                logger.error(msg)
-                raise ValueError(msg)
-            # Check if the values in the "Value" column are numerical
-            if x == "Value":
-                self._check_numerical_columns(data[x], filename)
-
-        for x in data["Type"]:
-            if x not in ["F", "C", "D"]:
-                msg = f"'{x}' type from {filename} is not accepted in 'Type' column. Only F, D or C type are accepted."
-                logger.error(msg)
-                raise ValueError(msg)
-        
-
-        for x in data["Kind"]:
-            if x not in ["NET", "XCH", "METAB"]:
-                msg = f"'{x} type from {filename} is not accepted in 'Kind' column. Only NET, XCH or METAB type are accepted."
-                logger.error(msg)
-                raise ValueError(msg)
-
-        
-    def _check_miso(self, data, filename):
-        """
-        Check the contents of a miso file. 
-        
-        :param data : Dataframe with file contents
-        :param filename : complete file name
-        """
-
-        columns = ["Id", "Comment", "Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time"]
-        
-        # Check the file contents
-        for x in columns:
-            if x not in data.columns:
-                msg = f"Columns {x} is missing from {filename}"
-                logger.error(msg)
-                raise ValueError(msg)
-            
-        for value in ["Value", "SD"]:
-            self._check_numerical_columns(data[value], filename)
-            
-    def _check_mflux(self, data, filename):
-        """
-        Check the contents of a mflux file. 
-        
-        :param data : Dataframe with file contents
-        :param filename : complete file name
-
-        """
-        columns = ["Flux", "Value", "SD"]
-
-        # Check the file contents
-        for x in columns:
-            if x not in data.columns:
-                msg = f"Columns {x} is missing from {filename}"
-                logger.error(msg)
-                raise ValueError(msg)
-            
-        for value in ["Value", "SD"]:
-            self._check_numerical_columns(data[value], filename)
-            
-    def _check_cnstr(self, data, filename):
-        """
-        Check the contents of a cnstr file. 
-
-        :param data : Dataframe with file contents
-        :param filename : complete file name
-        """
-        columns = ["Id", "Comment", "Kind", "Formula", "Operator", "Value"]
-        
-        # Check the file contents
-        for x in columns:
-            if x not in data.columns:
-                msg = f"Columns {x} is missing from {filename}."
-                logger.error(msg)
-                raise ValueError(msg)
-            # Check if the values in the "Value" column are numerical
-            if x == "Value":
-                self._check_numerical_columns(data[x], filename)
-
-    def _check_mmet(self, data, filename):
-        """
-        Check the contents of a mmet file.
-        
-        :param data : Dataframe with file contents
-        :param filename : complete file name
-        """
-
-        columns = ["Id", "Comment", "Name", "Value", "SD"]
-
-        # Check the file contents
-        for x in columns:
-            if x not in data.columns:
-                msg = f"Columns {x} is missing from {filename}"
-                logger.error(msg)
-                raise ValueError(msg)
-            
-        for value in ["Value", "SD"]:
-            self._check_numerical_columns(data[value], filename)
-    
-    def _check_opt(self, data, filename):
-        """
-        Check the contents of a opt file. 
-        
-        :param data : Dataframe with file contents
-        :param filename : complete file name
-        """
-        columns = ["Id", "Comment", "Name", "Value"]
-
-        # Check the file contents
-        for x in columns:
-            if x not in data.columns:
-                msg = f"Columns {x} is missing from {filename}"
-                logger.error(msg)
-                raise ValueError(msg)
-        
-
-    def _check_numerical_columns(self, column, file_name):
-        """ 
-        Check that column contain numerical values.
-
-        :param column: the column to be checked 
-        :param file_name: name of the file 
-
-        """
-        for value in column:
-            # Convert all values to float to avoid other value types
-            try:
-                float(value)
-            except ValueError:
-                msg = (f"'{value}' in the '{column.name}' column from the '{file_name}' file is incorrect."
-                        f"Only numeric values are accepted.")
-                raise ValueError(msg)
+   
 
     def analyse_model(self):
         """
@@ -512,10 +339,14 @@ class Process:
         are then stored and used to create the final linp files.
 
         """
-        self.linp_dataframes = []
+        self.linp_dataframes = {}
+
+        # Calculate the number of digits based on the total number of files
+        total_files = len(self.label_input.isotopomer_combinations["All_combinations"])
+        num_digits = len(str(total_files))
         
         # Generate a dataframe for each pair of isotopomers 
-        for pair in self.label_input.isotopomer_combinations["All_combinations"]:
+        for index, pair in enumerate(self.label_input.isotopomer_combinations["All_combinations"], start=1):
             df = pd.DataFrame({'Id': None,
                                 'Comment': None,
                                 'Specie': self.label_input.names,
@@ -524,45 +355,57 @@ class Process:
 
             # remove rows with value = 0
             df = df.loc[df["Value"] != 0]
+            
             # add a column "Price" containing the price of each isotopomer multiplied by its fraction
             # applies the 'get_isotopomer_price' method to each row (axis=1) in the dataframe 'df'
             df["Price"] = df.apply(lambda x: self.get_isotopomer_price(x["Isotopomer"], x["Specie"]), axis=1) * df["Value"]
             # logger.debug(f"Folder path : {self.tmp_folder_path}\n Dataframe {index:02d}:\n {df}")
             
-            # Converts the DataFrame into a list-oriented dictionary to simplify data storage and manipulation
-            # for further processing
-            self.linp_dataframes.append(df.to_dict(orient="list"))
+            # Store the dataframe in the linp_dataframes dictionary
+            # key : ID_{index}, value : dataframe in dictionary format
+            self.linp_dataframes.update({f"ID_{index:0{num_digits}d}": df.to_dict(orient="list")})            
+            
 
-
-    def remove_linp_configuration(self, indexes_to_remove:list):
+    def remove_linp_configuration(self, index_to_remove:list):
         """
         Removes linp DataFrames from the linp_dataframes 
         list according to the indices specified in the 
         list provided. 
 
-        :param indexes_to_remove: list of indices to remove 
+        :param index_to_remove: list of indices to remove 
                                 from linp_dataframes
         """   
+        to_remove = []
+        
+        for index, (key, value) in enumerate(self.linp_dataframes.items()):
+            if index in index_to_remove:
+                # Store the linp DataFrames to remove in the linp_to_remove dictionary
+                # key : index, value : dictionary containing the id of the linp DataFrame as key and its content as value
+                # example : {0: {'ID_01': {'Id': None, 'Comment': None, 'Specie': ['Gluc', 'Gluc'], 'Isotopomer': ['111111', '100000'], 'Value': [0.5, 0.5], 'Price': [10.0, 10.0]}}
+                self.linp_to_remove[index] = {key: value}
+                to_remove.append(key)
             
-        # The selected combinations are removed from linp_dataframes
-        for index in sorted(indexes_to_remove, reverse=True):
-            self.linp_to_remove.append(self.linp_dataframes[index])
-            del self.linp_dataframes[index]
-
-    def reintegrate_linp_configuration(self, indexes_to_reintegrate:list):
+        for id in to_remove:
+            del self.linp_dataframes[id]
+    
+    def reintegrate_linp_configuration(self, index_to_reintegrate:list):
         """
         Reintegrates linp DataFrames into the linp_dataframes 
         list according to the indices specified in the 
         list provided. 
 
-        :param indexes_to_reintegrate: list of indices to reintegrate 
-                                    into linp_dataframes
+        :param index_to_reintegrate: list of indices to reintegrate 
+                                    into linp_dataframes.
         """
-
-        for index in sorted(indexes_to_reintegrate, reverse=True):
-            self.linp_dataframes.append(self.linp_to_remove[index])
+        # Get the keys of the linp DataFrames to reintegrate
+        for index in index_to_reintegrate:
+            for key, value in self.linp_to_remove[index].items():
+                items = list(self.linp_dataframes.items())
+                items.insert(index, (key, value))
+                self.linp_dataframes = dict(sorted(items))
             del self.linp_to_remove[index]
-    
+        
+
     def generate_linp_files(self):
         """
         Generates linp files (TSV format) in the temp folder (self.tmp_folder_path). 
@@ -572,29 +415,24 @@ class Process:
         number with its respective combinations. 
 
         """
-        # Calculate the number of digits based on the total number of files
-        total_files = len(self.linp_dataframes)
-        num_digits = len(str(total_files))
         
         logger.info("Creation of the linp files...")
         # create mapping to associate file number with its respective combinations
         with open(os.path.join(str(self.model_directory_path), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
-            for index, dataframes in enumerate(self.linp_dataframes, start=1):
+            for index, dataframes in self.linp_dataframes.items():
                 df = pd.DataFrame.from_dict(dataframes) 
-                df.to_csv(os.path.join(str(self.tmp_folder_path), f"ID_{index:0{num_digits}d}.linp"), sep="\t", index=False)
+                df.to_csv(os.path.join(str(self.tmp_folder_path), f"{index}.linp"), sep="\t", index=False)
                 f.write(
-                    f"ID_{index:0{num_digits}d} - {df['Specie'].tolist()}\n\
+                    f"{index} - {df['Specie'].tolist()}\n\
                     {df['Isotopomer'].tolist()}\n\
                     {df['Value'].tolist()} \n \
                     {df['Price'].tolist()} \n")
             
-                 
-                self.vmtf_element_dict["linp"] = [f"ID_{number_file:0{num_digits}d}" for number_file in range(1, index+1)]
+                self.linp_infos[f"{index}"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
+                                                                df["Price"].sum())
+             
+        self.vmtf_element_dict["linp"] = [f"{index}" for index in self.linp_dataframes.keys()]
 
-                self.linp_infos[f"ID_{index:0{num_digits}d}_SD"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
-                                                                        df["Price"].sum())
-    
-        
         # logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated.")
         # logger.info(f"Folder containing linp files has been generated on this directory : {self.tmp_folder_path}.\n")
 
