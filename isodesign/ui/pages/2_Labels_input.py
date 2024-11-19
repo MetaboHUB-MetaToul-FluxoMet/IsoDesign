@@ -17,19 +17,6 @@ def get_carbon_length(substrate):
     if substrate in carbon_length:
         return carbon_length[substrate]
 
-def display_linp_dataframes(data):
-    """
-    Displays the dataframes (dataframe of all linp configurations, 
-    dataframe of linp configurations to be removed) present in 
-    the page in a user-friendly way for easy reading. 
-
-    :return: a dataframe with the linp file configurations
-    """
-
-    df = pd.DataFrame(data,
-                        columns=["Specie", "Isotopomer", "Value", "Price"],
-                        index=[f"{index:03d}" for index in range(1, len(data) + 1)])
-    return df
         
 def remove_rows(indexes : list):
     """
@@ -48,12 +35,19 @@ def reintegrate_rows(indexes : list):
     Function for reintegrating undisired rows (i.e. linp file configuration) 
     from the linp overview dataframe according to the indexes 
     selected by the user.
+
+    :param indexes: list of indexes selected by the user
     """
     # Register the widget status
     session.register_widgets({"reintegrate_combination": True})
-    # Use the reintegrate_linp_configuration method in process_object,
-    # which reintegrates these linp file configurations 
-    process_object.reintegrate_linp_configuration(indexes)
+
+    # Create a list of keys to reintegrate by getting the keys from linp_to_remove
+    # corresponding to the selected indexes.
+    keys_to_reintegrate = [
+            list(process_object.linp_to_remove.keys())[index] for index in indexes]
+    # Call the reintegrate_linp_configuration method to reintegrate the selected 
+    # linp DataFrames back into the linp_dataframes list.
+    process_object.reintegrate_linp_configuration(keys_to_reintegrate)
 
 
 ########
@@ -185,10 +179,14 @@ else:
             session.register_widgets({"simulation_button": simulation_button})
 
     # If the show_combinations button is clicked, the combinations are displayed in a dataframe
-    if session.widget_space["show_combinations"]:
-
-        df_combinations=st.dataframe(display_linp_dataframes(process_object.linp_dataframes), 
-                    hide_index=False, 
+    if session.widget_space["show_combinations"]: 
+        # Display the combinations in a dataframe
+        df = pd.DataFrame(process_object.linp_dataframes.values(),
+                            columns=["Specie", "Isotopomer", "Value", "Price"])
+        df.insert(0, "ID", process_object.linp_dataframes.keys())
+        
+        df_combinations=st.dataframe(df, 
+                    hide_index=True, 
                     use_container_width=True,
                     on_select="rerun",
                     selection_mode="multi-row",
@@ -202,7 +200,17 @@ else:
     # If the remove_combination button is clicked, the selected combinations to remove are displayed in a dataframe
         if process_object.linp_to_remove:
             st.header("Removed combinations") 
-            df_unused_combs = st.dataframe(display_linp_dataframes(process_object.linp_to_remove), 
+            # Display the removed combinations in a dataframe
+            df_unused = pd.DataFrame()
+            for linp_id in process_object.linp_to_remove.values():
+                df = pd.DataFrame(
+                    linp_id.values(),
+                    columns=["Specie", "Isotopomer", "Value", "Price"]
+                )
+                df.insert(0, "ID", linp_id.keys())
+                df_unused = pd.concat([df_unused, df])
+           
+            df_unused_combs = st.dataframe(df_unused, 
                         hide_index=True, 
                         use_container_width=True,
                         on_select="rerun",
