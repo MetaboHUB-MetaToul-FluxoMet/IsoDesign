@@ -8,6 +8,7 @@ from collections import namedtuple
 from pathlib import Path
 import numpy as np
 
+from subprocess import Popen, SubprocessError
 import pandas as pd
 from influx_si import influx_s, influx_i, C13_ftbl, txt2ftbl
 
@@ -458,31 +459,35 @@ class Process:
 
         logger.info(f"Vmtf file has been generated in '{self.tmp_folder_path}.'\n")
 
-    def influx_simulation(self, influx_mode):
-        """
-        Run the simulations with influx_si as a function of experiment type 
-        (influx_i = instationnary or influx_s = stationary) 
 
-        :param param_list: list of command line arguments to pass to influx_si
-        :param influx_mode: "influx_i" or "influx_s"
-        """ 
-        
-        # command_list = ["--prefix", self.model_name] + param_list
+    def influx_simulation(self, param_list, influx_mode):
+        """
+        Run the simulation using the specified influx_si mode (stationary or instationary).
+
+        :param param_list: List of command-line arguments to pass to influx_si.
+        :param influx_mode: "influx_i" for instationary or "influx_s" for stationary mode.
+        :return: A Popen object representing the running subprocess.
+        """
         # Change directory to the folder containing all the file to use for influx_si
         os.chdir(self.tmp_folder_path)
-
         logger.info(f"{influx_mode} is running...")
-
-        if influx_mode == "influx_i":
-            if influx_i.main(self.command_list):
-                raise Exception(f"Error in {influx_mode}. Check '.err' files")
         
-        if influx_mode == "influx_s":
-            if influx_s.main(self.command_list):
-                raise Exception(f"Error in {influx_mode}. Check '.err' files")
-        
-        logger.info(f"{influx_mode} has finished running. Results files in '{self.tmp_folder_path}'\n")
+        try:
+            # Select the correct executable based on the mode
+            if influx_mode == "influx_i":
+                command = ["influx_i"] + param_list
+            if influx_mode == "influx_s":
+                command = ["influx_s"] + param_list
+            
+            subprocess = Popen(command)
 
+            self.command_list = param_list
+
+            return subprocess
+        
+        except SubprocessError as e:
+            logger.error(f"An error occurred while running {influx_mode}: {e}")
+            raise
 
     def generate_summary(self):
         """
@@ -499,9 +504,9 @@ class Process:
 
         # use os.walk to generate the names of folders, subfolders and files in a given directory
         self.tvar_sim_paths = [Path(f"{root}/{files}") 
-                              for (root, _ , files_names) in os.walk(self.model_directory_path) 
+                              for (root, _ , files_names) in os.walk(self.tmp_folder_path) 
                                 for files in files_names if files.endswith('.tvar.sim')]
-    
+        
         logger.debug(f"List of tvar.sim file paths : \n {self.tvar_sim_paths}")
          
         # dictionary containing columns "Name", "Kind" and "SD" from each tvar.sim file
