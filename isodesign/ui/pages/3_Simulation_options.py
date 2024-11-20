@@ -1,5 +1,8 @@
 import streamlit as st
 from sess_i.base.main import SessI
+import time, signal
+from threading import Thread
+from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 
 #############
@@ -20,7 +23,50 @@ def delete_option(option):
     Delete an option from the list of added options.
     """
     session.widget_space["list_added_options"].remove(option)
-    process_object.command_list.remove(f"--{option}")    
+    command_list.remove(f"--{option}")    
+
+if "running" not in st.session_state:
+    st.session_state.running = False
+
+def execute_simulation():
+    """
+    Execute a simulation task in a loop. Monitors for 
+    an external signal (via `st.session_state.running`) to terminate.
+    """
+    # Attach Streamlit's runtime context to ensure thread compatibility
+    ctx = st.runtime.scriptrunner.get_script_run_ctx()
+    if ctx:
+        add_script_run_ctx(st.session_state.th) #Thread.current_thread())
+    subp = process_object.influx_simulation(command_list, mode)
+    counter=0
+    while True:
+        counter += 1
+        # Check if the task should be stopped
+        if not st.session_state.running:
+            # print(f"Simulation interrupted at step {counter}!")
+            subp.send_signal(signal.SIGINT)
+            return
+        # Exit the loop if the subprocess has completed
+        if not subp.poll() is None:
+            return 
+        time.sleep(0.2)
+    
+
+def start_simulation():
+    """
+    Launch the simulation task in a separate thread and 
+    wait for its completion. Ensures that the Streamlit 
+    runtime context is properly attached to the thread.
+    """
+    st.session_state.running = True
+    task_thread = Thread(target=execute_simulation)
+    # Save the thread in session state
+    st.session_state.th=task_thread
+    # Attach the context to the thread
+    add_script_run_ctx(task_thread)  
+    task_thread.start()
+    # Wait for the thread to complete before continuing
+    task_thread.join()
 
 
 ########
@@ -47,11 +93,12 @@ if not process_object :
 
 elif not process_object.linp_infos:
     # This warning appears if the user has not submitted the combinations generated on page 2 for simulation. 
-    st.warning("Please click on the “Submit for simulations” button on the previous page.")
+    st.warning("Please click on the 'Submit for simulations' button on the previous page.")
 else:
     # Command to be passed to the simulation
     # The command is initialized with the prefix and default options
-    process_object.command_list = ["--prefix", process_object.model_name, "--noopt"]   
+    command_list = ["--prefix", process_object.model_name, "--noopt"]   
+    command_list = list(dict.fromkeys(command_list))
 
     # Select the influx mode
     mode = st.selectbox("Influx mode", 
@@ -60,8 +107,8 @@ else:
                         help="Select the influx mode.\
                         \ninflux_s: stationary,\
                         \ninflux_i: instationary")
+    
     session.register_widgets({"mode": mode})
-
 
     with st.container(border=True):
         # Emu option
@@ -72,7 +119,7 @@ else:
         session.register_widgets({"emu": emu})
         
         if emu == True:
-            process_object.command_list.append("--emu")
+            command_list.append("--emu")
         
         # No scale option only if influx_i mode
         if mode == "influx_i":
@@ -82,7 +129,7 @@ else:
             session.register_widgets({"no_scale": no_scale})
             
             if no_scale:
-                process_object.command_list.append("--noscale")
+                command_list.append("--noscale")
 
         # Least norm solution option
         ln = st.checkbox("Least norm solution (ln)", 
@@ -92,7 +139,7 @@ else:
         session.register_widgets({"ln": ln})
         
         if ln:
-            process_object.command_list.append("--ln")
+            command_list.append("--ln")
 
         # Add options manually 
         add_options = st.text_input("Add options", 
@@ -118,7 +165,7 @@ else:
             st.subheader("Added options")
             for option in session.widget_space["list_added_options"]:
                 # Add the option to the command list
-                process_object.command_list.append(f"--{option}")
+                command_list.append(f"--{option}")
                 show_options, deletion = st.columns([0.05, 0.1])
                 with show_options:
                     st.info(option)
@@ -129,18 +176,23 @@ else:
                                             args=(option,))
 
     st.info(f"{len(process_object.linp_dataframes)} combinations will be simulated.")
-    st.info(f"Command to run: {process_object.command_list}")
-    
-    submit = st.button("Submit")
+    st.info(f"Command to run: {command_list}")
 
-    if submit:
-        with st.spinner("Simulation in progress..."):
-            process_object.influx_simulation(mode)
-            process_object.generate_summary()
-            process_object.save_process_to_file()
-            st.success("Simulation completed ! ")
-        st.switch_page(r"pages/4_Results.py")
-        
-        
-        
-        
+    submit, interrupt = st.columns([1, 1])
+    with submit:
+        if st.button("Start Task"):
+            try:
+                with st.spinner("Simulating..."):
+                    start_simulation()
+                    process_object.generate_summary()
+                    process_object.save_process_to_file()
+                    st.success("Simulation completed.")
+                    st.switch_page(r"pages/4_Results.py")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+                
+    with interrupt:
+        if st.button("Interrupt Task"):
+            st.session_state.running = False
+            st.warning("Task interrupted.")
+    
