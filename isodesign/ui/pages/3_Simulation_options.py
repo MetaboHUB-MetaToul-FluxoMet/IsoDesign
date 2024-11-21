@@ -112,7 +112,7 @@ else:
 
     with st.container(border=True):
         # Emu option
-        emu = st.checkbox("Elementary Metabolite Units (EMU)", 
+        emu = st.checkbox("Use emu approach", 
                         key="emu", 
                         value=True,
                         help="Use Elementary Metabolite Units (EMU) for the simulation")
@@ -132,7 +132,7 @@ else:
                 command_list.append("--noscale")
 
         # Least norm solution option
-        ln = st.checkbox("Least norm solution (ln)", 
+        ln = st.checkbox("Apply ln step", 
                         key="--ln", 
                         value=True)
         
@@ -142,7 +142,7 @@ else:
             command_list.append("--ln")
 
         # Add options manually 
-        add_options = st.text_input("Add options", 
+        add_options = st.text_input("Add option", 
                                     key="add_options_text_input")
 
         add = st.button("Add",
@@ -162,7 +162,7 @@ else:
                 session.widget_space["list_added_options"].append(session.widget_space["add_options"])
             
         if session.widget_space["list_added_options"]:
-            st.subheader("Added options")
+            st.subheader("Added option")
             for option in session.widget_space["list_added_options"]:
                 # Add the option to the command list
                 command_list.append(f"--{option}")
@@ -176,13 +176,15 @@ else:
                                             args=(option,))
 
     st.info(f"{len(process_object.linp_dataframes)} combinations will be simulated.")
-    st.info(f"Command to run: {command_list}")
+    st.info(f"Command to run: {[mode] + command_list}")
 
     submit, interrupt = st.columns([1, 1])
     with submit:
-        if st.button("Start Task"):
+        if st.button("Start simulation"):
             try:
                 with st.spinner("Simulating..."):
+                    # if there is a previous run, clear it
+                    process_object.clear_previous_run()
                     start_simulation()
                     process_object.generate_summary()
                     process_object.save_process_to_file()
@@ -192,7 +194,7 @@ else:
                 st.error(f"An error occurred: {e}")
                 
     with interrupt:
-        if st.button("Interrupt Task"):
+        if st.button("Interrupt simualtion"):
             st.session_state.running = False
-            st.warning("Task interrupted.")
+            st.warning("Simulation interrupted.")
     

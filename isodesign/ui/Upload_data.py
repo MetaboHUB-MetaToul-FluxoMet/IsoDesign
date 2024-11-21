@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog
 import pandas as pd
-
+import os
 
 from isodesign.base.process import Process
 
@@ -73,6 +73,20 @@ def logger_setup(output_path, debug_mode=False):
     logger.addHandler(handler)
     logger.addHandler(stream)
     return logger
+
+def change_output_folder_path():
+    """
+    Change the output folder path.
+    """
+    session.register_widgets({"output_folder_path": output_path_folder})
+
+def overwrite_output_folder_path():
+    """
+    Overwrite the output folder path.
+    """
+    session.register_widgets({"overwrite_button": False})
+    process_object.clear_tmp_folder(session.widget_space["output_folder_path"])
+    session.register_widgets({"submit_button": True})
 
 ########
 # MAIN #
@@ -148,30 +162,41 @@ with st.container(border=True):
     
 
     st.subheader("Output directory path")
-    st.text_input("**Folder path** :", 
+    output_path_folder = st.text_input("**Folder path** :", 
                         value="No folder selected" if not process_object.model_directory_path
                         else process_object.model_directory_path, 
-                        key="output_folder_path")
+                        key="output_folder_path",
+                        on_change=change_output_folder_path)
     
+    session.register_widgets({"output_folder_path": output_path_folder})
     submit_button = st.button("Submit",
                        key="submit_button")
 
 if submit_button:
+    # Check if the folder already exists
+    if os.path.exists(Path(f"{session.widget_space["output_folder_path"]}/{process_object.model_name}_tmp")):
+        st.warning(f"The folder {process_object.model_name}_tmp already exists. Do you want to overwrite it ?")
+        st.info("If you don't want to overwrite it, please change the output folder path.")
+        overwrite_button = st.button("Overwrite", 
+                                     key="overwrite_button",
+                                     on_click=overwrite_output_folder_path)
+        
+    else:
         session.register_widgets({"submit_button": submit_button})
         
-
 if session.widget_space["submit_button"]:
-    process_object.create_tmp_folder()
+    
+    process_object.create_tmp_folder(session.widget_space["output_folder_path"])
     logger_setup(process_object.tmp_folder_path, debug_mode)
-    # Import and analysis of model files 
+   # Import and analysis of model files 
     try:
         process_object.load_model()
+        if not process_object.netan:
+            with st.spinner("Uploading files..."):
+                process_object.analyse_model()
     except Exception as e:
         st.error(f"An error occured : {e}")
         st.stop()
-    if not process_object.netan:
-        with st.spinner("Uploading files..."):
-            process_object.analyse_model()
     
     
 if process_object.netan:        
@@ -246,7 +271,6 @@ if process_object.netan:
             with tabs[5]:
                 # Display mmet file content
                 st.dataframe(process_object.mtf_files["mmet"].data, hide_index=True, height=400, width=600)
-
 
     next_button = st.button("Next page",
                             key="next_button")
