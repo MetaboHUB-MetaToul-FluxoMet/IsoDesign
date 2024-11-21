@@ -642,7 +642,15 @@ class Process:
                         "#6d3fc0",
                         "#d5dae5",
                     ])
-
+        # Update the legend position
+        self.fig.update_layout(legend = dict(
+            title="Criteria",
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ))
     def apply_log(self):
         """
         Apply a log of 10 to the values contained in 
