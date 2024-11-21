@@ -169,24 +169,23 @@ with st.container(border=True):
                         on_change=change_output_folder_path)
     
     session.register_widgets({"output_folder_path": output_path_folder})
-    
-    
-    if os.path.exists(Path(f"{session.widget_space['output_folder_path']}/{process_object.model_name}_tmp")):
-        st.warning(f"The folder '{process_object.model_name}_tmp' already exists. \
-                   If you continue, it will be overwritten. If you don't want to overwrite it,\
-                   please change the output folder path and click on the 'Submit' button.")
        
-    
     submit_button = st.button("Submit",
                        key="submit_button")
 
+# Check if the folder already exists
+if os.path.exists(Path(f"{session.widget_space['output_folder_path']}/{process_object.model_name}_tmp")):
+    if not session.widget_space["submit_button"]:
+        st.warning(f"The folder '{process_object.model_name}_tmp' already exists. \
+                If you continue, it will be overwritten. If you don't want to overwrite it,\
+                please change the output folder path and click on the 'Submit' button.")
+
 if submit_button:
     # Check if the folder already exists
-        session.register_widgets({"submit_button": submit_button})
-    
-        
+    session.register_widgets({"submit_button": True})
+    st.rerun()
+
 if session.widget_space["submit_button"]:
-    
     process_object.create_tmp_folder(session.widget_space["output_folder_path"])
     logger_setup(process_object.tmp_folder_path, debug_mode)
    # Import and analysis of model files 
@@ -280,7 +279,6 @@ if process_object.netan:
         process_object.save_process_to_file()
         # Go to next page
         st.switch_page(r"pages/2_Labels_input.py")
-
 
 
 
