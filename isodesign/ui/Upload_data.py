@@ -176,7 +176,7 @@ if submit_button:
     # Check if the folder already exists
     if os.path.exists(Path(f"{session.widget_space["output_folder_path"]}/{process_object.model_name}_tmp")):
         st.warning(f"The folder {process_object.model_name}_tmp already exists. Do you want to overwrite it ?")
-        st.info("If you don't want to overwrite it, please change the output folder path.")
+        st.info("If you don't want to overwrite it, please change the output folder path and click on the 'Submit' button.")
         overwrite_button = st.button("Overwrite", 
                                      key="overwrite_button",
                                      on_click=overwrite_output_folder_path)
