@@ -14,9 +14,9 @@ class Score:
 
         # The different rating crieria that can be applied. Key: criterion name, value: method to apply  
         self.SCORING_METHODS = {
-        "sum_sd" : self.apply_sum_sd, 
-        "number_of_flux" : self.apply_sum_nb_flux_sd,  
-        "number_of_labeled_inputs" : self.apply_number_labeled_inputs,
+        "sum of SDs" : self.apply_sum_sd, 
+        "number of fluxes with SDs < threshold" : self.apply_sum_nb_flux_sd,  
+        "number of labeled inputs" : self.apply_number_labeled_inputs,
         "price": self.apply_price
         }
 
@@ -41,11 +41,11 @@ class Score:
         """
         match criteria:
             # Apply the method associated with the criteria and store the result in self.score
-            case "number_of_flux":
+            case "number of fluxes with SDs < threshold":
                 self.score = self.SCORING_METHODS[criteria](kwargs["threshold"], kwargs["weight_flux"] if "weight_flux" in kwargs else 1)
-            case "number_of_labeled_inputs":
+            case "number of labeled inputs":
                 self.score = self.SCORING_METHODS[criteria](kwargs["info_linp_files_dict"], kwargs["weight_labeled_input"] if "weight_labeled_input" in kwargs else 1)
-            case "sum_sd":
+            case "sum of SDs":
                 self.score = self.SCORING_METHODS[criteria](kwargs["weight_sum_sd"] if "weight_sum_sd" in kwargs else 1)
             case "price":
                 self.score = self.SCORING_METHODS[criteria](kwargs["info_linp_files_dict"])

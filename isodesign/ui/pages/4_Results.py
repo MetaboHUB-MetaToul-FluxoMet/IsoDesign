@@ -63,21 +63,21 @@ def criteria_block(count):
 
     criteria, result = st.columns([6, 9], gap="large")
     with criteria:
-        criteria = ["sum_sd", "number_of_flux", "number_of_labeled_inputs", "price"]
+        criteria = ["sum of SDs", "number of fluxes with SDs < threshold", "number of labeled inputs", "price"]
         method_choice = st.multiselect("Criteria", 
                                         options=criteria,
                                         key=f"method_choice_{count}")
         
         session.register_widgets({"method_choice": method_choice})
 
-        if "sum_sd" in method_choice:
+        if "sum of SDs" in method_choice:
             st.subheader("Sum of SDs")
             weight_sd=st.text_input("Weight", 
                                         key=f"weight_Sds_{count}", 
                                         value=1)
             
-        if "number_of_flux" in method_choice:
-            st.subheader("Number of flux")
+        if "number of fluxes with SDs < threshold" in method_choice:
+            st.subheader("number of fluxes with SDs < threshold")
             weight_flux, input_threshold = st.columns(2, vertical_alignment="top")
             
             weight_flux = weight_flux.text_input("Weight",
@@ -88,7 +88,7 @@ def criteria_block(count):
                                 key=f"threshold_{count}", 
                                 value=1)
             
-        if "number_of_labeled_inputs" in method_choice:
+        if "number of labeled inputs" in method_choice:
             st.subheader("Number of labeled inputs")
             input_labeled_input=st.text_input("Weight", 
                                             key=f"weight_labeled_input_{count}", 
@@ -103,11 +103,11 @@ def criteria_block(count):
         if method_choice:
             process_object.generate_score(method_choice,
                                             operation = operation if len(method_choice) > 1 else None,
-                                            weight_sum_sd=int(weight_sd) if "sum_sd" in method_choice else 1,
-                                            threshold=float(input_threshold) if "number_of_flux" in method_choice else 1,
-                                            weight_flux=int(weight_flux) if "number_of_flux" in method_choice else 1,
-                                            info_linp_files_dict=dict(process_object.linp_infos) if "number_of_labeled_inputs" or "price" in method_choice else None,
-                                            weight_labeled_input=int(input_labeled_input) if "number_of_labeled_inputs" in method_choice else 1)               
+                                            weight_sum_sd=int(weight_sd) if "sum of SDs" in method_choice else 1,
+                                            threshold=float(input_threshold) if "number of fluxes with SDs < threshold" in method_choice else 1,
+                                            weight_flux=int(weight_flux) if "number of fluxes with SDs < threshold" in method_choice else 1,
+                                            info_linp_files_dict=dict(process_object.linp_infos) if "number of labeled inputs" or "price" in method_choice else None,
+                                            weight_labeled_input=int(input_labeled_input) if "number of labeled inputs" in method_choice else 1)               
             
             with result:     
                 logscale = st.checkbox("Apply a log", 
