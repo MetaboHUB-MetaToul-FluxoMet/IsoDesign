@@ -635,7 +635,7 @@ class Process:
         """
         self.scores=np.log10(self.scores)
 
-    def register_scores(self, number):
+    def register_scores(self, number, scores, fig):
         """
         Stores the analysis data (scores, the dataframe (filtered or not), 
         and the associated plot) in a dictionary for easy retrieval and organization. 
@@ -649,8 +649,8 @@ class Process:
             {f"score_{number}": {
                 "dataframe": self.filtered_dataframe if self.filtered_dataframe is not None 
                     else self.summary_dataframe,
-                "columns_scores": self.scores, 
-                "barplot": self.fig
+                "columns_scores": scores, 
+                "barplot": fig
             }}
         )
 

@@ -122,17 +122,20 @@ def criteria_block(count):
                                 selection_mode="multi-row",
                                 use_container_width=True,
                                 key=f"table_score_{count}")
-                    
+                    # session.register_widgets({f"table_score_{count}": table_score})
+                
                 with barplot:
                     df = process_object.scores
                     if table_score.selection.rows:
                         # Display the selected rows in a bar plot
                         df = df.iloc[table_score.selection.rows,:]
+                    session.register_widgets({f"table_{count}": df})
+                    
                     process_object.draw_barplot(df)    
-
                     # Display the scores in a bar plot
                     st.plotly_chart(process_object.fig,
                                     key=f"barplot_{count}")
+                    session.register_widgets({f"barplot_{count}": process_object.fig})
 
 def new_scores(count=1):
     """
@@ -146,7 +149,9 @@ def new_scores(count=1):
         with st.container(border=True):
             criteria_block(count)
 
-        process_object.register_scores(count)    
+        process_object.register_scores(count,
+                                       session.widget_space[f"table_{count}"],
+                                       session.widget_space[f"barplot_{count}"])    
 
     new_score, export_data = st.columns([1, 9])
     
