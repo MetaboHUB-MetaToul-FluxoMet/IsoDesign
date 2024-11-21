@@ -80,13 +80,13 @@ def change_output_folder_path():
     """
     session.register_widgets({"output_folder_path": output_path_folder})
 
-def overwrite_output_folder_path():
-    """
-    Overwrite the output folder path.
-    """
-    session.register_widgets({"overwrite_button": False})
-    process_object.clear_tmp_folder(session.widget_space["output_folder_path"])
-    session.register_widgets({"submit_button": True})
+# def overwrite_output_folder_path():
+#     """
+#     Overwrite the output folder path.
+#     """
+#     session.register_widgets({"overwrite_button": False})
+#     process_object.clear_tmp_folder(session.widget_space["output_folder_path"])
+#     session.register_widgets({"submit_button": True})
 
 ########
 # MAIN #
@@ -169,20 +169,21 @@ with st.container(border=True):
                         on_change=change_output_folder_path)
     
     session.register_widgets({"output_folder_path": output_path_folder})
+    
+    
+    if os.path.exists(Path(f"{session.widget_space['output_folder_path']}/{process_object.model_name}_tmp")):
+        st.warning(f"The folder '{process_object.model_name}_tmp' already exists. \
+                   If you continue, it will be overwritten. If you don't want to overwrite it,\
+                   please change the output folder path and click on the 'Submit' button.")
+       
+    
     submit_button = st.button("Submit",
                        key="submit_button")
 
 if submit_button:
     # Check if the folder already exists
-    if os.path.exists(Path(f"{session.widget_space['output_folder_path']}/{process_object.model_name}_tmp")):
-        st.warning(f"The folder {process_object.model_name}_tmp already exists. Do you want to overwrite it ?")
-        st.info("If you don't want to overwrite it, please change the output folder path and click on the 'Submit' button.")
-        overwrite_button = st.button("Overwrite", 
-                                     key="overwrite_button",
-                                     on_click=overwrite_output_folder_path)
-        
-    else:
         session.register_widgets({"submit_button": submit_button})
+    
         
 if session.widget_space["submit_button"]:
     
