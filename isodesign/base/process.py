@@ -511,9 +511,9 @@ class Process:
          
         # dictionary containing columns "Name", "Kind" and "SD" from each tvar.sim file
         tvar_sim_dataframes = {
-            f'{file_path.name.split(".")[0]}_SD': pd.read_csv(
+            f'{file_path.name.split(".")[0]}': pd.read_csv(
                 file_path, sep="\t", usecols=["Name", "Kind", "SD"], index_col=["Name", "Kind"]).rename(
-                    columns={"SD": f"{file_path.name.split('.')[0]}_SD"})
+                    columns={"SD": f"{file_path.name.split('.')[0]}"})
             for file_path in self.tvar_sim_paths
         }
         tvar_sim_dataframes = pd.concat(tvar_sim_dataframes.values(), axis=1, join="inner")
