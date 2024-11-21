@@ -10,9 +10,10 @@ Welcome to IsoDesign documentation !
 IsoDesign is a scientific tool designed to optimize the choice of the optimal 
 isotopic composition of labeled substrates in 13C fluxomic labelling experiments.
 
-Simulated labeling is calculated using the `influx_si software <https://influx-si.readthedocs.io/en/latest/index.html>`, distributed with IsoDesign. 
+Simulated labeling is calculated using the `influx_si software <https://influx-si.readthedocs.io/en/latest/index.html/>`_ , distributed with IsoDesign. 
 
 ** IsoDesign includes the following features: **
+
    * user can define lower and upper bounds (between 0 and 100) and define the desired number of intervals for each isotopic form to be included,
    * substrate pricing can be entered, which will be incorporated into the rating criteria,
    * simulation of all possible combinations of isotopic forms in a single run,
@@ -28,7 +29,7 @@ It is one of the routine tools that we use at the
 and `MetaToul platform <https://mth-metatoul.com/>`_ .
 
 The code is open-source, and available on `GitHub <https://github.com/MetaboHUB-MetaToul-FluxoMet/IsoDesign/>`_ under a
-`GPLv3 license <license>`.
+`GPLv3 license <license>`_ .
 
 .. toctree::
    :maxdepth: 2
