@@ -20,11 +20,17 @@ def display_dataframe(count):
                                         label_visibility="collapsed",
                                         placeholder= "Flux",
                                         key=f"selected_flux_{count}")
+        
+        session.register_widgets({f"selected_flux_{count}": selected_flux})
+
         selected_kind=kind.multiselect(label="kind", 
                                         options=["NET", "XCH", "METAB"], 
                                         label_visibility="collapsed", 
                                         placeholder="Kind",
+                                        default=session.widget_space[f"selected_kind_{count}"] if session.widget_space[f"selected_kind_{count}"] else None,
                                         key=f"selected_kind_{count}")
+        
+        session.register_widgets({f"selected_kind_{count}": selected_kind})
         
         selected_pathway=pathway.multiselect(label="Pathway", 
                                             options=process_object.netan["pathway"].keys() if process_object.netan["pathway"] else ["No pathway"], 
@@ -32,6 +38,8 @@ def display_dataframe(count):
                                             placeholder="Pathway",
                                             disabled=True if not process_object.netan["pathway"] else False,
                                             key=f"selected_pathway_{count}") 
+        
+        session.register_widgets({f"selected_pathway_{count}": selected_pathway})
     
     # Dataframe filtering method
     process_object.data_filter(fluxes_names = selected_flux, 
@@ -65,9 +73,10 @@ def criteria_block(count):
         criteria = ["sum of SDs", "number of fluxes with SDs < threshold", "number of labeled inputs", "price"]
         method_choice = st.multiselect("Criteria", 
                                         options=criteria,
-                                        key=f"method_choice_{count}")
+                                        key=f"method_choice_{count}",
+                                        default=session.widget_space[f"method_choice_{count}"] if session.widget_space[f"method_choice_{count}"] else None)
         
-        session.register_widgets({"method_choice": method_choice})
+        session.register_widgets({f"method_choice_{count}": method_choice})
 
         if "sum of SDs" in method_choice:
             st.subheader("Sum of SDs")
