@@ -434,7 +434,7 @@ class Process:
         
         logger.info("Creation of the linp files...")
         # create mapping to associate file number with its respective combinations
-        with open(os.path.join(str(self.model_directory_path), 'files_combinations.txt'), 'w', encoding="utf-8") as f:
+        with open(os.path.join(str(self.model_directory_path), f'{self.model_name}_files_combinations.txt'), 'w', encoding="utf-8") as f:
             for index, dataframes in self.linp_dataframes.items():
                 df = pd.DataFrame.from_dict(dataframes) 
                 df.to_csv(os.path.join(str(self.tmp_folder_path), f"{index}.linp"), sep="\t", index=False)
@@ -557,7 +557,7 @@ class Process:
             lambda row: ['background-color: #fffbcc' if row.isnull().any() else '' for _ in row],
             # Applying the lambda function along the rows of the DataFrame
             axis=1)
-        summary_dataframe_styler.to_excel(f"{self.model_directory_path}/summary.xlsx", index=False)
+        summary_dataframe_styler.to_excel(f"{self.model_directory_path}/{self.model_name}_summary.xlsx", index=False)
 
 
     def data_filter(self, fluxes_names:list=None, kind:list=None, pathways:list=None):
