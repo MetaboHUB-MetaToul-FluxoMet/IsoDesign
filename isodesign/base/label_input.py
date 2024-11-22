@@ -69,11 +69,25 @@ class LabelInput:
             self.names += [isotopomer.name for isotopomer in isotopomers]
             self.labelling_patterns += [isotopomer.labelling for isotopomer in isotopomers]
 
-        if len(self.isotopomer_group) > 1:
-            # Addition of a key containing all isotopomers group combination if there is multiple isotopomers group 
-            self.isotopomer_combinations["All_combinations"] = [
-                np.concatenate(pair) for pair in product(
-                    *self.isotopomer_combinations.values())
-            ]
-        else:
-            self.isotopomer_combinations["combinations"] = filtered_combinations
+        # Addition of a key containing all isotopomers group combination if there is multiple isotopomers group 
+        self.isotopomer_combinations["All_combinations"] = [
+            np.concatenate(pair) for pair in product(
+                *self.isotopomer_combinations.values())
+        ]
+    
+        self._check_labelling_combinations()
+
+    def _check_labelling_combinations(self):
+        """
+        Check if the sum of all fractions is equal to 1 for all isotopomers group
+        """
+        for isotopomer_name, isotopomer_combinations in self.isotopomer_combinations.items():
+            if isotopomer_name == "All_combinations":
+                continue
+            if any(np.sum(combination) != 1 for combination in isotopomer_combinations):
+                raise ValueError(f"Sum of all fractions is not equal to 1 for {isotopomer_name} group")
+                # logger.error(f"Sum of all fractions is not equal to 1 for {isotopomer_name} group")
+                    
+
+
+    

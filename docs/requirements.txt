@@ -1,0 +1,7 @@
+ipykernel
+nbsphinx
+isodesign
+pandoc
+sphinx
+sphinx-argparse
+sphinx-rtd-theme

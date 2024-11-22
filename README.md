@@ -1,55 +1,61 @@
 # IsoDesign
-The objective of IsoDesign 2.0 is to provide simple and rapid 13C tracer design. Leveraging the influx_si software and through iterative minimization of in silico calculated fluxes standard deviations (SD), IsoDesign 2.0 will help researchers in selecting the best compromise between flux precision and tracer prices.
 
-## Goal of tool
+## What is IsoDesign ?
+IsoDesign is a scientific tool designed to optimize the choice of the optimal 
+isotopic composition of labeled substrates in 13C fluxomic labelling experiments. Simulated labeling is calculated using the [*influx_si* software](https://influx-si.readthedocs.io/en/latest/index.html), distributed with IsoDesign. 
 
-**The objective of IsoDesign 2.0 is to provide simple and rapid 13C tracer design.** Leveraging the [*influx_si* software](10.1093/bioinformatics/btr716) and through iterative minimization of *in silico* calculated fluxes standard deviations (SD), IsoDesign 2.0 will help researchers in selecting the best compromise between flux precision and tracer prices.
+It is one of the routine tools that we use at the [Mathematics cell of TBI](https://www.toulouse-biotechnology-institute.fr/en/plateformes-plateaux/cellule-mathematiques/) 
+and [MetaToul platform](https://www.metabohub.fr/home.html) in functional studies of metabolic systems.
 
-## Method
+Detailed documentation can be found online at Read the Docs ().
 
-The method will be based on the same one used in the first version of [*IsoDesign*](https://doi.org/10.1002/bit.24997), with a number of key upgrades:
-* **Use of influx_si's new mtf file system:** The new mtf system decouples the different sections of the ancient *ftbl* file into a number of subfiles (one subfile per *ftbl* section).
-* **Calculated isotopic measurements as input**: the new mtf file system makes it possible to feed back run results as input
-* **GSM integration (second phase?)**: Integrating the use of Genome Scale Models and FBA to get predicted fluxes as input for IsoDesign2 could greatly enhance tracer design capabilities
-* **Cost as a scoring metric**
+## Key features
 
-![image](./_static/IsoDesignV2.jpg)
+   * user can **define lower and upper bounds** (between 0 and 100) and **define the desired number of intervals** for each isotopic form to be included,
+   * **substrate pricing can be entered**, which will be incorporated into the scoring criteria,
+   * **simulation of all possible combinations** of isotopic forms in a single run,
+   * ability to **simulate stationary or instationary labeling**, 
+   * **multiple scoring criteria** are available and can be applied simultaneously to assess simulation results,
+   * the results of the scoring criteria are displayed using a table for detailed values and a bar plot for visual representation,
+   * shipped as a **library** with a **graphical** interface,
+   * **open-source, free and easy to install** everywhere where Python 3 and pip run,
+   * **biologist-friendly**.
 
-Here is a description of the steps that are going to be included in IsoDesign:
 
-1. Initialize user parameters and launch the run
+## Quick-start
 
-- Import the .netw file containing the metabolic network.
-- Import the .tvar file containing the initial metabolic flux values (should they be constrained?) 
-- ?+ .mflux containing measured extracellular flxes?
-- Starting from the available tracers (U13C, 1-13C, etc for glc for example) and from a step size given by the user (10% for example), generate the different possible label inputs and add them to a series of .linp files that will be put in the input data folder. These labeled inputs should be added to the netw? (Glucupt_U, Glucupt_1, etc...)
-- Generate the .vmtf file that links the first two files with all the different .linp files that have been generated.
+## Bug and feature requests
+If you have an idea on how we could improve IsoDesign please submit a new *issue*
+to [our GitHub issue tracker](https://github.com/MetaboHUB-MetaToul-FluxoMet/IsoDesign/issues).
 
-Question: Simulation of parallel experiments?
 
-2. Run the simulations
+## Developers guide
+### Contributions
+Contributions are very welcome! :heart:
 
-The next step is to run the simulations and get statistical information on the set of free fluxes **without** fitting measurements. Here is a list of options that will be passed on to influx:
-* --prefix: path towards the network file
-* --mtf: path towards the .vmtf file
-* --noopt: this option is paramount as it will be essential to running the simulation without fitting the measurements. This let's influx simulate the labelling data for the different metabolites.
-* --sens=mc[=Default_number_of_iterations]: number of iterations for the monte-carlo simulations if the user asked to run MCs
+Please work on your own fork,
+follow [PEP8](https://www.python.org/dev/peps/pep-0008/) style guide,
+and make sure you pass all the tests before a pull request.
 
-4. Run flux calculation and calculate precision on fluxes
+### Local install with pip
+In development mode, do a `pip install -e /path/to/IsoDesign` to install
+locally the development version.
 
-This part is handled by influx. Testing is ongoing to know if reinjection is needed.
+### Build the documentation locally
+Build the HTML documentation with:
 
-5. Generate the outputs: scores, sensitivity landscape & input ranks
+```bash
+$ cd doc
+$ make html
+```
 
-The tool will have multiple outputs:
-- **Table of scores**: this table will reference for each label input tested the score in different category: total sum of SDs, sum of SDs on selected fluxes, Sum of SDs vs tracer price, etc...
-- **Sensitivity landscape**: cf plots made by IsoDesign v1 
+The PDF documentation can be built locally by replacing `html` by `latexpdf`
+in the command above. You will need a recent latex installation.
 
-To handle the coordination of the different parts of the program, we will create a Process class that will handle most 
-of the steps initiated within the tool. Here is a visual description of the class:
+## Authors
+Rochelle KOUAKOU, Loic LE GREGAM
 
-![image](./_static/Process%20class%20schema.jpg)
-
-## Interface
+## Contacts
+:email: kouakou@insa-toulouse.fr, legregam@insa-toulouse.fr
 
 

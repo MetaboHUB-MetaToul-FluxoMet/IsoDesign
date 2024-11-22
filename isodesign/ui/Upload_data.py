@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog
 import pandas as pd
-
+import os
 
 from isodesign.base.process import Process
 
@@ -17,12 +17,27 @@ from pathlib import Path
 logger = logging.getLogger("IsoDesign")
 logger.setLevel(logging.DEBUG)
 
-session = SessI(
-    session_state=st.session_state,
-    page="Upload_data"
-)
+#############
+# FUNCTIONS #
+#############
 
+def get_path_netw():
+    """ 
+    Open a file dialog to select a network file.
+    """
+    session.register_widgets({"input_button": True})
+    # Set up tkinter
+    root = tk.Tk()
+    root.withdraw()
 
+    # Make folder picker dialog appear on top of other windows
+    root.wm_attributes('-topmost', 1)
+
+    netw_directory_path = filedialog.askopenfilename(master = root,
+                                                       title = "Select a network file",
+                                                       filetypes=[("netw files", "*.netw")])
+    session.register_widgets({"netw_directory_path": netw_directory_path})
+    
 
 def logger_setup(output_path, debug_mode=False):
     """ 
@@ -59,6 +74,29 @@ def logger_setup(output_path, debug_mode=False):
     logger.addHandler(stream)
     return logger
 
+def change_output_folder_path():
+    """
+    Change the output folder path.
+    """
+    session.register_widgets({"output_folder_path": output_path_folder})
+
+# def overwrite_output_folder_path():
+#     """
+#     Overwrite the output folder path.
+#     """
+#     session.register_widgets({"overwrite_button": False})
+#     process_object.clear_tmp_folder(session.widget_space["output_folder_path"])
+#     session.register_widgets({"submit_button": True})
+
+########
+# MAIN #
+########
+
+session = SessI(
+    session_state=st.session_state,
+    page="Upload_data"
+)
+
 st.set_page_config(page_title=f"IsoDesign (v{isodesign.__version__})")
 st.title(f"Welcome to IsoDesign (v{isodesign.__version__})")
 
@@ -78,7 +116,6 @@ try:
 except Exception:
     pass
 
-
 st.sidebar.markdown("## Load a session")
 # Load a pickle file if it exists
 upload_pickle = st.sidebar.file_uploader("Load a previous session file.",
@@ -92,8 +129,11 @@ if upload_pickle:
     # Retrieves the state of the submit button 
     session.register_widgets({"submit_button": True})
 
-# Process object creation 
-process_object = Process() if not session.object_space["process_object"] else session.object_space["process_object"]
+
+if not session.object_space["process_object"]:
+    session.object_space["process_object"] = Process()
+
+process_object = session.object_space["process_object"]
 
 st.sidebar.divider()
 st.sidebar.markdown("## Debug mode")
@@ -103,57 +143,61 @@ debug_mode = st.sidebar.checkbox('Verbose logs',
 
 
 with st.container(border=True):
-    # Set up tkinter
-    root = tk.Tk()
-    root.withdraw()
 
-    # Make folder picker dialog appear on top of other windows
-    root.wm_attributes('-topmost', 1)
-    
     st.subheader('Load your network file',
                 help = 'File with ".netw" extension (containing all reactions and transition labels)')
 
     input_button = st.button(
             label="Browse file",
-            key="input_button")
-
-    if input_button:
-        # Register the button state (TRUE) in the session
-        session.register_widgets({"input_button": input_button})
-        # Show folder picker dialog in GUI
-        netw_directory_path = filedialog.askopenfilename(master = root,
-                                                       title = "Select a network file",
-                                                       filetypes=[("netw files", "*.netw")])
-        session.register_widgets({"netw_directory_path": netw_directory_path})
-
-    if session.widget_space["input_button"]:
+            key="input_button",
+            on_click=get_path_netw)
+    
+    if session.widget_space["netw_directory_path"]:
         process_object.get_path_input_netw(session.widget_space["netw_directory_path"])
     
     st.text_input("**Netw directory path** :\n", 
                     "No folder selected" if not process_object.netw_directory_path
                     else process_object.netw_directory_path, 
-                    key="input_directory_path")
-
+                    key="input_file_path")
+    
 
     st.subheader("Output directory path")
-    output_folder_path = st.text_input("**Folder path** :", 
+    output_path_folder = st.text_input("**Folder path** :", 
                         value="No folder selected" if not process_object.model_directory_path
                         else process_object.model_directory_path, 
-                        key="output_folder_path")
+                        key="output_folder_path",
+                        on_change=change_output_folder_path)
     
-    submit = st.button("Submit",
+    session.register_widgets({"output_folder_path": output_path_folder})
+       
+    submit_button = st.button("Submit",
                        key="submit_button")
-    
-    if submit:
-        session.register_widgets({"submit_button": submit})
-        process_object.create_tmp_folder()
-        logger_setup(process_object.tmp_folder_path, debug_mode)
+
+# Check if the folder already exists
+if os.path.exists(Path(f"{session.widget_space['output_folder_path']}/{process_object.model_name}_tmp")):
+    if not session.widget_space["submit_button"]:
+        st.warning(f"A previous session is already present, previous files will be overwritten.")
+
+if submit_button:
+    # Check if the folder already exists
+    session.register_widgets({"submit_button": True})
+    st.rerun()
 
 if session.widget_space["submit_button"]:
-    # Import and analysis of model files 
-    process_object.load_model()
-    process_object.analyse_model()
-
+    process_object.create_tmp_folder(session.widget_space["output_folder_path"])
+    logger_setup(process_object.tmp_folder_path, debug_mode)
+   # Import and analysis of model files 
+    try:
+        process_object.load_model()
+        if not process_object.netan:
+            with st.spinner("Uploading files..."):
+                process_object.analyse_model()
+    except Exception as e:
+        st.error(f"An error occured : {e}")
+        st.stop()
+    
+    
+if process_object.netan:        
     with st.container(border=True):
         st.subheader("Network analysis")
         # Tabs for network model analysis
@@ -225,13 +269,16 @@ if session.widget_space["submit_button"]:
             with tabs[5]:
                 # Display mmet file content
                 st.dataframe(process_object.mtf_files["mmet"].data, hide_index=True, height=400, width=600)
-    
-    session.register_object(process_object, "process_object")
-    
-    next = st.button("Next page")
-    if next:
+
+    next_button = st.button("Next page",
+                            key="next_button")
+    if next_button:
+        session.register_widgets({"next_button": next_button})
         process_object.save_process_to_file()
         # Go to next page
-        st.switch_page(r"pages/2_Generate_labels_input.py")
+        st.switch_page(r"pages/2_Labels_input.py")
 
 
+
+
+    
