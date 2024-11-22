@@ -20,7 +20,6 @@ def display_dataframe(count):
                                         label_visibility="collapsed",
                                         placeholder= "Flux",
                                         key=f"selected_flux_{count}")
-            
         selected_kind=kind.multiselect(label="kind", 
                                         options=["NET", "XCH", "METAB"], 
                                         label_visibility="collapsed", 
@@ -103,11 +102,11 @@ def criteria_block(count):
         if method_choice:
             process_object.generate_score(method_choice,
                                             operation = operation if len(method_choice) > 1 else None,
-                                            weight_sum_sd=int(weight_sd) if "sum of SDs" in method_choice else 1,
+                                            weight_sum_sd=float(weight_sd) if "sum of SDs" in method_choice else 1,
                                             threshold=float(input_threshold) if "number of fluxes with SDs < threshold" in method_choice else 1,
-                                            weight_flux=int(weight_flux) if "number of fluxes with SDs < threshold" in method_choice else 1,
+                                            weight_flux=float(weight_flux) if "number of fluxes with SDs < threshold" in method_choice else 1,
                                             info_linp_files_dict=dict(process_object.linp_infos) if "number of labeled inputs" or "price" in method_choice else None,
-                                            weight_labeled_input=int(input_labeled_input) if "number of labeled inputs" in method_choice else 1)               
+                                            weight_labeled_input=float(input_labeled_input) if "number of labeled inputs" in method_choice else 1)               
             
             with result:     
                 logscale = st.checkbox("Apply a log", 
@@ -198,4 +197,3 @@ else:
     # It is a recursive function that will generate new score blocks 
     # if the user clicks on the "New score" button
     new_scores()
-
