@@ -176,9 +176,7 @@ with st.container(border=True):
 # Check if the folder already exists
 if os.path.exists(Path(f"{session.widget_space['output_folder_path']}/{process_object.model_name}_tmp")):
     if not session.widget_space["submit_button"]:
-        st.warning(f"The folder '{process_object.model_name}_tmp' already exists. \
-                If you continue, it will be overwritten. If you don't want to overwrite it,\
-                please change the output folder path and click on the 'Submit' button.")
+        st.warning(f"A previous session is already present, previous files will be overwritten.")
 
 if submit_button:
     # Check if the folder already exists
