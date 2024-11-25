@@ -43,23 +43,23 @@ Once you installed IsoDesign, you can install these dependencies by running the 
 $ influx_s --install_rdep
 ```
 
-For more information on the installation of R dependencies, please refer to `influx_si software <https://influx-si.readthedocs.io/en/latest/index.html/>`_ documentation.
+For more information on the installation of R dependencies, please refer to [influx_si software](https://influx-si.readthedocs.io/en/latest/index.html/) documentation.
 
 
 IsoDesign requires Python 3.9 or higher and run on all platforms.
-Please check [the documentation]() for complete
+Please check the documentation () for complete
 installation and usage instructions.
 
 Use `pip` to **install IsoDesign from PyPi**:
 
 ```bash
-$ pip install IsoDesign
+$ pip install isodesign
 ```
 
 Then, start the graphical interface with:
 
 ```bash
-$ IsoDesign
+$ isodesign
 ```
 
 IsoDesign is also available directly from command-line and as a Python library.
@@ -79,7 +79,7 @@ follow [PEP8](https://www.python.org/dev/peps/pep-0008/) style guide,
 and make sure you pass all the tests before a pull request.
 
 ### Local install with pip
-In development mode, do a `pip install -e /path/to/IsoDesign` to install
+In development mode, do a `pip install -e /path/to/isodesign` to install
 locally the development version.
 
 ### Build the documentation locally
