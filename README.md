@@ -31,16 +31,17 @@ If you don't have any version of conda (neither miniconda nor Anaconda) but do h
 installed on your system, you can install IsoDesign with pip.
 
 
-.. code-block:: bash
-
-    pip install isodesign
+```bash
+$ pip install isodesign
+```
 
 This will install IsoDesign and all its dependencies. To use IsoDesign, you will need to some R dependencies (necessary for the simulation part with influx_si).
 Once you installed IsoDesign, you can install these dependencies by running the following command:
 
-.. code-block:: bash
 
-    influx_s --install_rdep
+```bash
+$ influx_s --install_rdep
+```
 
 For more information on the installation of R dependencies, please refer to `influx_si software <https://influx-si.readthedocs.io/en/latest/index.html/>`_ documentation.
 
