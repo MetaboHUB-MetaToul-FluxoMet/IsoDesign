@@ -24,6 +24,46 @@ Detailed documentation can be found online at Read the Docs ().
 
 ## Quick-start
 
+Installation with pip
+-------------------------
+
+If you don't have any version of conda (neither miniconda nor Anaconda) but do have Python3 and R 
+installed on your system, you can install IsoDesign with pip.
+
+
+.. code-block:: bash
+
+    pip install isodesign
+
+This will install IsoDesign and all its dependencies. To use IsoDesign, you will need to some R dependencies (necessary for the simulation part with influx_si).
+Once you installed IsoDesign, you can install these dependencies by running the following command:
+
+.. code-block:: bash
+
+    influx_s --install_rdep
+
+For more information on the installation of R dependencies, please refer to `influx_si software <https://influx-si.readthedocs.io/en/latest/index.html/>`_ documentation.
+
+
+IsoDesign requires Python 3.9 or higher and run on all platforms.
+Please check [the documentation]() for complete
+installation and usage instructions.
+
+Use `pip` to **install IsoDesign from PyPi**:
+
+```bash
+$ pip install IsoDesign
+```
+
+Then, start the graphical interface with:
+
+```bash
+$ IsoDesign
+```
+
+IsoDesign is also available directly from command-line and as a Python library.
+
+
 ## Bug and feature requests
 If you have an idea on how we could improve IsoDesign please submit a new *issue*
 to [our GitHub issue tracker](https://github.com/MetaboHUB-MetaToul-FluxoMet/IsoDesign/issues).
