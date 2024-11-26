@@ -23,7 +23,7 @@ installed on your system, you can install IsoDesign with pip.
 This will install IsoDesign and all its dependencies. To use IsoDesign, you will need to some R dependencies (necessary for the simulation part with influx_si).
 Once you installed IsoDesign, you can install these dependencies by running the following command:
 
-.. code-block:: bash
+.. code-block:: bashy
 
     influx_s --install_rdep
 
