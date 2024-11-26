@@ -5,9 +5,11 @@ IsoDesign is a scientific tool designed to optimize the choice of the optimal
 isotopic composition of labeled substrates in 13C fluxomic labelling experiments. Simulated labeling is calculated using the [*influx_si* software](https://influx-si.readthedocs.io/en/latest/index.html), distributed with IsoDesign. 
 
 It is one of the routine tools that we use at the [Mathematics cell of TBI](https://www.toulouse-biotechnology-institute.fr/en/plateformes-plateaux/cellule-mathematiques/) 
-and [MetaToul platform](https://www.metabohub.fr/home.html) in functional studies of metabolic systems.
+and [MetaToul platform](https://www.metabohub.fr/home.html).
 
-Detailed documentation can be found online at Read the Docs ().
+The code is open-source, and available under a GPLv3 license.
+
+Detailed documentation can be found online at Read the Docs ([https://isodesign.readthedocs.io/](https://isodesign.readthedocs.io/)).
 
 ## Key features
 
@@ -24,37 +26,27 @@ Detailed documentation can be found online at Read the Docs ().
 
 ## Quick-start
 
-Installation with pip
--------------------------
+IsoDesign requires Python 3.10 or higher and run on all platforms.
+Please check [the documentation](https://isodesign.readthedocs.io/en/latest/quickstart.html) for complete
+installation and usage instructions.
 
-If you don't have any version of conda (neither miniconda nor Anaconda) but do have Python3 and R 
-installed on your system, you can install IsoDesign with pip.
-
+### Installation with pip
+If you have Python3 and R 
+installed on your system, you can install IsoDesign from Pypi with pip :
 
 ```bash
 $ pip install isodesign
 ```
 
-This will install IsoDesign and all its dependencies. To use IsoDesign, you will need to some R dependencies (necessary for the simulation part with influx_si).
+To use IsoDesign, you will need to some R dependencies (necessary for the simulation part with influx_si).
 Once you installed IsoDesign, you can install these dependencies by running the following command:
-
 
 ```bash
 $ influx_s --install_rdep
 ```
 
-For more information on the installation of R dependencies, please refer to [influx_si software](https://influx-si.readthedocs.io/en/latest/index.html/) documentation.
+For more information on the installation of R dependencies, please refer to [influx_si software](https://influx-si.readthedocs.io/en/latest/install.html#r-dependencies) documentation.
 
-
-IsoDesign requires Python 3.9 or higher and run on all platforms.
-Please check the documentation () for complete
-installation and usage instructions.
-
-Use `pip` to **install IsoDesign from PyPi**:
-
-```bash
-$ pip install isodesign
-```
 
 Then, start the graphical interface with:
 
