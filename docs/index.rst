@@ -47,5 +47,5 @@ and can be downloaded as a `PDF file <https://readthedocs.org/projects/isodesign
    :maxdepth: 2
    :caption: Miscellaneous
 
-   licence 
+   license 
    
