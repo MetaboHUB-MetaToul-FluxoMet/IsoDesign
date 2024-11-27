@@ -8,7 +8,7 @@ Welcome to IsoDesign documentation !
 =======================
 
 IsoDesign is a scientific tool designed to optimize the choice of the optimal 
-isotopic composition of labeled substrates in 13C fluxomic labelling experiments.
+isotopic composition of labeled substrates in 13C fluxomic labeling experiments.
 
 Simulated labeling is calculated using the `influx_si software <https://influx-si.readthedocs.io/en/latest/index.html/>`_ , distributed with IsoDesign. 
 

@@ -17,7 +17,7 @@ If you have installed the package in a specific environment, make sure to activa
 
 IsoDesign interface will open in a new browser window :
 
-.. image:: _static/interface.jpg
+.. image:: _static/interface.JPG
    :scale: 60%
 
 Select your input network file (which should have a ".netw" extension. It's a :file:`tsv` format file, refer to the Tutorial for more details). 
