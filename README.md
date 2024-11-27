@@ -1,5 +1,8 @@
 # IsoDesign
 
+[![PyPI version](https://badge.fury.io/py/isodesign.svg)](https://badge.fury.io/py/isodesign)
+[![Documentation Status](https://readthedocs.org/projects/isodesign/badge/?version=latest)](https://isodesign.readthedocs.io/en/latest/?badge=latest)
+
 ## What is IsoDesign ?
 IsoDesign is a scientific tool designed to optimize the choice of the optimal 
 isotopic composition of labeled substrates in 13C fluxomic labelling experiments. Simulated labeling is calculated using the [*influx_si* software](https://influx-si.readthedocs.io/en/latest/index.html), distributed with IsoDesign. 
