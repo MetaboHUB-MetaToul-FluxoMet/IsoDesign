@@ -38,14 +38,14 @@ and can be downloaded as a `PDF file <https://readthedocs.org/projects/isodesign
    :maxdepth: 2
    :caption: User documentation
 
-   installation
-   quickstart
-   tutorial
+   installation.rst
+   quickstart.rst
+   tutorial.rst
 
 
 .. toctree::
    :maxdepth: 2
    :caption: Miscellaneous
 
-   license 
+   license.rst
    
