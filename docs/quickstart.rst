@@ -20,15 +20,15 @@ IsoDesign interface will open in a new browser window :
 .. image:: _static/interface.JPG
    :scale: 60%
 
-Select your input network file (which should have a ".netw" extension. It's a :file:`tsv` format file, refer to :ref:`Tutorials` for more details). 
+Select your input network file (which should have a ".netw" extension. It's a :file:`tsv` format file, refer to :ref:`required_input_data_files` for more details). 
 By default, an output directory path is pre-configured, but you can modify it if needed. Once ready, you click the "Submit" button to load your model 
 and explore its different elements. Afterward, click the "Next Page" button to proceed.
 
 In the following page, **Labels input**, you can configure the isotopic composition of the substrates and specify the desire proportions by setting the
 lower and upper bounds along with the number of intervals. Additionnally, you can preview the generated combinations before proceeding with simulations
-(refer to the :ref:`Tutorials` for more details).
+(refer to the :ref:`labels_input` for more details).
 
-In the **Simulation options** page, you can choose your desired simulation mode : influx_s (stationary) or influx_i (instationary) (refer to the Tutorial for more details).
+In the **Simulation options** page, you can choose your desired simulation mode : influx_s (stationary) or influx_i (instationary) (refer to the :ref:`simulation_options` for more details).
 Then, configure the simulation options and initiate the simulation. 
 
 The **Results** page allows you to view simulation outcomes and apply one or more scoring criteria (refer to the Tutorial for more details).
