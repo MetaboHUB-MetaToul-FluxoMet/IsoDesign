@@ -14,7 +14,7 @@ Simulated labeling is calculated using the `influx_si software <https://influx-s
 
 **IsoDesign includes the following features:**
 
-   * user can **define lower and upper bounds** (between 0 and 100) and **define the desired number of intervals** for each isotopic form to be included,
+   * user can **define lower and upper bounds** and **define the desired number of intervals** for each isotopic form to be included,
    * **substrate pricing can be entered**, which will be incorporated into the rating criteria,
    * **simulation of all possible combinations** of isotopic forms in a single run,
    * ability to **simulate stationary or instationary labeling**, 
@@ -26,10 +26,10 @@ Simulated labeling is calculated using the `influx_si software <https://influx-s
 
 It is one of the routine tools that we use at the
 `Mathematics cell of TBI <https://www.toulouse-biotechnology-institute.fr/en/plateformes-plateaux/cellule-mathematiques/>`_
-and `MetaToul platform <https://mth-metatoul.com/>`_ .
+and `MetaToul platform <https://mth-metatoul.com/>`_.
 
 The code is open-source, and available on `GitHub <https://github.com/MetaboHUB-MetaToul-FluxoMet/IsoDesign/>`_ under a
-:ref:`GPLv3 license <license>` .
+:ref:`GPLv3 license <license>`.
 
 This documentation is available on Read the Docs (`https://isodesign.readthedocs.io <https://isodesign.readthedocs.io/>`_)
 and can be downloaded as a `PDF file <https://readthedocs.org/projects/isodesign/downloads/pdf/latest/>`_.
@@ -48,4 +48,3 @@ and can be downloaded as a `PDF file <https://readthedocs.org/projects/isodesign
    :caption: Miscellaneous
 
    license.rst
-   

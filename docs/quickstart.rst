@@ -20,7 +20,7 @@ IsoDesign interface will open in a new browser window :
 .. image:: _static/interface.JPG
    :scale: 60%
 
-Select your input network file (which should have a ".netw" extension. It's a :file:`tsv` format file, refer to :ref:`required_input_data_files` for more details). 
+Select your input network file (which should have a :file:`.netw` extension. It's a :file:`tsv` format file, refer to :ref:`required_input_data_files` for more details). 
 By default, an output directory path is pre-configured, but you can modify it if needed. Once ready, you click the "Submit" button to load your model 
 and explore its different elements. Afterward, click the "Next Page" button to proceed.
 
@@ -31,7 +31,7 @@ lower and upper bounds along with the number of intervals. Additionnally, you ca
 In the **Simulation options** page, you can choose your desired simulation mode : influx_s (stationary) or influx_i (instationary) (refer to the :ref:`simulation_options` for more details).
 Then, configure the simulation options and initiate the simulation. 
 
-The **Results** page allows you to view simulation outcomes and apply one or more scoring criteria (refer to the Tutorial for more details).
+The **Results** page allows you to view simulation outcomes and apply one or more scoring criteria (refer to :ref:`results` for more details).
 
 .. note:: The process is continuously and automatically saved as a pickle file (".pkl") in the output folder. To reopen the current processing state, just reopen this file by clicking on "Load a session - Browse files" on on the “Upload data” page.
 

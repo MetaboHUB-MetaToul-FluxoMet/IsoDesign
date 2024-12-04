@@ -11,23 +11,23 @@ Upload data
 Required input data files
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-IsoDesign uses a specific file format, introduced in influx_si, to describe metabolic network models: the Multiple TSV File (MTF) format.  
+IsoDesign uses a specific file format, introduced in influx_si, to describe metabolic network models: the :file:`Multiple TSV File` (MTF) format.  
 MTF files are tab-separated files (TSV), each with a specific role in model characterization. Each file is identified by a distinct suffix
 indicating the type of information it contains. For more details on these files, please refer to the `influx_si software documentation 
 <https://influx-si.readthedocs.io/en/latest/manual.html#>`_. 
 
-IsoDesign uses a network file (with the “.netw” extension) as input. After submitting the input file, all associated MTF format files sharing 
+IsoDesign uses a network file (with the :file:`.netw` extension) as input. After submitting the input file, all associated MTF format files sharing 
 the same model name are automatically loaded. A new section, "Network Analysis", then appears, presenting multiple tabs for exploration.  
 
-The network analysis section
+Network analysis section
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Each tab provides specific information related to the model and its contents:
 
 :Label input: displays the substrates to be used for labeling simulations.
-:Isotopic measurements: displays the contents of the “.miso” file, which includes isotopic measurements that can be analyzed using mass spectrometry and/or NMR, along with the associated standard deviations (SDs).
+:Isotopic measurements: displays the contents of the file with :file:`.miso` extension, which includes isotopic measurements that can be analyzed using mass spectrometry and/or NMR, along with the associated standard deviations (SDs).
 :Inputs/Outputs: describes all input, intermediate and output metabolites.
-:Fluxes: shows the initial metabolic flux values extracted from the “.tvar” file.
-:Network: presents a table listing the biochemical reactions, their names, and the metabolic pathways they belong to (if specified in the ".netw" file).
+:Fluxes: shows the initial metabolic flux values extracted from the file with :file:`.tvar` extension.
+:Network: presents a table listing the biochemical reactions, their names, and the metabolic pathways they belong to (if specified in the :file:`.netw` file).
 
 After the model is successfully loaded, proceed to the next page to define the isotopic composition of the substrates.
 
@@ -67,11 +67,11 @@ Visualize the generated combinations
 The total number of generated combinations is displayed. Each combinations can be viewed in a table by clicking the "Show combinations" button. 
 The table contains the following columns:
 
-   * ID : combination ID,
-   * Specie : substrate name,
-   * Isotopomer : isotopic form of each substrate,
-   * Value : proportion of each isotopic form,
-   * Price : price of each isotopic form (depending on the proportion value).
+   * **ID** : combination ID,
+   * **Specie** : substrate name,
+   * **Isotopomer** : isotopic form of each substrate,
+   * **Value** : proportion of each isotopic form,
+   * **Price** : price of each isotopic form (depending on the proportion value).
 
 To remove combinations, select the desired ones and click the “Remove selected combinations” button.
 Click the “Submit for simulations” button to navigate to the “Simulation Options” page and start the simulations.
@@ -90,7 +90,9 @@ Depending on the selected mode, default options are pre-selected. You can remove
 For detailed information on available options, consult the influx_si documentation provided in the sidebar.
 The page displays the total number of combinations to be simulated and the exact command that will be executed in influx_si.
 
-.. note:: When adding an option manually, enter the option name without including the “--” prefix (e.g., use “fullsys” instead of “--fullsys”). 
+.. note:: 
+   When adding an option manually, enter the option name without including the :samp:`--` prefix (e.g., use “fullsys” instead of “--fullsys”). 
+
 
 Two buttons are available:
    * **Start simulation** to launches the simulations.
@@ -98,29 +100,35 @@ Two buttons are available:
 
 Once the simulations is complete, you will be redirected to the next page, “Results”.
 
+.. _results:
 Results
 ------------------------
 Results visualization
 ~~~~~~~~~~~~~~~~~~~~~
 The simulation results are displayed in a table with the following columns :
-   * Name : flux names 
-   * Kind : flux types (NET, XCH, METAB)
-   * Initial flux value : initial flux values (from the "Value" column in ".tvar" file)
-   * Value : simulated flux values
-   * Value difference : difference between the initial and simulated flux values
-   * ID... : Standard deviation of the simulated fluxes corresponding to a specific isotopic composition combination.
+   * **Name** : flux names, 
+   * **Kind** : flux types (NET, XCH, METAB),
+   * **Initial flux value** : initial flux values (from the "Value" column in :file:`.tvar` file),
+   * **Value** : simulated flux values,
+   * **Value difference** : difference between the initial and simulated flux values,
+   * **ID..**. : Standard deviation of the simulated fluxes corresponding to a specific isotopic composition combination.
 
 To filter the table, click on "Apply a filter". The table can be filtered based on the following criteria :
    * Flux : flux names
    * Kind : flux types (NET, XCH, METAB)
    * Pathway : metabolic pathways (if specified in the ".netw" file)
 
+.. note:: 
+   To view the isotopic composition within the IDs, a file is generated in the output directory. This file is named after 
+   the model with the suffix :file:`_files_combinations.txt.`. For more details, refer to the :ref:`outputs` section.
+
 Scoring criteria 
 ~~~~~~~~~~~~~~~~~~~~~
 
-You can select multiple criteria simultaneously, and within each criterion, choose several elements.
-
 The section below the table allows you to apply criteria and visualize the generated scores. 
+
+.. image:: _static/scoring_criteria.JPG
+
 The left-hand side is used to select the criteria and configure their parameters. 4 scoring criteria are available :
 
 :Sum of SDs: calculated the total sum of all SDs (standard deviations) of fluxes for each isotopic composition combination.
@@ -134,6 +142,29 @@ can be assigned to each criterion.
 The right-hand side displays the generated scores as you select and configure criteria. Scores are presented both in a table and as 
 a bar plot.  
 
+By default, the bar plot displays all results from the score table. To display only specific results on the bar plot, select 
+the corresponding rows in the table. The bar plot will then update to show only the selected data.
+It is possible to apply a log transformation by selecting the 'Apply a log' checkbox, which applies a base-10 logarithm.
 
+Clicking the “New Score” button creates a new, independent block. This allows you to apply different scoring criteria to a separate 
+dataset or explore alternative scoring configurations without affecting the existing block.
+
+To export the results, click the “Export” button. The table, the generated scores table, and the bar plot will be exported in their current state 
+to the output directory.
+
+.. _outputs:
 Outputs
 ------------------------
+
+During the use of IsoDesign, various files are generated in the output directory :
+   * :file:`[Model name].pkl` : a pickle file containing the current state of the process.
+   * :file:`[Model Name]_files_combinations.txt` : a file that maps combination IDs to their corresponding isotopic compositions.
+   * :file:`[Model Name]_summary.xlsx` : an Excel file containing all simulation results
+
+In addition, a temporary folder (e.g. [model name].tmp) is created in the output directory:
+   * :file:`..._res` folder : contains all output files generated by influx_si during calculations (for more details, refer to the `influx_si software documentation <https://influx-si.readthedocs.io/en/latest/manual.html#output-format>`_)
+   * :file:`".linp"` extension files : MTF format files containing the various isotopic forms and their fractions (for more details, refer to the `influx_si software documentation <https://influx-si.readthedocs.io/en/latest/manual.html#linp>`_)
+   * :file:`MTF` files : all model MTF files.
+   * :file:`".tvar.def"` file : generated by influx_si during calculations.
+   * :file:`Log` file : run log file containing information on how the run went.
+

@@ -27,7 +27,7 @@ Once you installed IsoDesign, you can install these dependencies by running the 
 
     influx_s --install_rdep
 
-For more information on the installation of R dependencies, please refer to `influx_si software <https://influx-si.readthedocs.io/en/latest/index.html/>`_ documentation.
+For more information on the installation of R dependencies, please refer to `influx_si software <https://influx-si.readthedocs.io/en/latest/install.html#r-dependencies>`_ documentation.
 
 
 Alternatives & updates
