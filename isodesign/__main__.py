@@ -22,11 +22,14 @@ def get_last_version():
 def main():
     """The main routine"""
 
-    thread = Thread(target=get_last_version)
-    thread.start()
-    path_to_app = Path(isodesign.__file__).parent
-    path_to_app = path_to_app / "ui/Upload_data.py"
-    run(["streamlit", "run", str(path_to_app)])
+    if len(sys.argv) > 1:
+        isodesign.ui.cli.main()
+    else:
+        thread = Thread(target=get_last_version)
+        thread.start()
+        path_to_app = Path(isodesign.__file__).parent
+        path_to_app = path_to_app / "ui/Upload_data.py"
+        run(["streamlit", "run", str(path_to_app)])
 
 
 if __name__ == "__main__":
