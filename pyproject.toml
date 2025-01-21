@@ -2,7 +2,7 @@
 name = "isodesign"
 version = "2.0.0_beta.4"
 description = "Facilitates the choice of the optimal isotopic composition of labeled substrates in 13C-fluxomics experiments."
-authors = ["rkouakou <kouakou@insa-toulouse.fr>, llegregam <legregam@insa-toulouse.fr>, Pierre Millard <millard@insa-toulouse.fr>, sgsokol <sokol@insa-toulouse.fr"]
+authors = ["rkouakou <kouakou@insa-toulouse.fr>, llegregam <legregam@insa-toulouse.fr>, Pierre Millard <millard@insa-toulouse.fr>, sgsokol <sokol@insa-toulouse.fr>"]
 readme = "README.md"
 
 [tool.poetry.scripts]
