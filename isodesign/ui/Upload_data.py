@@ -120,7 +120,8 @@ st.sidebar.markdown("## Load a session")
 # Load a pickle file if it exists
 upload_pickle = st.sidebar.file_uploader("Load a previous session file.",
                                          key="upload_pickle",
-                                         help = 'File with pickle extension (".pkl").')
+                                         help = 'File with pickle extension (".pkl").',
+                                         type= ["pkl"])
 if upload_pickle:
     with upload_pickle as session_file:
         process_object = pickle.load(session_file)
