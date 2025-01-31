@@ -1,7 +1,7 @@
 Quick start
 ============
 
-In this section we will explain how to launch IsoDesign once it has been installed on your system.
+In this section, we explain how to launch IsoDesign once it has been installed on your system.
 
 
 Graphical user interface
