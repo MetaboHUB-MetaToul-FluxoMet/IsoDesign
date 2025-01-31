@@ -32,7 +32,7 @@ installed on your system, you can install IsoDesign with pip.
 
     pip install isodesign
 
-This will install IsoDesign and all its dependencies. To use IsoDesign, you will need some R dependencies (necessary for the simulation part with influx_si).
+This will install IsoDesign and most of its dependencies. To use IsoDesign, you will need some additional R dependencies (necessary for the simulation part with influx_si).
 Once you installed IsoDesign, you can install these dependencies by running the following command:
 
 .. code-block:: bashy
