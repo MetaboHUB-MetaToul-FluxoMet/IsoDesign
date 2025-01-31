@@ -4,7 +4,7 @@ Installation
 Installation
 -----------------
 
-IsoDesign requires Python 3.10 or higher and run on all platforms supporting Python3 (Windows, MacOS and Linux).
+IsoDesign requires Python 3.10 or higher and runs on all platforms supporting Python3 (Windows, MacOS and Linux).
 If you do not have a Python environment configured on your computer, we recommend that you follow the instructions
 from `Anaconda <https://www.anaconda.com/download/>`_.
 
