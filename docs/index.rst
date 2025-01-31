@@ -11,7 +11,7 @@ isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics experiments
 
 **Key features:**
 
-   * user can **define the isotopic forms to consider of each substrate**,
+   * user can **define the isotopic forms to consider for each substrate**,
    * can be applied to both **stationary** and **instationary** :sup:`13`\ **C-flux experiments**, 
    * account for the **substrate price** to keep the cost of the experiment reasonable,
    * **several scoring criteria** can be applied to identify the optimal label input according to the biological question to be addressed,
