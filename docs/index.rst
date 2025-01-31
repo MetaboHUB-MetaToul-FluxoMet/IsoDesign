@@ -21,7 +21,7 @@ isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics experiments
    * **biologist-friendly**.
 
 It is one of the routine tools that we use at the `MetaToul platform <https://mth-metatoul.com/>`_ and 
-`MetaSys team <http://www.toulouse-biotechnology-institute.fr/en/research/molecular-physiology-and-metabolism/metasys.html>`_ of `Toulouse Biotechnology Institute <http://www.toulouse-biotechnology-institute.fr/en/>`_.
+`MetaSys team <http://www.toulouse-biotechnology-institute.fr/en/research/molecular-physiology-and-metabolism/metasys.html>`_ of the `Toulouse Biotechnology Institute <http://www.toulouse-biotechnology-institute.fr/en/>`_.
 IsoDesign has been developed in collaboration with the `Math cell of TBI <https://www.toulouse-biotechnology-institute.fr/en/plateformes-plateaux/cellule-mathematiques/>`_, with the continuous support of `MetaboHUB <https://www6.inrae.fr/metabohub_eng/>`_.
 
 The code is open-source, and available on `GitHub <https://github.com/MetaboHUB-MetaToul-FluxoMet/IsoDesign/>`_ under a
