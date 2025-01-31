@@ -17,7 +17,7 @@ software <https://influx-si.readthedocs.io/en/latest/index.html>`_.
 
 **IsoDesign includes the following features:**
 
-   * user can **define the isotopic forms to consider of each substrate**,
+   * user can **define the isotopic forms to consider for each substrate**,
    * account for the **substrate price** to keep the cost of the experiment
      reasonable,
    * **design for both (isotopic) stationary and non-stationary fluxomics**
