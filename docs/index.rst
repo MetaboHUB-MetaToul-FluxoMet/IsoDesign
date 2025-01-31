@@ -10,12 +10,7 @@ Welcome to IsoDesign documentation !
 IsoDesign is a scientific tool designed to identify the optimal
 isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics experiments.
 
-Intracellular fluxes and associated statistics are estimated using the
-`influx_si
-software <https://influx-si.readthedocs.io/en/latest/index.html>`_.
 **Key features:**
-
-**IsoDesign includes the following features:**
 
    * user can **define the isotopic forms to consider for each substrate**,
    * account for the **substrate price** to keep the cost of the experiment
