@@ -1,39 +1,40 @@
 Installation
 ============
 
-Installation with Conda (recommended)
---------------------------------------
+Requirements
+-----------------
 
-IsoDesign requires Python 3.10 or higher and run on all platforms supporting
-Python3 (Windows, MacOS and Linux).
-If you do not have a Python environment configured on your computer, we
-recommend that you follow the instructions from `Anaconda <https://www
-.anaconda.com/download/>`_.
+IsoDesign runs on all platforms (Windows, MacOS and Linux) and requires Python (3.10 or higher) and R (3.4.0 or higher).
+If you do not have a Python environment configured on your computer, we recommend that you follow the instructions
+from `Anaconda <https://www.anaconda.com/download/>`_.
 
-If you have Anaconda or Miniconda installed on your system, installation of
-IsoDesign resumes to:
+
+Installation with conda (recommended)
+-------------------------
+
+This is the recommended installation procedure. If you have a version of conda (such as miniconda or Anaconda), you can install IsoDesign with the following command:
 
 .. code-block:: bash
 
     conda install isodesign -c bioconda
 
-This will install IsoDesign and all of its dependencies..
+This will install IsoDesign and all its dependencies.
 
 
 Installation with pip
 -------------------------
 
-If you don't have any version of conda (neither miniconda nor Anaconda) but
-do have Python3 and R installed on your system, you can install IsoDesign
-with pip.
+If you don't have any version of conda (neither miniconda nor Anaconda) but do have Python3 and R 
+installed on your system, you can install IsoDesign with pip.
 
 
 .. code-block:: bash
 
     pip install isodesign
 
-This will install IsoDesign, though some dependencies may be missing. This
-is due to the influx_si package, which requires R dependencies. You can
+This will install IsoDesign and most of its dependencies. To use IsoDesign,
+you will need some additional R dependencies (necessary for the flux
+simulation part with influx_si). Once you installed IsoDesign, you can
 install these dependencies by running the following command:
 
 .. code-block:: bash
@@ -48,9 +49,8 @@ For more information on the installation of R dependencies, please refer to the
 Alternatives & updates
 ----------------------
 
-If you know that you do not have permission to install software system-wide
-using pip, you can install IsoDesign into your user directory using the
-:samp:`--user` flag:
+If you do not have permission to install software system-wide, you can
+install IsoDesign into your user directory using the :samp:`--user` flag:
 
 .. code-block::
 

@@ -1,5 +1,5 @@
 .. IsoDesign documentation master file, created by
-   sphinx-quickstart on Mon Nov 18 10:19:08 2024.
+   sphinx-quickstart on Fri Jan 31 09:51:42 2025.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
@@ -7,34 +7,44 @@
 Welcome to IsoDesign documentation !
 ====================================
 
-IsoDesign is a scientific tool selecting the optimal isotopic composition of
-labeled substrates in :sup:`13`\C fluxomic labeling experiments.
+IsoDesign is a scientific tool designed to identify the optimal
+isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics experiments.
 
 Intracellular fluxes and associated statistics are estimated using the
 `influx_si
 software <https://influx-si.readthedocs.io/en/latest/index.html>`_.
+**Key features:**
 
 **IsoDesign includes the following features:**
 
-   * **Estimate from a given network and set of possible isotopic measurements**
-     **the optimal isotopic composition of labeled substrates for increased**
-     **flux precision**
-   * **Design for both (isotopic) stationary and non-stationary fluxomics**
+   * user can **define the isotopic forms to consider of each substrate**,
+   * account for the **substrate price** to keep the cost of the experiment
+     reasonable,
+   * **design for both (isotopic) stationary and non-stationary fluxomics**
      **experiments**
-   * Test **multiple labelled molecules**
-   * **Multiple scoring criteria** to finely analyse individual, pathway and
-     network level flux precisions
-   * Can handle large numbers of combinations of isotopic forms of
-     substrates with high performance
-   * Shipped as a  pyton package and a interactive streamlit application
-   * **Open-source, free and easy to install** everywhere where Python 3 runs
+   * **diverse scoring criteria** to finely analyse individual, pathway and
+     network level flux precisions to identify the optimal label input
+     according to the biological question to be addressed,
+   * **scoring criteria can be combined** to find the optimal balance
+     between different objectives (e.g., the highest flux resolution at a
+     minimal cost),
+   * **visual representation** of the design results to support the
+     decision-making process,
+   * increased computationnal performance through **parallel computing**,
+   * shipped as a  pyton package with a **graphical user interface**,
+   * **open-source, free and easy to install** everywhere where Python and R run,
+   * **biologist-friendly**.
 
-Built as a collaboration between the `Mathematics cell <https://www
+It is one of the routine tools that we use at the `MetaToul platform
+<https://mth-metatoul.com/>`_ and `MetaSys team <http://www
 .toulouse-biotechnology-institute
-.fr/en/plateformes-plateaux/cellule-mathematiques/>`_, the
-`MetaboHUB-MetaToul platform <https://mth-metatoul.com/>`_ and the `MetaSys
-team <https://www.toulouse-biotechnology-institute
-.fr/poles/equipe-metasys/>`_ of the Toulouse Biotechnology Institue.
+.fr/en/research/molecular-physiology-and-metabolism/metasys.html>`_ of the
+`Toulouse Biotechnology Institute <http://www
+.toulouse-biotechnology-institute.fr/en/>`_.
+IsoDesign has been developed in collaboration with the `Math cell of TBI
+<https://www.toulouse-biotechnology-institute
+.fr/en/plateformes-plateaux/cellule-mathematiques/>`_, with the continuous
+support of `MetaboHUB <https://www.metabohub.fr/home.html>`_.
 
 The code is open-source, and available on `GitHub <https://github
 .com/MetaboHUB-MetaToul-FluxoMet/IsoDesign/>`_ under a
@@ -44,6 +54,7 @@ This documentation is available on Read the Docs (`https://isodesign
 .readthedocs.io <https://isodesign.readthedocs.io/>`_)
 and can be downloaded as a `PDF file <https://readthedocs
 .org/projects/isodesign/downloads/pdf/latest/>`_.
+
 
 .. toctree::
    :maxdepth: 2
