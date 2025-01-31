@@ -12,21 +12,20 @@ isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics experiments
 
 **Key features:**
 
-   * user can **define the isotopic forms to consider for each substrate**,
+   * users can **define all isotopic forms to consider for each substrate**,
    * account for the **substrate price** to keep the cost of the experiment
      reasonable,
-   * **design for both (isotopic) stationary and non-stationary fluxomics**
-     **experiments**
-   * **diverse scoring criteria** to finely analyse individual, pathway and
-     network level flux precisions to identify the optimal label input
-     according to the biological question to be addressed,
+   * design of both (isotopic) **stationary and non-stationary** :sup:`13`\ C-fluxomics experiments
+   * **diverse scoring criteria** to finely analyse flux resolution at reaction-, pathway- and
+     network-levels to identify the optimal label input
+     according to the biological question,
    * **scoring criteria can be combined** to find the optimal balance
      between different objectives (e.g., the highest flux resolution at a
      minimal cost),
    * **visual representation** of the design results to support the
      decision-making process,
-   * increased computationnal performance through **parallel computing**,
-   * shipped as a  pyton package with a **graphical user interface**,
+   * increased computational performance through **parallel computing**,
+   * shipped as a **library** with a **graphical user interface**,
    * **open-source, free and easy to install** everywhere where Python and R run,
    * **biologist-friendly**.
 
