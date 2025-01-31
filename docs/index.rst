@@ -8,7 +8,8 @@ Welcome to IsoDesign documentation !
 ====================================
 
 IsoDesign is a scientific tool designed to identify the optimal
-isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics experiments.
+isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics
+experiments.
 
 **Key features:**
 
@@ -26,7 +27,8 @@ isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics experiments
      decision-making process,
    * increased computational performance through **parallel computing**,
    * shipped as a **library** with a **graphical user interface**,
-   * **open-source, free and easy to install** everywhere where Python and R run,
+   * **open-source, free and easy to install** everywhere where Python and R
+     run,
    * **biologist-friendly**.
 
 It is one of the routine tools that we use at the `MetaToul platform
