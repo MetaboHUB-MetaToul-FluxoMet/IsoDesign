@@ -1,7 +1,7 @@
 Installation
 ============
 
-Installation
+Requirements
 -----------------
 
 IsoDesign requires Python 3.10 or higher and runs on all platforms supporting Python3 (Windows, MacOS and Linux).
