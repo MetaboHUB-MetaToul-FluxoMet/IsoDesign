@@ -18,7 +18,7 @@ If you have installed the package in a specific environment, make sure to activa
 IsoDesign interface will open in a new browser window:
 
 .. image:: _static/interface.JPG
-   :scale: 60%
+   :scale: 40%
 
 Select your input network file (which should have a :file:`.netw` extension, refer to :ref:`required_input_data_files` for more details). 
 By default, an output directory path is pre-configured, but you can modify it if needed. Once ready, you click the "Submit" button to load your model 
