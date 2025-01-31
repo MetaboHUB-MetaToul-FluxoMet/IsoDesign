@@ -17,7 +17,7 @@ isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics experiments
    * **several scoring criteria** can be applied to identify the optimal label input according to the biological question to be addressed,
    * **combination of different scoring criteria** is possible,
    * shipped as a **library** with a **graphical** interface,
-   * **open-source, free and easy to install** everywhere where Python 3 and pip run,
+   * **open-source, free and easy to install** everywhere where Python and R run,
    * **biologist-friendly**.
 
 It is one of the routine tools that we use at the `MetaToul platform <https://mth-metatoul.com/>`_ and 
