@@ -9,6 +9,18 @@ If you do not have a Python environment configured on your computer, we recommen
 from `Anaconda <https://www.anaconda.com/download/>`_.
 
 
+Installation with conda (recommended)
+-------------------------
+
+This is the recommended installation procedure. If you have a version of conda (such as miniconda or Anaconda), you can install IsoDesign with the following command:
+
+.. code-block:: bash
+
+    conda install isodesign
+
+This will install IsoDesign and all its dependencies. 
+
+
 Installation with pip
 -------------------------
 
@@ -20,7 +32,7 @@ installed on your system, you can install IsoDesign with pip.
 
     pip install isodesign
 
-This will install IsoDesign and all its dependencies. To use IsoDesign, you will need to some R dependencies (necessary for the simulation part with influx_si).
+This will install IsoDesign and all its dependencies. To use IsoDesign, you will need some R dependencies (necessary for the simulation part with influx_si).
 Once you installed IsoDesign, you can install these dependencies by running the following command:
 
 .. code-block:: bashy
@@ -33,7 +45,7 @@ For more information on the installation of R dependencies, please refer to `inf
 Alternatives & updates
 ----------------------
 
-If you know that you do not have permission to install software system-wide, you can install IsoDesign into your user directory using the :samp:`--user` flag:
+If you do not have permission to install software system-wide, you can install IsoDesign into your user directory using the :samp:`--user` flag:
 
 .. code-block::
 
