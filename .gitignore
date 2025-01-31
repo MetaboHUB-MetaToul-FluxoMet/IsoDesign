@@ -2,3 +2,4 @@
 __pycache__
 isodesign/test_data/acetate_LLE/tmp
 .ipynb_checkpoints
+/docs/_build/ 

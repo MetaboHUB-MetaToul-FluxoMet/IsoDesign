@@ -1,7 +1,6 @@
 # Configuration file for the Sphinx documentation builder.
 #
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
+# For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 # -- Path setup --------------------------------------------------------------
@@ -17,13 +16,13 @@ from isodesign import __version__
 
 project = 'IsoDesign'
 copyright = '2024, INRAE'
-author = 'Rochelle Kouakou, Loïc Le Grégam'
+author = 'Rochelle Kouakou, Loïc Le Gregam, Serguei Sokol, Pierre Millard'
 
 # The full version, including alpha/beta/rc tags
 release = __version__
 
-# -- General configuration ---------------------------------------------------
 
+# -- General configuration ---------------------------------------------------
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.

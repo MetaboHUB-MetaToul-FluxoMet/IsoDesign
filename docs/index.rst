@@ -1,8 +1,7 @@
 .. IsoDesign documentation master file, created by
-   sphinx-quickstart on Mon Nov 18 10:19:08 2024.
+   sphinx-quickstart on Fri Jan 31 09:51:42 2025.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
-
 
 Welcome to IsoDesign documentation !
 =======================
@@ -10,7 +9,7 @@ Welcome to IsoDesign documentation !
 IsoDesign is a scientific tool designed to optimize the choice of the optimal 
 isotopic composition of labeled substrates in 13C fluxomic labeling experiments.
 
-Simulated labeling is calculated using the `influx_si software <https://influx-si.readthedocs.io/en/latest/index.html>`_ , distributed with IsoDesign. 
+Simulated labeling is calculated using the `influx_si software <https://influx-si.readthedocs.io/en/latest/index.html>`_ . 
 
 **IsoDesign includes the following features:**
 
