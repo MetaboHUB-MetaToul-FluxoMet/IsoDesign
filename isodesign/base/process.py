@@ -7,10 +7,10 @@ import pickle
 from collections import namedtuple
 from pathlib import Path
 import numpy as np
+import subprocess
 
-from subprocess import Popen, SubprocessError
 import pandas as pd
-from influx_si import influx_s, influx_i, C13_ftbl, txt2ftbl
+from influx_si import C13_ftbl, txt2ftbl
 
 from isodesign.base.isotopomer import Isotopomer
 from isodesign.base.label_input import LabelInput
@@ -488,21 +488,30 @@ class Process:
         os.chdir(self.tmp_folder_path)
         logger.info(f"{influx_mode} is running...")
         
-        try:
-            # Select the correct executable based on the mode
-            if influx_mode == "influx_i":
-                command = ["influx_i"] + param_list
-            if influx_mode == "influx_s":
-                command = ["influx_s"] + param_list
-            
-            subprocess = Popen(command)
-
-            self.command_list = param_list
-
-            return subprocess
+        # Select the correct executable based on the mode
+        if influx_mode == "influx_i":
+            command = ["influx_i"] + param_list
+        if influx_mode == "influx_s":
+            command = ["influx_s"] + param_list
         
-        except SubprocessError as e:
-            logger.error(f"An error occurred while running {influx_mode}: {e}")
+        self.command_list = param_list
+        try:
+            result = subprocess.Popen(command, 
+                                        stderr=subprocess.PIPE,
+                                        text=True)
+
+            stdout, stderr = result.communicate()
+
+            # 
+            if result.returncode != 0:
+                
+                raise Exception(stderr)
+                
+            # logger.info(stdout.decode())
+            return result
+
+        except Exception as e:
+            logger.error(f"An exception has been raised: {e}")
             raise
 
     def generate_summary(self):
@@ -704,6 +713,7 @@ class Process:
 
 #     test = Process()
 #     test.get_path_input_netw(r"c:\Users\kouakou\Documents\test_data\design_test_1.netw")
+#     test.output_folder_path = r"c:\Users\kouakou\Documents\test_data"
 #     test.load_model()
 #     test.analyse_model()
 #     test.create_tmp_folder()
@@ -715,20 +725,21 @@ class Process:
 
 #     test.configure_linp_files()
 #     test.generate_linp_files()
-#     # test.generate_vmtf_file()
-#     # test.copy_files()
+#     test.generate_vmtf_file()
+#     test.copy_files()
     
-#     # test.command_list = ["--prefix", test.model_name, "--emu", "--ln", "--noopt", "--np=1"]
-#     # test.influx_simulation(influx_mode="influx_s")
+#     test.clear_previous_run()
+#     command_list = ["--prefix", test.model_name, "--emu", "--ln", "--noopt", "--k"]
+#     test.influx_simulation(command_list, influx_mode="influx_s")
     
-#     test.generate_summary()
+# #     test.generate_summary()
 #     # test.save_process_to_file()
-#     test.data_filter(pathways=["GLYCOLYSIS"], kind=["NET"])
-#     test.generate_score(["sum_sd", "number_of_flux"], threshold=1, operation="Addition")
-#     test.draw_barplot(test.scores)
-#     test.register_scores(1)
+#     # test.data_filter(pathways=["GLYCOLYSIS"], kind=["NET"])
+#     # test.generate_score(["sum_sd", "number_of_flux"], threshold=1, operation="Addition")
+#     # test.draw_barplot(test.scores)
+#     # test.register_scores(1)
 
-#     test.export_data("score_1")
+#     # test.export_data("score_1")
 
     
 
