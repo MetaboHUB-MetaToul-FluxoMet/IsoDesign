@@ -15,7 +15,7 @@ isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics experiments
    * can be applied to **stationary or instationary** :sup:`13`\ **C-flux experiments**, 
    * account for the **substrate price** to keep reasonable the cost of the experiment,
    * **several scoring criteria** can be applied to identify the optimal label input according to the biological question to be addressed,
-   * **combination of different scoring criteria** is possible,
+   * **combination of different scoring criteria** is possible to find an optimal balance between different objectives (e.g., the highest flux resolution at a minimal cost),
    * shipped as a **library** with a **graphical** interface,
    * **open-source, free and easy to install** everywhere where Python and R run,
    * **biologist-friendly**.
