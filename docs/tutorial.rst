@@ -1,8 +1,8 @@
 Tutorial
 ========
-This tutorial will guide you through the main steps of IsoDesign, from the input of a metabolic network model to the visualization and interpretation of simulation results.
+This tutorial will guide you through the main steps of IsoDesign, from loading a flux model to visualizing and interpretating design results.
 
-Upload data
+Load input data
 ------------------------
 
 .. _required_input_data_files:
@@ -10,60 +10,60 @@ Upload data
 Required input data files
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-IsoDesign uses a specific file format, introduced in `influx_si <https://influx-si.readthedocs.io/en/latest/>`_, to describe metabolic network models: the :file:`Multiple TSV File` (MTF) format.  
-MTF files are tab-separated files (TSV), each with a specific role in model characterization. Each file is identified by a distinct suffix
+IsoDesign uses a specific file format for isotopic models of metabolic networks, introduced in `influx_si <https://influx-si.readthedocs.io/en/latest/>`_, the :file:`Multiple TSV File` (MTF) format.  
+MTF files are tab-separated files (TSV), each with a specific content (list of reactions, isotopic measurements, etc). Each file is identified by a specific suffix
 indicating the type of information it contains. For more details on these files, please refer to the `influx_si software documentation 
 <https://influx-si.readthedocs.io/en/latest/manual.html#>`_. 
 
-IsoDesign uses a network file (with the :file:`.netw` extension) as input. After submitting the input file, all associated MTF format files sharing 
-the same model name are automatically loaded. A new section, "Network Analysis", then appears, presenting multiple tabs for exploration.  
+IsoDesign uses as main file a network file (with the :file:`.netw` extension) as input. After selecting the input file, all associated MTF files sharing 
+the same prefix are automatically detected and loaded. A new section, "Network Analysis", then appears, presenting multiple tabs to explore the model.  
 
 Network analysis section
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Each tab provides specific information related to the model and its contents:
+Each tab provides specific information related to the isotopic model:
 
-:Label input: displays the substrates to be used for labeling simulations.
-:Isotopic measurements: displays the contents of the file with :file:`.miso` extension, which includes isotopic measurements that can be analyzed using mass spectrometry and/or NMR, along with the associated standard deviations (SDs).
-:Inputs/Outputs: describes all input, intermediate and output metabolites.
-:Fluxes: shows the initial metabolic flux values extracted from the file with :file:`.tvar` extension.
-:Network: presents a table listing the biochemical reactions, their names, and the metabolic pathways they belong to (if specified in the :file:`.netw` file).
+:Label input: list the metabolite(s) defined as substrate(s) (i.e., the label input(s) of the network).
+:Isotopic measurements: isotopic measurements that can be accessed by mass spectrometry and/or NMR, along with the associated standard deviations (SDs) (contained in the :file:`.miso` file).
+:Inputs/Outputs: list all input, intermediate and output metabolites.
+:Fluxes: initial metabolic flux values extracted from the :file:`.tvar` file.
+:Network: list all reactions present in the network, with the metabolic pathways they belong to (if specified in the :file:`.netw` file).
 
-After the model is successfully loaded, proceed to the next page to define the isotopic composition of the substrates.
+After a model is successfully loaded, go to the next page to define the isotopic forms of the substrate(s) to be consider for experimental design.
 
 .. _labels_input:
 Labels input
 ------------------------
 
-Configure isotopic composition 
+Define isotopic forms 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This section allows you to configure the labeling parameters, including the proportion values, intervals, and, if desired, isotopic form prices for the substrates.
+This section allows you to configure the labeling parameters, including the proportions, and, if desired, the price of all isotopic forms of the substrate(s) to consider when designing the experiment.
 
 .. image:: _static/substrate_configuration.JPG
 
 The left-hand side lets you add forms for each substrate. Added forms are displayed in the "Configured labels input" section on the right. 
 
-By default, the unlabeled form of the substrate is represented. The **Lower bound** and **Upper bound** fields are set to 100, and the **Number of intervals** 
-fiels is set to 10. In addition, an unlabeled form is automatically added for each substrate. 
+By default, only the unlabeled form of each substrate is defined. The **Lower bound** and **Upper bound** fields are set to 100, and the **Number of intervals** 
+fiels is set to 10. 
 
-.. note:: If the lower and upper bounds are equal, the step size is ignored, and the proportion is fixed at a single value
-   (e.g. if both fields are set to 100, the form will be fixed at 100% and will not be divided into intervals).
-
-
-.. note:: It is recommended to keep this unlabeled form in its default configuration, as it compensates for the remaining proportions. This 
-   ensures that, when combining different forms, the total of all added forms is equal to 100%.
+.. note:: If the lower and upper bounds are equal, the step size is ignored, and the proportion is fixed at the given value
+   (e.g. if both fields are set to 100, the form will be fixed at 100%).
 
 
-You can define the desired labeling positions by entering a combination of 0 (unlabeled) and 1 (labeled). Additionally, you can set the lower and upper bounds 
-(ranging from 0 to 100) and specify the desired number of intervals. Once the number of intervals is entered, the corresponding step size will be automatically 
-calculated and displayed as a reference. You can also assign a price to each form, which will later be factored into the scoring criteria.
-To add a substrate, click the "Add" button. You can submit for combinations generation by clicking the "Submit" button.
+.. note:: We recommended to keep the unlabeled form in its default configuration, as it compensates for the remaining proportions. This 
+   ensures that, when combining different isotopic forms, the total of all added forms is always equal to 100%.
 
-.. warning:: Each substrate must have at least one form added. If only one form is required, its proportion must be set to 100%.
 
-Visualize the generated combinations
+You can define additional isotopic forms by entering a combination of 0 (unlabeled) and 1 (labeled). Additionally, you can set the lower and upper bounds 
+(ranging from 0 to 100 by default) and specify the desired number of intervals. Once the number of intervals is entered, the corresponding step size will be automatically 
+calculated and displayed as a reference. You can also assign a price to each form, which can later be considered in the scoring step.
+To add an isotopic form, click on the "Add" button. You can submit the forms provided to generate all combinations of label input by clicking the "Submit" button.
+
+.. warning:: Each substrate must have at least one isotopic form defined. If only one form is required, its proportion must be set to 100%.
+
+Generate all combinations of isotopic forms used as label input
 ~~~~~~~~~~~~~~~~~~
-The total number of generated combinations is displayed. Each combinations can be viewed in a table by clicking the "Show combinations" button. 
+The total number of label inputs to be tested is displayed. Each combinations can be viewed in a table by clicking the "Show combinations" button. 
 The table contains the following columns:
 
    * **ID** : combination ID,
@@ -72,25 +72,26 @@ The table contains the following columns:
    * **Value** : proportion of each isotopic form,
    * **Price** : price of each isotopic form (depending on the proportion value).
 
-To remove combinations, select the desired ones and click the “Remove selected combinations” button.
-Click the “Submit for simulations” button to navigate to the “Simulation Options” page and start the simulations.
+To exclude one or several combinations from the design process, select the forms to exclude and click the “Remove selected combinations” button.
+
+Then, click the “Submit for simulations” button to navigate to the “Simulation Options” page and run the calculations.
 
 
 .. _simulation_options:
-Simulation options
+Calculations
 ------------------------
-This page enables you to configure simulations settings and run simulations using `influx_si <https://influx-si.readthedocs.io/en/latest/>`_. You can choose the desired influx_si mode 
+This page enables you to configure calculations settings and run simulations using `influx_si <https://influx-si.readthedocs.io/en/latest/>`_. You can choose the desired influx_si mode 
 for simulations: 
 
-      * **influx_s** (stationary) 
-      * **influx_i** (instationary)
+      * **influx_s** (stationary experiments) 
+      * **influx_i** (instationary experiments)
 
 Depending on the selected mode, default options are pre-selected. You can remove these options if needed or add new ones manually in the “Add option” field.
 For detailed information on available options, consult the `influx_si documentation <https://influx-si.readthedocs.io/en/latest/>`_.
-The page displays the total number of combinations to be simulated and the exact command that will be executed in influx_si.
+The page displays the total number of label inputs considered and the command that will be executed in influx_si.
 
 .. note:: 
-   When adding an option manually, enter the option name without including the :samp:`--` prefix (e.g., use “fullsys” instead of “--fullsys”). 
+   When adding an option manually, enter the option name with the :samp:`--` prefix (e.g., use “--fullsys” and not “fullsys”). 
 
 
 Two buttons are available:
@@ -104,13 +105,13 @@ Results
 ------------------------
 Results visualization
 ~~~~~~~~~~~~~~~~~~~~~
-The simulation results are displayed in a table with the following columns:
+The raw simulation results are displayed in a table with the following columns:
    * **Name** : flux names, 
-   * **Kind** : flux types (NET, XCH, METAB),
+   * **Kind** : types (NET, XCH, METAB),
    * **Initial flux value** : initial flux values (from the "Value" column in :file:`.tvar` file),
-   * **Value** : simulated flux values,
+   * **Value** : flux values used for simulations,
    * **Value difference** : difference between the initial and simulated flux values,
-   * **ID..**. : Standard deviation of the simulated fluxes corresponding to a specific isotopic composition combination.
+   * **ID..**. : Flux standard deviation for a given label input.
 
 To filter the table, click on "Apply a filter". The table can be filtered based on the following criteria:
    * Flux : flux names
@@ -118,34 +119,33 @@ To filter the table, click on "Apply a filter". The table can be filtered based 
    * Pathway : metabolic pathways (if specified in the :file:`.netw` file)
 
 .. note:: 
-   To view the isotopic composition within the IDs, a file is generated in the output directory. This file is named after 
-   the model with the suffix :file:`_files_combinations.txt.`. For more details, refer to the :ref:`outputs` section.
+   To view the isotopic composition within the IDs, a file is generated in the output directory. This file is named as the main 
+   model file with the suffix :file:`_files_combinations.txt.`. For more details, refer to the :ref:`outputs` section.
 
 Scoring criteria 
 ~~~~~~~~~~~~~~~~~~~~~
 
-The section below the table allows you to apply criteria and visualize the generated scores. 
+The section below the table allows you to apply criteria and visualize the generated scores. This is the key page to **support interpretation and rank the substrates based on the biological question to be addressed**. 
 
 .. image:: _static/scoring_criteria.JPG
 
 The left-hand side is used to select the criteria and configure their parameters. Four general scoring criteria are available:
-   * **Sum of SDs** : calculated the total sum of all SDs (standard deviations) of fluxes for each isotopic composition combination.
-   * **Number of fluxes with SDs < threshold** : counts the number of fluxes with SDs below a specified threshold in the parameters.
-   * **Number of labeled inputs** : counts the number of labeled inputs for each isotopic composition combination.
-   * **Price** : calculates the total price for each isotopic composition combination.
+   * **Sum of SDs** : total sum of SDs (standard deviations) of all or a specific fluxes for each label input.
+   * **Number of fluxes with SDs < threshold** : number of fluxes with SDs below a threshold (provided as parameter).
+   * **Number of labeled inputs** : number of isotopic forms in label inputs.
+   * **Price** : total price for each label input.
 
-You can apply multiple criteria simultaneously. Additionally, mathematical operations (addition, multiplication and division) and weights
-can be assigned to each criterion. 
+You can apply criteria individually, or combine them using mathematical operations (addition, multiplication and division, with weights assigned to each criterion). 
 
 The right-hand side displays the generated scores as you select and configure criteria. Scores are presented both in a table and as 
 a bar plot.  
 
 By default, the bar plot displays all results from the score table. To display only specific results on the bar plot, select 
 the corresponding rows in the table. The bar plot will then update to show only the selected data.
-It is possible to apply a log transformation by selecting the 'Apply a log' checkbox, which applies a base-10 logarithm.
+It is possible to apply a log transformation by selecting the 'Log scale' checkbox, which applies a base-10 logarithm.
 
 Clicking the “New Score” button creates a new, independent block. This allows you to apply different scoring criteria to a separate 
-dataset or explore alternative scoring configurations without affecting the existing block.
+dataset or explore alternative scoring configurations without affecting the previous scoring.
 
 To export the results, click the “Export” button. The table, the generated scores table, and the bar plot will be exported in their current state 
 to the output directory.
