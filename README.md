@@ -45,25 +45,38 @@ IsoDesign runs on all platforms and requires Python (3.10 or higher) and R (3.4.
 Please check [the documentation](https://isodesign.readthedocs.io/en/latest/quickstart.html) for complete
 installation and usage instructions.
 
+### Installation with conda (recommended)
+
+This is the recommended installation procedure. If you have a version of conda (such as miniconda or Anaconda), you can install IsoDesign with the following command:
+
+```bash
+$ conda install isodesign -c bioconda
+```
+
+This will install IsoDesign and all its dependencies.
+
 ### Installation with pip
-If you have Python3 and R 
-installed on your system, you can install IsoDesign from Pypi with pip :
+
+If you don't have any version of conda (neither miniconda nor Anaconda) but do have Python3 and R installed on your system, you can install IsoDesign with pip.
 
 ```bash
 $ pip install isodesign
 ```
 
-To use IsoDesign, you will need to some R dependencies (necessary for influx_si).
-Once you have installed IsoDesign, you can install these dependencies by running the following command:
+This will install IsoDesign and most of its dependencies. To use IsoDesign,
+you will need some additional R dependencies (necessary for influx_si). Once you installed IsoDesign, you can
+install these dependencies by running the following command:
 
 ```bash
 $ influx_s --install_rdep
 ```
 
-For more information on the installation of R dependencies, please refer to [influx_si software](https://influx-si.readthedocs.io/en/latest/install.html#r-dependencies) documentation.
+For more information on the installation of R dependencies, please refer to
+[influx_si documentation](https://influx-si.readthedocs.io/en/latest/install.html#r-dependencies).
 
+### Start IsoDesign
 
-Then, start the graphical interface with:
+Then, start the graphical user interface with:
 
 ```bash
 $ isodesign
@@ -71,13 +84,12 @@ $ isodesign
 
 IsoDesign is also available directly from command-line and as a Python library.
 
-
 ## Bug and feature requests
 If you have an idea on how we could improve IsoDesign please submit a new *issue*
 to [our GitHub issue tracker](https://github.com/MetaboHUB-MetaToul-FluxoMet/IsoDesign/issues).
 
-
 ## Developers guide
+
 ### Contributions
 Contributions are very welcome! :heart:
 
