@@ -1,6 +1,6 @@
 Tutorial
 ========
-This tutorial will guide you through the main steps of IsoDesign, from the input of a metabolic network model to the analysis of simulation results.
+This tutorial will guide you through the main steps of IsoDesign, from the input of a metabolic network model to the visualization and interpretation of simulation results.
 
 
 Upload data
@@ -81,7 +81,7 @@ Click the “Submit for simulations” button to navigate to the “Simulation O
 Simulation options
 ------------------------
 This page enables you to configure simulations settings and run simulations using influx_si. You can choose the desired influx_si mode 
-for simulations : 
+for simulations: 
 
       * **influx_s** (stationary) 
       * **influx_i** (instationary)
@@ -105,7 +105,7 @@ Results
 ------------------------
 Results visualization
 ~~~~~~~~~~~~~~~~~~~~~
-The simulation results are displayed in a table with the following columns :
+The simulation results are displayed in a table with the following columns:
    * **Name** : flux names, 
    * **Kind** : flux types (NET, XCH, METAB),
    * **Initial flux value** : initial flux values (from the "Value" column in :file:`.tvar` file),
@@ -113,7 +113,7 @@ The simulation results are displayed in a table with the following columns :
    * **Value difference** : difference between the initial and simulated flux values,
    * **ID..**. : Standard deviation of the simulated fluxes corresponding to a specific isotopic composition combination.
 
-To filter the table, click on "Apply a filter". The table can be filtered based on the following criteria :
+To filter the table, click on "Apply a filter". The table can be filtered based on the following criteria:
    * Flux : flux names
    * Kind : flux types (NET, XCH, METAB)
    * Pathway : metabolic pathways (if specified in the ".netw" file)
@@ -129,12 +129,11 @@ The section below the table allows you to apply criteria and visualize the gener
 
 .. image:: _static/scoring_criteria.JPG
 
-The left-hand side is used to select the criteria and configure their parameters. 4 scoring criteria are available :
-
-:Sum of SDs: calculated the total sum of all SDs (standard deviations) of fluxes for each isotopic composition combination.
-:Number of fluxes with SDs < threshold: counts the number of fluxes with SDs below a specified threshold in the parameters.
-:Number of labeled inputs: counts the number of labeled inputs for each isotopic composition combination.
-:Price: calculates the total price for each isotopic composition combination.
+The left-hand side is used to select the criteria and configure their parameters. Four general scoring criteria are available:
+   * **Sum of SDs** : calculated the total sum of all SDs (standard deviations) of fluxes for each isotopic composition combination.
+   * **Number of fluxes with SDs < threshold** : counts the number of fluxes with SDs below a specified threshold in the parameters.
+   * **Number of labeled inputs** : counts the number of labeled inputs for each isotopic composition combination.
+   * **Price** : calculates the total price for each isotopic composition combination.
 
 You can apply multiple criteria simultaneously. Additionally, mathematical operations (addition, multiplication and division) and weights
 can be assigned to each criterion. 
@@ -156,7 +155,7 @@ to the output directory.
 Outputs
 ------------------------
 
-During the use of IsoDesign, various files are generated in the output directory :
+During the use of IsoDesign, various files are generated in the output directory:
    * :file:`[Model name].pkl` : a pickle file containing the current state of the process.
    * :file:`[Model Name]_files_combinations.txt` : a file that maps combination IDs to their corresponding isotopic compositions.
    * :file:`[Model Name]_summary.xlsx` : an Excel file containing all simulation results
