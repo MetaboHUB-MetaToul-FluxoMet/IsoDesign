@@ -31,7 +31,7 @@ Each tab provides specific information related to the isotopic model:
 After a model is successfully loaded, go to the next page to define the isotopic forms of the substrate(s) to be consider for experimental design.
 
 .. _labels_input:
-Labels input
+Define label inputs
 ------------------------
 
 Define isotopic forms 
@@ -78,7 +78,7 @@ Then, click the “Submit for simulations” button to navigate to the “Simula
 
 
 .. _simulation_options:
-Calculations
+Run calculations
 ------------------------
 This page enables you to configure calculations settings and run simulations using `influx_si <https://influx-si.readthedocs.io/en/latest/>`_. You can choose the desired influx_si mode 
 for simulations: 
