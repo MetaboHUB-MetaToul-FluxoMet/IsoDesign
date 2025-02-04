@@ -43,7 +43,7 @@ install these dependencies by running the following command:
 
 For more information on the installation of R dependencies, please refer to the
 `influx_si documentation <https://influx-si.readthedocs.io/en/latest/install
-.html#r-dependencies>`_ .
+.html#r-dependencies>`_.
 
 
 Alternatives & updates
