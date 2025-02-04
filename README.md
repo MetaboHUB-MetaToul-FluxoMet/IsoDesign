@@ -84,6 +84,8 @@ $ isodesign
 
 IsoDesign is also available directly from command-line and as a Python library.
 
+Have a look to our [tutorial](https://isodesign.readthedocs.io/en/latest/tutorial.html) for details on IsoDesign usage.
+
 ## Bug and feature requests
 If you have an idea on how we could improve IsoDesign please submit a new *issue*
 to [our GitHub issue tracker](https://github.com/MetaboHUB-MetaToul-FluxoMet/IsoDesign/issues).
