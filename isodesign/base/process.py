@@ -87,7 +87,7 @@ class Process:
         self.all_scores = {}   
         # All this attributes are used to store the results of the analysis 
         self.filters : dict = None
-        self.selected_criteria : list = None   
+        self.selected_criteria : list = []
         self.criteria_parameters : dict = None
         self.applied_operations = None
 
