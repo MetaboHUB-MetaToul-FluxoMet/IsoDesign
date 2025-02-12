@@ -120,7 +120,8 @@ st.sidebar.markdown("## Load a session")
 # Load a pickle file if it exists
 upload_pickle = st.sidebar.file_uploader("Load a previous session file.",
                                          key="upload_pickle",
-                                         help = 'File with pickle extension (".pkl").')
+                                         help = 'File with pickle extension (".pkl").',
+                                         type= ["pkl"])
 if upload_pickle:
     with upload_pickle as session_file:
         process_object = pickle.load(session_file)
@@ -169,22 +170,26 @@ with st.container(border=True):
                         on_change=change_output_folder_path)
     
     session.register_widgets({"output_folder_path": output_path_folder})
-       
+
+    if session.widget_space["output_folder_path"]:
+        process_object.output_folder_path = session.widget_space["output_folder_path"]
+    # session.register_widgets({"output_folder_path": output_path_folder})
+    
+
     submit_button = st.button("Submit",
                        key="submit_button")
 
-# Check if the folder already exists
-if os.path.exists(Path(f"{session.widget_space['output_folder_path']}/{process_object.model_name}_tmp")):
-    if not session.widget_space["submit_button"]:
-        st.warning(f"A previous session is already present, previous files will be overwritten.")
+# # Check if the folder already exists
+# if os.path.exists(Path(f"{session.widget_space['output_folder_path']}/{process_object.model_name}_tmp")):
+#     if not session.widget_space["submit_button"]:
+#         st.warning(f"A previous session is already present, previous files will be overwritten.")
 
 if submit_button:
-    # Check if the folder already exists
     session.register_widgets({"submit_button": True})
     st.rerun()
 
 if session.widget_space["submit_button"]:
-    process_object.create_tmp_folder(session.widget_space["output_folder_path"])
+    process_object.create_tmp_folder()
     logger_setup(process_object.tmp_folder_path, debug_mode)
    # Import and analysis of model files 
     try:

@@ -1,6 +1,6 @@
 import streamlit as st
+import signal, time
 from sess_i.base.main import SessI
-import time, signal
 from threading import Thread
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 
@@ -23,34 +23,28 @@ def delete_option(option):
     Delete an option from the list of added options.
     """
     session.widget_space["list_added_options"].remove(option)
-    command_list.remove(f"--{option}")    
+    command_list.remove(f"{option}")    
 
-if "running" not in st.session_state:
-    st.session_state.running = False
+if "suprocess" not in st.session_state:
+    st.session_state["subprocess"] = None
 
 def execute_simulation():
     """
-    Execute a simulation task in a loop. Monitors for 
-    an external signal (via `st.session_state.running`) to terminate.
+    Execute the simulation task. 
     """
     # Attach Streamlit's runtime context to ensure thread compatibility
     ctx = st.runtime.scriptrunner.get_script_run_ctx()
     if ctx:
         add_script_run_ctx(st.session_state.th) #Thread.current_thread())
-    subp = process_object.influx_simulation(command_list, mode)
-    counter=0
-    while True:
-        counter += 1
-        # Check if the task should be stopped
-        if not st.session_state.running:
-            # print(f"Simulation interrupted at step {counter}!")
+    try:
+        subp=process_object.influx_simulation(command_list, mode)
+        st.session_state["subprocess"] = subp
+        if st.session_state.interrupt_button:
+            # Interrupt the simulation
             subp.send_signal(signal.SIGINT)
-            return
-        # Exit the loop if the subprocess has completed
-        if not subp.poll() is None:
-            return 
-        time.sleep(0.2)
-    
+    except Exception as e:
+        st.error(f"An error occured: {e}")
+        return
 
 def start_simulation():
     """
@@ -58,7 +52,6 @@ def start_simulation():
     wait for its completion. Ensures that the Streamlit 
     runtime context is properly attached to the thread.
     """
-    st.session_state.running = True
     task_thread = Thread(target=execute_simulation)
     # Save the thread in session state
     st.session_state.th=task_thread
@@ -165,7 +158,7 @@ else:
             st.subheader("Added option")
             for option in session.widget_space["list_added_options"]:
                 # Add the option to the command list
-                command_list.append(f"--{option}")
+                command_list.append(f"{option}")
                 show_options, deletion = st.columns([0.05, 0.1])
                 with show_options:
                     st.info(option)
@@ -180,21 +173,22 @@ else:
 
     submit, interrupt = st.columns([1, 1])
     with submit:
-        if st.button("Start simulation"):
-            try:
-                with st.spinner("Simulating..."):
-                    # if there is a previous run, clear it
-                    process_object.clear_previous_run()
-                    start_simulation()
-                    process_object.generate_summary()
-                    process_object.save_process_to_file()
-                    st.success("Simulation completed.")
-                    st.switch_page(r"pages/4_Results.py")
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-                
+        if st.button("Start simulation", key="start_button"):
+            with st.spinner("Simulating..."):
+                # if there is a previous run, clear it
+                process_object.clear_previous_run()
+                start_simulation()
+                # Check if the subprocess has completed
+                if st.session_state["subprocess"]:
+                    if st.session_state["subprocess"].returncode == 0:
+                        process_object.generate_summary()
+                        process_object.save_process_to_file()
+                        st.success("Simulation completed.")
+                        st.switch_page(r"pages/4_Results.py")
+        
     with interrupt:
-        if st.button("Interrupt simualtion"):
-            st.session_state.running = False
+        # Interrupt simulation
+        if st.button("Interrupt simulation", key="interrupt_button"):
             st.warning("Simulation interrupted.")
-    
+           
+        

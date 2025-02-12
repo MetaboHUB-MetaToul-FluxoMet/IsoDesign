@@ -4,54 +4,79 @@
 [![Documentation Status](https://readthedocs.org/projects/isodesign/badge/?version=latest)](https://isodesign.readthedocs.io/en/latest/?badge=latest)
 
 ## What is IsoDesign ?
-IsoDesign is a scientific tool designed to optimize the choice of the optimal 
-isotopic composition of labeled substrates in 13C fluxomic labelling experiments. Simulated labeling is calculated using the [*influx_si* software](https://influx-si.readthedocs.io/en/latest/index.html), distributed with IsoDesign. 
+IsoDesign is a scientific tool designed to identify the optimal
+isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics
+experiments.
 
-It is one of the routine tools that we use at the [Mathematics cell of TBI](https://www.toulouse-biotechnology-institute.fr/en/plateformes-plateaux/cellule-mathematiques/) 
-and [MetaToul platform](https://www.metabohub.fr/home.html).
+It is one of the routine tools that we use at the [MetaToul platform](https://mth-metatoul.com/) 
+and [MetaSys team](https://www.toulouse-biotechnology-institute.fr/en/poles/equipe-metasys/) of the 
+[Toulouse Biotechnology Institute](http://www.toulouse-biotechnology-institute.fr/en/).
+IsoDesign has been developed in collaboration with the [Math cell of TBI](https://www.toulouse-biotechnology-institute.fr/en/plateformes-plateaux/cellule-mathematiques/), with the continuous
+support of [MetaboHUB](https://www.metabohub.fr/home.html).
 
 The code is open-source, and available under a GPLv3 license.
 
-Detailed documentation can be found online at Read the Docs ([https://isodesign.readthedocs.io/](https://isodesign.readthedocs.io/)).
+This documentation is available on [Read the Docs](https://isodesign.readthedocs.io).
 
 ## Key features
 
-   * user can **define lower and upper bounds** (between 0 and 100) and **define the desired number of intervals** for each isotopic form to be included,
-   * **substrate pricing can be entered**, which will be incorporated into the scoring criteria,
-   * **simulation of all possible combinations** of isotopic forms in a single run,
-   * ability to **simulate stationary or instationary labeling**, 
-   * **multiple scoring criteria** are available and can be applied simultaneously to assess simulation results,
-   * the results of the scoring criteria are displayed using a table for detailed values and a bar plot for visual representation,
-   * shipped as a **library** with a **graphical** interface,
-   * **open-source, free and easy to install** everywhere where Python 3 and pip run,
+   * users can **define all isotopic forms to consider for each substrate**,
+   * account for the **substrate price** to keep the cost of the experiment
+     reasonable,
+   * design of both (isotopic) **stationary and non-stationary** :sup:`13`\ C-fluxomics experiments
+   * **diverse scoring criteria** to finely analyse flux resolution at reaction-, pathway- and
+     network-levels to identify the optimal label input
+     according to the biological question,
+   * **scoring criteria can be combined** to find the optimal balance
+     between different objectives (e.g., the highest flux resolution at a
+     minimal cost),
+   * **visual representation** of the design results to support the
+     decision-making process,
+   * increased computational performance through **parallel computing**,
+   * shipped as a **library** with a **graphical user interface**,
+   * **open-source, free and easy to install** everywhere where Python and R
+     run,
    * **biologist-friendly**.
 
 
 ## Quick-start
 
-IsoDesign requires Python 3.10 or higher and run on all platforms.
+IsoDesign runs on all platforms and requires Python (3.10 or higher) and R (3.4.0 or higher).
 Please check [the documentation](https://isodesign.readthedocs.io/en/latest/quickstart.html) for complete
 installation and usage instructions.
 
+### Installation with conda (recommended)
+
+This is the recommended installation procedure. If you have a version of conda (such as miniconda or Anaconda), you can install IsoDesign with the following command:
+
+```bash
+$ conda install isodesign -c bioconda
+```
+
+This will install IsoDesign and all its dependencies.
+
 ### Installation with pip
-If you have Python3 and R 
-installed on your system, you can install IsoDesign from Pypi with pip :
+
+If you don't have any version of conda (neither miniconda nor Anaconda) but do have Python3 and R installed on your system, you can install IsoDesign with pip.
 
 ```bash
 $ pip install isodesign
 ```
 
-To use IsoDesign, you will need to some R dependencies (necessary for the simulation part with influx_si).
-Once you installed IsoDesign, you can install these dependencies by running the following command:
+This will install IsoDesign and most of its dependencies. To use IsoDesign,
+you will need some additional R dependencies (necessary for influx_si). Once you installed IsoDesign, you can
+install these dependencies by running the following command:
 
 ```bash
 $ influx_s --install_rdep
 ```
 
-For more information on the installation of R dependencies, please refer to [influx_si software](https://influx-si.readthedocs.io/en/latest/install.html#r-dependencies) documentation.
+For more information on the installation of R dependencies, please refer to
+[influx_si documentation](https://influx-si.readthedocs.io/en/latest/install.html#r-dependencies).
 
+### Start IsoDesign
 
-Then, start the graphical interface with:
+Then, start the graphical user interface with:
 
 ```bash
 $ isodesign
@@ -59,13 +84,14 @@ $ isodesign
 
 IsoDesign is also available directly from command-line and as a Python library.
 
+Have a look to our [tutorial](https://isodesign.readthedocs.io/en/latest/tutorial.html) for details on IsoDesign usage.
 
 ## Bug and feature requests
 If you have an idea on how we could improve IsoDesign please submit a new *issue*
 to [our GitHub issue tracker](https://github.com/MetaboHUB-MetaToul-FluxoMet/IsoDesign/issues).
 
-
 ## Developers guide
+
 ### Contributions
 Contributions are very welcome! :heart:
 

@@ -11,8 +11,8 @@ def get_last_version():
     """Get last IsoDesign version."""
     try:
         isodesign_path = Path(isodesign.__file__).parent
-        # Get the version from testpypi
-        response = requests.get('https://test.pypi.org/simple/ isodesign')
+        # Get the version from pypi
+        response = requests.get('https://pypi.org/pypi/isodesign/json')
         latest_version = response.json()['info']['version']
         with open(str(Path(isodesign_path, "last_version.txt")), "w") as f:
             f.write(latest_version)
