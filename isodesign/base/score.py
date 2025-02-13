@@ -120,7 +120,7 @@ class ScoreHandler:
         
         """
         
-        self.dataframe = dataframe.iloc[:, 5:]
+        self.dataframe = dataframe
         # dictionary containing the results of rating methods applied to the dataframe columns
         # Key : column name, value : dictionary containing the rating method as key and the score as value
         self.columns_scores = {}
