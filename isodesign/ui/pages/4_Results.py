@@ -57,15 +57,27 @@ def display_dataframe(count):
     process_object.data_filter(fluxes_names = st.session_state[f"selected_flux_{count}"], 
                                kind = st.session_state[f"selected_kind_{count}"], 
                                pathways=st.session_state[f"selected_pathway_{count}"])
-
+    # if not "Select" in process_object.filtered_dataframe.columns:
+    #     process_object.filtered_dataframe.insert(0, "Select", False)
+    
     # Display the simulation results dataframe. The table is updated according to the filters used 
     st.dataframe(process_object.filtered_dataframe if process_object.filtered_dataframe is not None 
                     else process_object.summary_dataframe,
                 use_container_width=True,
                 hide_index=True,
-                on_select="rerun",
-                selection_mode="multi-row",
                 key=f"display_dataframe_{count}")
+   
+    # if not f'filtered_df_{count}' in st.session_state:
+    #     st.session_state[f'filtered_df_{count}'] = None
+    
+    # df = st.data_editor(process_object.filtered_dataframe,
+    #                 key=f"display_df_{count}",
+    #                 hide_index=True)
+
+    # st.session_state[f'filtered_df_{count}'] = df
+    
+    # process_object.filtered_dataframe = df
+
 
 def criteria_block(count):
     """
@@ -268,6 +280,7 @@ else:
                 res_folder_path.mkdir(parents=True, exist_ok=True)
                 # Export the dataframe and the scores table to an Excel file
                 process_object.all_scores[count]["dataframe"].to_excel(f"{res_folder_path}/{count}_dataframe.xlsx", index=False)
+                # st.session_state[f"filtered_df_{count}"].to_excel(f"{res_folder_path}/{count}_dataframe.xlsx", index=False)
                 process_object.all_scores[count]["columns_scores"].to_excel(f"{res_folder_path}/{count}_scores_table.xlsx", index=True)
                 # Export the barplot to an HTML file
                 st.session_state[f"fig_{count}"].write_html(f"{res_folder_path}/{count}_barplot.html")
