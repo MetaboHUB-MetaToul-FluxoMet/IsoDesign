@@ -8,6 +8,7 @@ from collections import namedtuple
 from pathlib import Path
 import numpy as np
 import subprocess
+import isodesign
 
 import pandas as pd
 from influx_si import C13_ftbl, txt2ftbl
@@ -37,7 +38,8 @@ class Process:
     FILES_EXTENSION = [".netw", ".tvar", ".mflux", ".miso", ".cnstr", ".mmet", ".opt"]
 
     def __init__(self):
-
+        # Version of the isodesign package
+        self.isodesign_version = isodesign.__version__
         # Dictionary to store imported file contents. Key : files extension,
         # value : namedtuple with file path and contents
         self.mtf_files = {}
@@ -616,7 +618,7 @@ class Process:
         :param operation: operation to apply to the scores (Addition, Multiply, Divide)
         :param kwargs: additional arguments for the rating methods
         """
-        score_object = ScoreHandler(self.filtered_dataframe if self.filtered_dataframe is not None else self.summary_dataframe)
+        score_object = ScoreHandler(self.filtered_dataframe.iloc[:, 5:] if self.filtered_dataframe is not None else self.summary_dataframe.iloc[:, 5:])
         
         score_object.apply_criteria(method, **kwargs)
         if operation:
