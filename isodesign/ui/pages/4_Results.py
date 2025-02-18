@@ -94,6 +94,7 @@ def criteria_block(count):
         criteria = ["sum of SDs", 
                     "number of fluxes with SDs < threshold", 
                     "number of labeled inputs", 
+                    "number of structurally identified fluxes",
                     "price"]
         
         if f"method_choice_{count}" not in st.session_state:
@@ -142,6 +143,15 @@ def criteria_block(count):
             
             input_labeled_input=st.number_input("Weight", 
                                                 key=f"weight_labeled_input_{count}")
+        
+        if "number of structurally identified fluxes" in method_choice:
+            st.subheader("Number of structurally identified fluxes")
+            if f"weight_struct_identif_{count}" not in st.session_state:
+                st.session_state[f"weight_struct_identif_{count}"] = 1 if not process_object.all_scores[count].get("criteria_parameters") \
+                    else process_object.all_scores[count]["criteria_parameters"]["weight_struct_identif"]
+            
+            input_struct_identif=st.number_input("Weight", 
+                                                key=f"weight_struct_identif_{count}")
             
         # If more than one method is selected, the user can choose the operation to apply
         if len(method_choice) > 1:
@@ -160,7 +170,9 @@ def criteria_block(count):
                                           threshold=float(input_threshold) if "number of fluxes with SDs < threshold" in method_choice else 1,
                                           weight_flux=float(weight_flux) if "number of fluxes with SDs < threshold" in method_choice else 1,
                                           info_linp_files_dict=dict(process_object.linp_infos) if "number of labeled inputs" or "price" in method_choice else None,
-                                          weight_labeled_input=float(input_labeled_input) if "number of labeled inputs" in method_choice else 1)               
+                                          weight_labeled_input=float(input_labeled_input) if "number of labeled inputs" in method_choice else 1,
+                                          struct_identif_dict=dict(process_object.structures_identified) if "number of structurally identified fluxes" in method_choice else None,
+                                          weight_struct_identif=float(input_struct_identif) if "number of structurally identified fluxes" in method_choice else 1)
             
             with result:     
                 logscale = st.checkbox("Log scale", 

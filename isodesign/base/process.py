@@ -74,7 +74,9 @@ class Process:
         # Dictionary to store the number of labeled inputs and the total isotopomer prices of each linp file 
         # Key : linp file name, value : namedtuple containing the number of labeled inputs and the total price
         self.linp_infos = {}
-
+        # Dictionary containing the number of structurally identified fluxes (obtained from the ‘tvar.sim’ files) 
+        # Key : file name, value : number of structurally identified fluxes
+        self.structures_identified = {}
         # List storing linp file data in the form of dictionaries
         # each dictionary representing a combination of labelled substrates.
         self.linp_dataframes = {}
@@ -535,7 +537,12 @@ class Process:
                                 for files in files_names if files.endswith('.tvar.sim')]
         
         logger.debug(f"List of tvar.sim file paths : \n {self.tvar_sim_paths}")
-         
+        # get the number of structurally identified fluxes from each "tvar.sim" files 
+        # Fluxes are considered structurally identified if they have an SD <= 10000 
+        self.structures_identified={
+            file_path.name.split(".")[0]: sum([len(struct) for struct in pd.read_csv(file_path, sep="\t", usecols=["Struct_identif"]).values if struct == 'yes']) 
+            for file_path in self.tvar_sim_paths}
+
         # dictionary containing columns "Name", "Kind" and "SD" from each tvar.sim file
         tvar_sim_dataframes = {
             f'{file_path.name.split(".")[0]}': pd.read_csv(
