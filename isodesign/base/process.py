@@ -648,7 +648,7 @@ class Process:
         """
         self.scores=np.log10(self.scores)
 
-    def register_scores(self, number):
+    def register_scores(self, number, block_name):
         """
         Stores the analysis data (dataframe, criteria, criteria parameters,
         score table, filters and operations) in a dictionary.
@@ -666,6 +666,7 @@ class Process:
                 "columns_scores": self.scores, 
                 "filters": self.filters,
                 "applied_operations": self.applied_operations,
+                "name" : block_name
             }}
         )               
 
