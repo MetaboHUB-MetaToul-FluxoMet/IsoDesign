@@ -263,7 +263,31 @@ else:
 
     # A "score" block is created for each number in the list.
     for count in st.session_state["scores"]:
-        st.header(f"Score {count}")
+        # Stock, in the session state, of the st.text_input key in which the new name will be entered 
+        if f"name_change_{count}" not in st.session_state:
+            st.session_state[f"name_change_{count}"] = None
+        # Store header name in session state
+        # If the header name does not exist in the session state, it is initialized with “Score {count}” 
+        # If a pickle file has been imported, it takes the name stored in the pickle file. 
+        if f"header_{count}" not in st.session_state:
+            st.session_state[f"header_{count}"] = f"Score {count}" if count not in process_object.all_scores \
+                else process_object.all_scores[count]["name"]
+        # If a new name has been entered in the st.text_input, it is stored in the session state.
+        if st.session_state[f"name_change_{count}"]:
+            st.session_state[f"header_{count}"] = st.session_state[f"name_change_{count}"]
+        
+        header, pen_button = st.columns([1, 2])    
+        with header:
+            st.header(st.session_state[f"header_{count}"])
+        
+        with pen_button:
+            st.write(" ")
+            pen_button = st.button(":pencil2:", 
+                                    key=f"pen_button_{count}")
+        if pen_button:
+            st.text_input("Change the name",
+                        key=f"name_change_{count}")
+            
         display_dataframe(count)
     
         with st.container(border=True):
@@ -281,7 +305,6 @@ else:
         if new_score_button:
             new_count = max(st.session_state["scores"]) + 1  
             st.session_state["scores"].append(new_count)
-            st.divider()
 
         with export_data:
             export_button = st.button("Export", key=f"export_{count}") 
@@ -298,5 +321,5 @@ else:
                 st.session_state[f"fig_{count}"].write_html(f"{res_folder_path}/{count}_barplot.html")
                 st.success(f"Score {count} data exported successfully")
         # Save the "score" block to the process_object and save it to a pickle file
-        process_object.register_scores(count)
+        process_object.register_scores(count, block_name=st.session_state[f"header_{count}"])
         process_object.save_process_to_file()
