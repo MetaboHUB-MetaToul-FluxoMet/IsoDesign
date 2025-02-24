@@ -176,7 +176,7 @@ else:
         if st.button("Start simulation", key="start_button"):
             with st.spinner("Simulating..."):
                 # if there is a previous run, clear it
-                process_object.clear_previous_run()
+                process_object.clear_previous_results()
                 start_simulation()
                 # Check if the subprocess has completed
                 if st.session_state["subprocess"]:
