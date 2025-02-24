@@ -499,25 +499,43 @@ class Process:
             command = ["influx_s"] + param_list
         
         self.command_list = param_list
-        try:
-            result = subprocess.Popen(command, 
-                                        stderr=subprocess.PIPE,
-                                        text=True)
 
-            stdout, stderr = result.communicate()
+        result = subprocess.Popen(command, 
+                                    stderr=subprocess.PIPE,
+                                    text=True)
 
-            # 
-            if result.returncode != 0:
-                
-                raise Exception(stderr)
-                
-            # logger.info(stdout.decode())
-            return result
+        stdout, stderr = result.communicate()
+        
+        if result.returncode != 0:
+            self._check_err_files()
+            # Get the last line of the error message
+            error_message = stderr.strip().split('\n')[-1]
+            logger.error(f"An error has occured during the simulation: {stderr}")
+            raise Exception(error_message)
+        
+        return result
+    
 
-        except Exception as e:
-            logger.error(f"An exception has been raised: {e}")
-            raise
+    def _check_err_files(self):
+        """ 
+        Check if, at the end of calculations with influx_si, ".err" files are 
+        empty. If they are not, return the file names and contents.
+        """
+        err_file_list = []
+        for root, dirs, files in os.walk(self.tmp_folder_path):
+            for file in files:
+                if file.endswith(".err"):
+                    # Check if the file is not empty
+                    if os.stat(os.path.join(root, file)).st_size > 0:
+                        err_file_list.append(file)
 
+            if err_file_list:
+                for err_files in err_file_list:
+                    with open(os.path.join(root, err_files), 'r') as f:
+                        err_file_content = f.read()
+                        logger.error(f"Error file {err_files} : {err_file_content}")
+                        raise Exception(f"Error file {err_files} : {err_file_content}")
+          
     def generate_summary(self):
         """
         Read the tvar.sim files and generate a summary dataframe containing :
