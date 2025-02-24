@@ -276,14 +276,16 @@ else:
         if st.session_state[f"name_change_{count}"]:
             st.session_state[f"header_{count}"] = st.session_state[f"name_change_{count}"]
         
-        header, pen_button = st.columns([1, 2])    
-        with header:
-            st.header(st.session_state[f"header_{count}"])
-        
+        pen_button, header  = st.columns(spec=[0.05,0.95])    
         with pen_button:
             st.write(" ")
             pen_button = st.button(":pencil2:", 
                                     key=f"pen_button_{count}")
+            
+        with header:
+            st.header(st.session_state[f"header_{count}"])
+        
+        
         if pen_button:
             st.text_input("Change the name",
                         key=f"name_change_{count}")
