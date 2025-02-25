@@ -28,6 +28,9 @@ def delete_option(option):
 if "suprocess" not in st.session_state:
     st.session_state["subprocess"] = None
 
+if "running" not in st.session_state:
+    st.session_state.running = False
+
 def execute_simulation():
     """
     Execute the simulation task. 
@@ -39,9 +42,16 @@ def execute_simulation():
     try:
         subp=process_object.influx_simulation(command_list, mode)
         st.session_state["subprocess"] = subp
-        if st.session_state.interrupt_button:
-            # Interrupt the simulation
-            subp.send_signal(signal.SIGINT)
+        counter = 0
+        while True:  
+            counter += 1
+            if st.session_state.running:
+                # print(f"Task interrupted at step {counter}!")
+                subp.send_signal(signal.SIGINT)
+                return
+            if not subp.poll() is None:
+                return
+            # print(f"Step {counter}")    
     except Exception as e:
         st.error(f"An error occured: {e}")
         return
@@ -52,6 +62,7 @@ def start_simulation():
     wait for its completion. Ensures that the Streamlit 
     runtime context is properly attached to the thread.
     """
+    st.session_state.running = True
     task_thread = Thread(target=execute_simulation)
     # Save the thread in session state
     st.session_state.th=task_thread
@@ -177,6 +188,9 @@ else:
             with st.spinner("Simulating..."):
                 # if there is a previous run, clear it
                 process_object.clear_previous_results()
+                # Clear the summary dataframe if it exists
+                if process_object.summary_dataframe is not None:
+                    process_object.summary_dataframe = None
                 start_simulation()
                 # Check if the subprocess has completed
                 if st.session_state["subprocess"]:
@@ -189,6 +203,7 @@ else:
     with interrupt:
         # Interrupt simulation
         if st.button("Interrupt simulation", key="interrupt_button"):
+            st.session_state.running = False
             st.warning("Simulation interrupted.")
            
         
