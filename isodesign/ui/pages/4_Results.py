@@ -313,14 +313,7 @@ else:
 
         if export_button:
             with st.spinner("Exporting data ..."):
-                res_folder_path = Path(f"{process_object.output_folder_path}/Score_{count}_res")
-                res_folder_path.mkdir(parents=True, exist_ok=True)
-                # Export the dataframe and the scores table to an Excel file
-                process_object.all_scores[count]["dataframe"].to_excel(f"{res_folder_path}/{count}_dataframe.xlsx", index=False)
-                # st.session_state[f"filtered_df_{count}"].to_excel(f"{res_folder_path}/{count}_dataframe.xlsx", index=False)
-                process_object.all_scores[count]["columns_scores"].to_excel(f"{res_folder_path}/{count}_scores_table.xlsx", index=True)
-                # Export the barplot to an HTML file
-                st.session_state[f"fig_{count}"].write_html(f"{res_folder_path}/{count}_barplot.html")
+                process_object.export_data(count, st.session_state[f"fig_{count}"])
                 st.success(f"Score {count} data exported successfully")
         # Save the "score" block to the process_object and save it to a pickle file
         process_object.register_scores(count, block_name=st.session_state[f"header_{count}"])
