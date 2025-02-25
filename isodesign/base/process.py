@@ -383,7 +383,7 @@ class Process:
                                 'Value': pair.astype(float)})
 
             # remove rows with value = 0
-            df = df.loc[df["Value"] != 0]
+            # df = df.loc[df["Value"] != 0]
             
             # add a column "Price" containing the price of each isotopomer multiplied by its fraction
             # applies the 'get_isotopomer_price' method to each row (axis=1) in the dataframe 'df'
@@ -447,16 +447,24 @@ class Process:
         
         logger.info("Creation of the linp files...")
         # create mapping to associate file number with its respective combinations
-        with open(os.path.join(str(self.model_directory_path), f'{self.model_name}_files_combinations.txt'), 'w', encoding="utf-8") as f:
+        with open(os.path.join(str(self.output_folder_path), f'{self.model_name}_files_combinations.tsv'), 'w', encoding="utf-8") as f:
+            # Write file column names
+            f.write("ID\t" + 
+                    "\t".join([f"{specie}_{isotopomer}" for specie, isotopomer in zip(self.label_input.names, self.label_input.labelling_patterns)]) + 
+                    "\tPrice\n")
             for index, dataframes in self.linp_dataframes.items():
-                df = pd.DataFrame.from_dict(dataframes) 
+                # Dataframes are stored in dictionary format
+                df = pd.DataFrame.from_dict(dataframes)
+                # Write the content of the linp files in the tsv file
+                f.write(f"{index}\t" + 
+                        "\t".join(map(str, df["Value"])) +
+                        f"\t{df['Price'].sum()}\n")
+                # Remove rows with value = 0 (no values equal to 0 in ".linp" files)
+                df = df.loc[df["Value"] != 0]
                 df.to_csv(os.path.join(str(self.tmp_folder_path), f"{index}.linp"), sep="\t", index=False)
-                f.write(
-                    f"{index} - {df['Specie'].tolist()}\n\
-                    {df['Isotopomer'].tolist()}\n\
-                    {df['Value'].tolist()} \n \
-                    {df['Price'].tolist()} \n")
-            
+                # Store the number of labeled inputs and the total price of each linp file in the linp_infos dictionary
+                # It will be used in the rating criteria.
+                # key : index, value : namedtuple containing the number of labeled inputs and the total price
                 self.linp_infos[f"{index}"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
                                                                 df["Price"].sum())
              
