@@ -9,7 +9,7 @@ readme = "README.md"
 isodesign = 'isodesign.__main__:main'
 
 [tool.poetry.dependencies]
-python = ">=3.10, <3.13"
+python = ">=3.10"
 pandas = "^2.1.4"
 influx-si = "^7.2.3"
 streamlit = "^1.41"
