@@ -127,8 +127,6 @@ class Process:
         # Store the model directory path 
         self.model_directory_path = Path(netw_directory_path).parent
 
-        logger.info(f"Input folder path = {self.model_directory_path}\n")
-
     
     def load_model(self):
         """ 
@@ -150,7 +148,6 @@ class Process:
                 
                 self.mtf_files.update({file.suffix[1:]: file_info(file, data)})
 
-        logger.info(f"'{self.model_name}' has been imported.\n")
         logger.debug(f"Imported files = {self.mtf_files}\n")
 
    
@@ -160,8 +157,6 @@ class Process:
         Analyze model network to identify substrates, metabolites, etc by using 
         modules from influx_si.
         """
-        
-        logger.info("Analyzing model...")
 
         # Reset self.netan to a new empty dictionary
         # Useful if you want to reuse the function for another prefix
@@ -206,11 +201,11 @@ class Process:
         same folder.
         """
 
-        logger.info(f"Copy of the imported files to '{self.tmp_folder_path}'.\n")
+        logger.debug(f"Copy of the imported files to '{self.tmp_folder_path}'.\n")
 
         for file in self.mtf_files.values():
             # File paths are contained as first elements in the namedtuple
-            logger.debug(f"File path: {file.path}")
+            # logger.debug(f"File path: {file.path}")
             shutil.copy(file.path, self.tmp_folder_path)
 
     def save_process_to_file(self):
@@ -415,7 +410,10 @@ class Process:
                 to_remove.append(key)
             
         for id in to_remove:
-            del self.linp_dataframes[id]
+            logger.info(f"Combination(s) removed : {id}\n") 
+            logger.debug(f"{id} : {self.linp_dataframes[id]}\n")
+            del self.linp_dataframes[id]  
+             
     
     def reintegrate_linp_configuration(self, index_to_reintegrate:list):
         """
@@ -432,8 +430,9 @@ class Process:
                 items = list(self.linp_dataframes.items())
                 items.insert(index, (key, value))
                 self.linp_dataframes = dict(sorted(items))
+                logger.info(f"Combination reintegrated : {key}\n")
+                logger.debug(f"{key} : {value}\n")
             del self.linp_to_remove[index]
-        
 
     def generate_linp_files(self):
         """
@@ -444,10 +443,9 @@ class Process:
         number with its respective combinations. 
 
         """
-        
-        logger.info("Creation of the linp files...")
+
         # create mapping to associate file number with its respective combinations
-        with open(os.path.join(str(self.output_folder_path), f'{self.model_name}_files_combinations.tsv'), 'w', encoding="utf-8") as f:
+        with open(os.path.join(str(self.output_folder_path), f'{self.model_name}_IDs_combinations.tsv'), 'w', encoding="utf-8") as f:
             # Write file column names
             f.write("ID\t" + 
                     "\t".join([f"{specie}_{isotopomer}" for specie, isotopomer in zip(self.label_input.names, self.label_input.labelling_patterns)]) + 
@@ -470,9 +468,7 @@ class Process:
              
         self.vmtf_element_dict["linp"] = [f"{index}" for index in self.linp_dataframes.keys()]
 
-        # logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated.")
-        # logger.info(f"Folder containing linp files has been generated on this directory : {self.tmp_folder_path}.\n")
-
+        logger.info(f"{len(self.vmtf_element_dict['linp'])} linp files have been generated in {self.tmp_folder_path}.")
         
 
     def generate_vmtf_file(self):
@@ -493,7 +489,7 @@ class Process:
         logger.debug(f"Creation of the vmtf file containing these files :\n {df}")
         df.to_csv(f"{self.tmp_folder_path}/{self.model_name}.vmtf", sep="\t", index=False)
 
-        logger.info(f"Vmtf file has been generated in '{self.tmp_folder_path}.'\n")
+        # logger.info(f"Vmtf file has been generated in '{self.tmp_folder_path}.'\n")
 
 
     def influx_simulation(self, param_list, influx_mode):
@@ -506,7 +502,6 @@ class Process:
         """
         # Change directory to the folder containing all the file to use for influx_si
         os.chdir(self.tmp_folder_path)
-        logger.info(f"{influx_mode} is running...")
         
         # Select the correct executable based on the mode
         if influx_mode == "influx_i":
@@ -514,7 +509,8 @@ class Process:
         if influx_mode == "influx_s":
             command = ["influx_s"] + param_list
         
-        self.command_list = param_list
+        self.command_list = command
+        logger.info(f"Command to run: {self.command_list}")
 
         result = subprocess.Popen(command, 
                                     stderr=subprocess.PIPE,
@@ -601,7 +597,7 @@ class Process:
         # merge the "merged_tvar" dataframe with concatenated dataframes from the "tvar_sim_dataframes" dataframes
         # delete the "Value_tvar_init" column, which is not required 
         self.summary_dataframe = pd.merge(merged_tvar, tvar_sim_dataframes, on=["Name","Kind"]).rename(columns={"Value_init": " Intial flux value"})
-        logger.info(f"Summary dataframe present in '{self.output_folder_path}' : {self.summary_dataframe}\n")
+        logger.debug(f"Summary dataframe present in '{self.output_folder_path}' : {self.summary_dataframe}\n")
 
         # Creating a Styler object for the summary_dataframe DataFrame
         summary_dataframe_styler=self.summary_dataframe.style.apply(
@@ -693,17 +689,18 @@ class Process:
         """
         self.all_scores.update(
             {number: {
-                "dataframe": self.filtered_dataframe if self.filtered_dataframe is not None 
-                    else self.summary_dataframe,
+                "name" : block_name,
+                "dataframe": self.filtered_dataframe,
+                "filters": self.filters,
                 "criteria": self.selected_criteria,
                 "criteria_parameters": self.criteria_parameters,
                 "columns_scores": self.scores, 
-                "filters": self.filters,
                 "applied_operations": self.applied_operations,
-                "name" : block_name
             }}
         )  
-                     
+
+        logger.debug(self.all_scores)             
+
     def export_data(self, number, figure):
         """
         Export the results of the analysis to tsv files and an image file (html format).
@@ -711,14 +708,14 @@ class Process:
         :param number: number corresponding to the analysis
         :param figure: plotly figure object
         """
-        res_folder_path = Path(f"{self.output_folder_path}/Score_{number}_res")
+        res_folder_path = Path(f"{self.output_folder_path}/{self.all_scores[number]["name"]}_res")
         res_folder_path.mkdir(parents=True, exist_ok=True)
 
         # Export the dataframe and the scores table to tsv files
-        self.all_scores[number]["dataframe"].to_csv(f"{res_folder_path}/{number}_dataframe.tsv", index=False, sep="\t")
-        self.all_scores[number]["columns_scores"].to_csv(f"{res_folder_path}/{number}_scores_table.tsv", index=True, sep="\t")
+        self.all_scores[number]["dataframe"].to_csv(f"{res_folder_path}/{self.all_scores[number]["name"]}_dataframe.tsv", index=False, sep="\t")
+        self.all_scores[number]["columns_scores"].to_csv(f"{res_folder_path}/{self.all_scores[number]["name"]}_scores.tsv", index=True, sep="\t")
 
-        figure.write_html(f"{res_folder_path}/{number}_barplot.html")
+        figure.write_html(f"{res_folder_path}/{self.all_scores[number]["name"]}_barplot.html")
 
 
 # if __name__ == "__main__":

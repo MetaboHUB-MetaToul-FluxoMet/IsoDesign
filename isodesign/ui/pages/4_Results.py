@@ -2,7 +2,9 @@ import streamlit as st
 from sess_i.base.main import SessI
 import plotly.io as pio
 import plotly.express as px
-from pathlib import Path
+import logging
+
+logger = logging.getLogger("IsoDesign")
 
 #############
 # FUNCTIONS #
@@ -314,7 +316,8 @@ else:
         if export_button:
             with st.spinner("Exporting data ..."):
                 process_object.export_data(count, st.session_state[f"fig_{count}"])
-                st.success(f"Score {count} data exported successfully")
+                st.success(f"'{st.session_state[f"header_{count}"]}' exported successfully in {process_object.output_folder_path}.")
+                logger.info(f"'{st.session_state[f"header_{count}"]}' exported successfully in {process_object.output_folder_path}.")
         # Save the "score" block to the process_object and save it to a pickle file
         process_object.register_scores(count, block_name=st.session_state[f"header_{count}"])
         process_object.save_process_to_file()

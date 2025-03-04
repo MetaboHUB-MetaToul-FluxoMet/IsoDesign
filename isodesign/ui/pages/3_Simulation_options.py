@@ -1,9 +1,11 @@
 import streamlit as st
-import signal, time
+# import signal, time
 from sess_i.base.main import SessI
 from threading import Thread
 from streamlit.runtime.scriptrunner import add_script_run_ctx
+import logging
 
+logger = logging.getLogger("IsoDesign")
 
 #############
 # FUNCTIONS #
@@ -198,6 +200,8 @@ else:
                         process_object.generate_summary()
                         process_object.save_process_to_file()
                         st.success("Simulation completed.")
+                        logger.info(f"Simulation with {mode} has been completed successfully.\n")
+                        logger.info(f"Summary dataframe has been generated in {process_object.output_folder_path}.")
                         st.switch_page(r"pages/4_Results.py")
         
     # with interrupt:

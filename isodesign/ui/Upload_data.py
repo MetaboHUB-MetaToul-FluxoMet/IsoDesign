@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog
 import pandas as pd
-import os
 
 from isodesign.base.process import Process
 
@@ -64,7 +63,7 @@ def logger_setup(output_path, debug_mode=False):
         handler.setLevel(logging.DEBUG)
         stream.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter("%(asctime)s-%(name)s-%(levelname)s-Method %(funcName)s-%(message)s")
+    formatter = logging.Formatter("%(asctime)s-%(name)s-%(levelname)s-%(message)s")
     handler.setFormatter(formatter)
     stream.setFormatter(formatter)
 
@@ -191,6 +190,10 @@ if submit_button:
 if session.widget_space["submit_button"]:
     process_object.create_tmp_folder()
     logger_setup(process_object.tmp_folder_path, debug_mode)
+    logger.info(f"IsoDesign version: {process_object.isodesign_version}")
+    logger.info(f"Netw directory path: {process_object.netw_directory_path}")
+    logger.info(f"Output folder path: {process_object.output_folder_path}")
+
    # Import and analysis of model files 
     try:
         process_object.load_model()
