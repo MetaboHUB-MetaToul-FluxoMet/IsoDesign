@@ -126,7 +126,9 @@ class Process:
         
         # Store the model directory path 
         self.model_directory_path = Path(netw_directory_path).parent
-
+        # Output folder path is the same as the model directory path
+        # It can be changed by the user 
+        self.output_folder_path=self.model_directory_path
     
     def load_model(self):
         """ 

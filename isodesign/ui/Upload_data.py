@@ -163,8 +163,8 @@ with st.container(border=True):
 
     st.subheader("Output directory path")
     output_path_folder = st.text_input("**Folder path** :", 
-                        value="No folder selected" if not process_object.model_directory_path
-                        else process_object.model_directory_path, 
+                        value="No folder selected" if not process_object.output_folder_path
+                        else process_object.output_folder_path, 
                         key="output_folder_path",
                         on_change=change_output_folder_path)
     
