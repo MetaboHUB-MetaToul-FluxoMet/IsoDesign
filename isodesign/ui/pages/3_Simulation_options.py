@@ -42,16 +42,17 @@ def execute_simulation():
     try:
         subp=process_object.influx_simulation(command_list, mode)
         st.session_state["subprocess"] = subp
-        counter = 0
-        while True:  
-            counter += 1
-            if st.session_state.running:
-                # print(f"Task interrupted at step {counter}!")
-                subp.send_signal(signal.SIGINT)
-                return
-            if not subp.poll() is None:
-                return
-            # print(f"Step {counter}")    
+        # counter = 0
+        # while True:  
+        #     counter += 1
+        #     if st.session_state.running:
+        #         # print(f"Task interrupted at step {counter}!")
+        #         subp.send_signal(signal.SIGINT)
+        #         return
+        #     if not subp.poll() is None:
+        #         return
+        #     # print(f"Step {counter}")  
+        #     time.sleep(0.2) 
     except Exception as e:
         st.error(f"An error occured: {e}")
         return
@@ -102,7 +103,6 @@ else:
     # Command to be passed to the simulation
     # The command is initialized with the prefix and default options
     command_list = ["--prefix", process_object.model_name, "--noopt"]   
-    command_list = list(dict.fromkeys(command_list))
 
     # Select the influx mode
     mode = st.selectbox("Influx mode", 
@@ -200,10 +200,10 @@ else:
                         st.success("Simulation completed.")
                         st.switch_page(r"pages/4_Results.py")
         
-    with interrupt:
-        # Interrupt simulation
-        if st.button("Interrupt simulation", key="interrupt_button"):
-            st.session_state.running = False
-            st.warning("Simulation interrupted.")
+    # with interrupt:
+    #     # Interrupt simulation
+    #     if st.button("Interrupt simulation", key="interrupt_button"):
+    #         st.session_state.running = False
+    #         st.warning("Simulation interrupted.")
            
         
