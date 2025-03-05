@@ -225,6 +225,7 @@ else:
                                             key="reintegrate_combination")
     # If the simulation_button is clicked, the linp files are generated and the user is redirected to the simulation options page
     if session.widget_space["simulation_button"]:  
+        process_object.clear_previous_linp()
         process_object.generate_linp_files()    
         process_object.generate_vmtf_file()
         process_object.copy_files()

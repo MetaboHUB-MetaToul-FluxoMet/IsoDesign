@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "isodesign"
-version = "2.0.0_beta.4"
+version = "2.0.0_beta.6"
 description = "Facilitates the choice of the optimal isotopic composition of labeled substrates in 13C-fluxomics experiments."
 authors = ["rkouakou <kouakou@insa-toulouse.fr>, llegregam <legregam@insa-toulouse.fr>, Pierre Millard <millard@insa-toulouse.fr>, sgsokol <sokol@insa-toulouse.fr>"]
 readme = "README.md"
@@ -9,7 +9,7 @@ readme = "README.md"
 isodesign = 'isodesign.__main__:main'
 
 [tool.poetry.dependencies]
-python = ">=3.10, <3.13"
+python = ">=3.10"
 pandas = "^2.1.4"
 influx-si = "^7.2.3"
 streamlit = "^1.41"

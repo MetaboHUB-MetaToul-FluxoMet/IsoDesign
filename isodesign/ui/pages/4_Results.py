@@ -2,7 +2,9 @@ import streamlit as st
 from sess_i.base.main import SessI
 import plotly.io as pio
 import plotly.express as px
-from pathlib import Path
+import logging
+
+logger = logging.getLogger("IsoDesign")
 
 #############
 # FUNCTIONS #
@@ -57,15 +59,27 @@ def display_dataframe(count):
     process_object.data_filter(fluxes_names = st.session_state[f"selected_flux_{count}"], 
                                kind = st.session_state[f"selected_kind_{count}"], 
                                pathways=st.session_state[f"selected_pathway_{count}"])
-
+    # if not "Select" in process_object.filtered_dataframe.columns:
+    #     process_object.filtered_dataframe.insert(0, "Select", False)
+    
     # Display the simulation results dataframe. The table is updated according to the filters used 
     st.dataframe(process_object.filtered_dataframe if process_object.filtered_dataframe is not None 
                     else process_object.summary_dataframe,
                 use_container_width=True,
                 hide_index=True,
-                on_select="rerun",
-                selection_mode="multi-row",
                 key=f"display_dataframe_{count}")
+   
+    # if not f'filtered_df_{count}' in st.session_state:
+    #     st.session_state[f'filtered_df_{count}'] = None
+    
+    # df = st.data_editor(process_object.filtered_dataframe,
+    #                 key=f"display_df_{count}",
+    #                 hide_index=True)
+
+    # st.session_state[f'filtered_df_{count}'] = df
+    
+    # process_object.filtered_dataframe = df
+
 
 def criteria_block(count):
     """
@@ -82,6 +96,7 @@ def criteria_block(count):
         criteria = ["sum of SDs", 
                     "number of fluxes with SDs < threshold", 
                     "number of labeled inputs", 
+                    "number of structurally identified fluxes",
                     "price"]
         
         if f"method_choice_{count}" not in st.session_state:
@@ -130,6 +145,15 @@ def criteria_block(count):
             
             input_labeled_input=st.number_input("Weight", 
                                                 key=f"weight_labeled_input_{count}")
+        
+        if "number of structurally identified fluxes" in method_choice:
+            st.subheader("Number of structurally identified fluxes")
+            if f"weight_struct_identif_{count}" not in st.session_state:
+                st.session_state[f"weight_struct_identif_{count}"] = 1 if not process_object.all_scores[count].get("criteria_parameters") \
+                    else process_object.all_scores[count]["criteria_parameters"]["weight_struct_identif"]
+            
+            input_struct_identif=st.number_input("Weight", 
+                                                key=f"weight_struct_identif_{count}")
             
         # If more than one method is selected, the user can choose the operation to apply
         if len(method_choice) > 1:
@@ -148,7 +172,9 @@ def criteria_block(count):
                                           threshold=float(input_threshold) if "number of fluxes with SDs < threshold" in method_choice else 1,
                                           weight_flux=float(weight_flux) if "number of fluxes with SDs < threshold" in method_choice else 1,
                                           info_linp_files_dict=dict(process_object.linp_infos) if "number of labeled inputs" or "price" in method_choice else None,
-                                          weight_labeled_input=float(input_labeled_input) if "number of labeled inputs" in method_choice else 1)               
+                                          weight_labeled_input=float(input_labeled_input) if "number of labeled inputs" in method_choice else 1,
+                                          struct_identif_dict=dict(process_object.structures_identified) if "number of structurally identified fluxes" in method_choice else None,
+                                          weight_struct_identif=float(input_struct_identif) if "number of structurally identified fluxes" in method_choice else 1)
             
             with result:     
                 logscale = st.checkbox("Log scale", 
@@ -239,7 +265,33 @@ else:
 
     # A "score" block is created for each number in the list.
     for count in st.session_state["scores"]:
-        st.header(f"Score {count}")
+        # Stock, in the session state, of the st.text_input key in which the new name will be entered 
+        if f"name_change_{count}" not in st.session_state:
+            st.session_state[f"name_change_{count}"] = None
+        # Store header name in session state
+        # If the header name does not exist in the session state, it is initialized with “Score {count}” 
+        # If a pickle file has been imported, it takes the name stored in the pickle file. 
+        if f"header_{count}" not in st.session_state:
+            st.session_state[f"header_{count}"] = f"Score {count}" if count not in process_object.all_scores \
+                else process_object.all_scores[count]["name"]
+        # If a new name has been entered in the st.text_input, it is stored in the session state.
+        if st.session_state[f"name_change_{count}"]:
+            st.session_state[f"header_{count}"] = st.session_state[f"name_change_{count}"]
+        
+        pen_button, header  = st.columns(spec=[0.05,0.95])    
+        with pen_button:
+            st.write(" ")
+            pen_button = st.button(":pencil2:", 
+                                    key=f"pen_button_{count}")
+            
+        with header:
+            st.header(st.session_state[f"header_{count}"])
+        
+        
+        if pen_button:
+            st.text_input("Change the name",
+                        key=f"name_change_{count}")
+            
         display_dataframe(count)
     
         with st.container(border=True):
@@ -257,21 +309,15 @@ else:
         if new_score_button:
             new_count = max(st.session_state["scores"]) + 1  
             st.session_state["scores"].append(new_count)
-            st.divider()
 
         with export_data:
             export_button = st.button("Export", key=f"export_{count}") 
 
         if export_button:
             with st.spinner("Exporting data ..."):
-                res_folder_path = Path(f"{process_object.output_folder_path}/Score_{count}_res")
-                res_folder_path.mkdir(parents=True, exist_ok=True)
-                # Export the dataframe and the scores table to an Excel file
-                process_object.all_scores[count]["dataframe"].to_excel(f"{res_folder_path}/{count}_dataframe.xlsx", index=False)
-                process_object.all_scores[count]["columns_scores"].to_excel(f"{res_folder_path}/{count}_scores_table.xlsx", index=True)
-                # Export the barplot to an HTML file
-                st.session_state[f"fig_{count}"].write_html(f"{res_folder_path}/{count}_barplot.html")
-                st.success(f"Score {count} data exported successfully")
+                process_object.export_data(count, st.session_state[f"fig_{count}"])
+                st.success(f"'{st.session_state[f"header_{count}"]}' exported successfully in {process_object.output_folder_path}.")
+                logger.info(f"'{st.session_state[f"header_{count}"]}' exported successfully in {process_object.output_folder_path}.")
         # Save the "score" block to the process_object and save it to a pickle file
-        process_object.register_scores(count)
+        process_object.register_scores(count, block_name=st.session_state[f"header_{count}"])
         process_object.save_process_to_file()

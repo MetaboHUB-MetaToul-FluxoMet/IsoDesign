@@ -17,7 +17,8 @@ class Score:
         "sum of SDs" : self.apply_sum_sd, 
         "number of fluxes with SDs < threshold" : self.apply_sum_nb_flux_sd,  
         "number of labeled inputs" : self.apply_number_labeled_inputs,
-        "price": self.apply_price
+        "price": self.apply_price,
+        "number of structurally identified fluxes": self.structurally_identified_fluxes
         }
 
         self.label_input = label_input 
@@ -49,6 +50,8 @@ class Score:
                 self.score = self.SCORING_METHODS[criteria](kwargs["weight_sum_sd"] if "weight_sum_sd" in kwargs else 1)
             case "price":
                 self.score = self.SCORING_METHODS[criteria](kwargs["info_linp_files_dict"])
+            case "number of structurally identified fluxes":
+                self.score = self.SCORING_METHODS[criteria](kwargs["struct_identif_dict"], kwargs["weight_struct_identif"] if "weight_struct_identif" in kwargs else 1)
 
     def apply_sum_sd(self, weight_sum_sd=1):
         """
@@ -93,20 +96,16 @@ class Score:
             if self.label_input.name in file_name:
                 return price.total_price
 
-    # def identified_structures(self, tvar_sim_paths_list):
-    #     """
-    #     Gives the number of structures identified in each result file.
-        
-    #     The method reads each file in the `tvar_sim_paths_list` and counts the number of structures identified
-    #     in each file. The result is returned as a pandas DataFrame with the file name and the number of
-    #     identified structures.
-    #     """
-    #     struc_identified = {}
-    #     for file in tvar_sim_paths_list:
-    #         file_name = file.name.split(os.extsep)[0]
-    #         struc_identified.update({f"{file_name}_SD" : sum([len(struct) for struct in pd.read_csv(file, sep="\t", usecols=["Struct_identif"]).values if struct == 'yes'])}) 
-    #     return struc_identified
-    #     # return pd.DataFrame({"Identified structures": struc_identified})
+    def structurally_identified_fluxes(self, struct_identif_dict, weight_struct_identif=1):
+        """
+        Returns the number of structurally identified fluxes for each label input.
+
+        :param struct_identif_dict: dictionary containing the number of 
+                                    structurally identified fluxes for each label input
+        """
+        for filename, nb_structures_identified in struct_identif_dict.items():
+            if self.label_input.name in filename:
+                return nb_structures_identified * weight_struct_identif
         
 
 class ScoreHandler:
@@ -120,7 +119,7 @@ class ScoreHandler:
         
         """
         
-        self.dataframe = dataframe.iloc[:, 5:]
+        self.dataframe = dataframe
         # dictionary containing the results of rating methods applied to the dataframe columns
         # Key : column name, value : dictionary containing the rating method as key and the score as value
         self.columns_scores = {}

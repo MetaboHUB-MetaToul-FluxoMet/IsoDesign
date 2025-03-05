@@ -1,9 +1,11 @@
 import streamlit as st
-import signal, time
+# import signal, time
 from sess_i.base.main import SessI
 from threading import Thread
 from streamlit.runtime.scriptrunner import add_script_run_ctx
+import logging
 
+logger = logging.getLogger("IsoDesign")
 
 #############
 # FUNCTIONS #
@@ -28,6 +30,9 @@ def delete_option(option):
 if "suprocess" not in st.session_state:
     st.session_state["subprocess"] = None
 
+if "running" not in st.session_state:
+    st.session_state.running = False
+
 def execute_simulation():
     """
     Execute the simulation task. 
@@ -39,9 +44,17 @@ def execute_simulation():
     try:
         subp=process_object.influx_simulation(command_list, mode)
         st.session_state["subprocess"] = subp
-        if st.session_state.interrupt_button:
-            # Interrupt the simulation
-            subp.send_signal(signal.SIGINT)
+        # counter = 0
+        # while True:  
+        #     counter += 1
+        #     if st.session_state.running:
+        #         # print(f"Task interrupted at step {counter}!")
+        #         subp.send_signal(signal.SIGINT)
+        #         return
+        #     if not subp.poll() is None:
+        #         return
+        #     # print(f"Step {counter}")  
+        #     time.sleep(0.2) 
     except Exception as e:
         st.error(f"An error occured: {e}")
         return
@@ -52,6 +65,7 @@ def start_simulation():
     wait for its completion. Ensures that the Streamlit 
     runtime context is properly attached to the thread.
     """
+    st.session_state.running = True
     task_thread = Thread(target=execute_simulation)
     # Save the thread in session state
     st.session_state.th=task_thread
@@ -91,7 +105,6 @@ else:
     # Command to be passed to the simulation
     # The command is initialized with the prefix and default options
     command_list = ["--prefix", process_object.model_name, "--noopt"]   
-    command_list = list(dict.fromkeys(command_list))
 
     # Select the influx mode
     mode = st.selectbox("Influx mode", 
@@ -176,7 +189,10 @@ else:
         if st.button("Start simulation", key="start_button"):
             with st.spinner("Simulating..."):
                 # if there is a previous run, clear it
-                process_object.clear_previous_run()
+                process_object.clear_previous_results()
+                # Clear the summary dataframe if it exists
+                if process_object.summary_dataframe is not None:
+                    process_object.summary_dataframe = None
                 start_simulation()
                 # Check if the subprocess has completed
                 if st.session_state["subprocess"]:
@@ -184,11 +200,14 @@ else:
                         process_object.generate_summary()
                         process_object.save_process_to_file()
                         st.success("Simulation completed.")
+                        logger.info(f"Simulation with {mode} has been completed successfully.\n")
+                        logger.info(f"Summary dataframe has been generated in {process_object.output_folder_path}.")
                         st.switch_page(r"pages/4_Results.py")
         
-    with interrupt:
-        # Interrupt simulation
-        if st.button("Interrupt simulation", key="interrupt_button"):
-            st.warning("Simulation interrupted.")
+    # with interrupt:
+    #     # Interrupt simulation
+    #     if st.button("Interrupt simulation", key="interrupt_button"):
+    #         st.session_state.running = False
+    #         st.warning("Simulation interrupted.")
            
         

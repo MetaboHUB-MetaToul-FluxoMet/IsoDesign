@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog
 import pandas as pd
-import os
 
 from isodesign.base.process import Process
 
@@ -25,7 +24,6 @@ def get_path_netw():
     """ 
     Open a file dialog to select a network file.
     """
-    session.register_widgets({"input_button": True})
     # Set up tkinter
     root = tk.Tk()
     root.withdraw()
@@ -36,8 +34,7 @@ def get_path_netw():
     netw_directory_path = filedialog.askopenfilename(master = root,
                                                        title = "Select a network file",
                                                        filetypes=[("netw files", "*.netw")])
-    session.register_widgets({"netw_directory_path": netw_directory_path})
-    
+    st.session_state["netw_directory_path"] = netw_directory_path
 
 def logger_setup(output_path, debug_mode=False):
     """ 
@@ -64,7 +61,7 @@ def logger_setup(output_path, debug_mode=False):
         handler.setLevel(logging.DEBUG)
         stream.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter("%(asctime)s-%(name)s-%(levelname)s-Method %(funcName)s-%(message)s")
+    formatter = logging.Formatter("%(asctime)s-%(name)s-%(levelname)s-%(message)s")
     handler.setFormatter(formatter)
     stream.setFormatter(formatter)
 
@@ -73,12 +70,6 @@ def logger_setup(output_path, debug_mode=False):
     logger.addHandler(handler)
     logger.addHandler(stream)
     return logger
-
-def change_output_folder_path():
-    """
-    Change the output folder path.
-    """
-    session.register_widgets({"output_folder_path": output_path_folder})
 
 # def overwrite_output_folder_path():
 #     """
@@ -125,11 +116,9 @@ upload_pickle = st.sidebar.file_uploader("Load a previous session file.",
 if upload_pickle:
     with upload_pickle as session_file:
         process_object = pickle.load(session_file)
-    
     session.object_space["process_object"] = process_object
     # Retrieves the state of the submit button 
     session.register_widgets({"submit_button": True})
-
 
 if not session.object_space["process_object"]:
     session.object_space["process_object"] = Process()
@@ -140,7 +129,8 @@ st.sidebar.divider()
 st.sidebar.markdown("## Debug mode")
 # checkbox to activate the debug mode  
 debug_mode = st.sidebar.checkbox('Verbose logs',
-                                  help = "Useful in case of trouble. Join it to the issue on github.")
+                                  help = "Useful in case of trouble. Join it to the issue on github.",
+                                  key="debug_mode")
 
 
 with st.container(border=True):
@@ -153,10 +143,12 @@ with st.container(border=True):
             key="input_button",
             on_click=get_path_netw)
     
-    if session.widget_space["netw_directory_path"]:
-        process_object.get_path_input_netw(session.widget_space["netw_directory_path"])
+    session.register_widgets({"input_button": input_button})
+
+    if "netw_directory_path" in st.session_state:
+        process_object.get_path_input_netw(st.session_state["netw_directory_path"])
     
-    st.text_input("**Netw directory path** :\n", 
+    netw_path = st.text_input("**Netw directory path** :\n", 
                     "No folder selected" if not process_object.netw_directory_path
                     else process_object.netw_directory_path, 
                     key="input_file_path")
@@ -164,33 +156,29 @@ with st.container(border=True):
 
     st.subheader("Output directory path")
     output_path_folder = st.text_input("**Folder path** :", 
-                        value="No folder selected" if not process_object.model_directory_path
-                        else process_object.model_directory_path, 
-                        key="output_folder_path",
-                        on_change=change_output_folder_path)
-    
-    session.register_widgets({"output_folder_path": output_path_folder})
-
-    if session.widget_space["output_folder_path"]:
-        process_object.output_folder_path = session.widget_space["output_folder_path"]
-    # session.register_widgets({"output_folder_path": output_path_folder})
+                        value="No folder selected" if not process_object.output_folder_path
+                        else process_object.output_folder_path, 
+                        key="output_folder_path")
+                        
+    if "output_folder_path" in st.session_state:
+        process_object.output_folder_path = st.session_state["output_folder_path"]
     
 
     submit_button = st.button("Submit",
                        key="submit_button")
-
+    session.register_widgets({"submit_button": submit_button})
 # # Check if the folder already exists
 # if os.path.exists(Path(f"{session.widget_space['output_folder_path']}/{process_object.model_name}_tmp")):
 #     if not session.widget_space["submit_button"]:
 #         st.warning(f"A previous session is already present, previous files will be overwritten.")
 
-if submit_button:
-    session.register_widgets({"submit_button": True})
-    st.rerun()
-
 if session.widget_space["submit_button"]:
     process_object.create_tmp_folder()
     logger_setup(process_object.tmp_folder_path, debug_mode)
+    logger.info(f"IsoDesign version: {process_object.isodesign_version}")
+    logger.info(f"Netw directory path: {process_object.netw_directory_path}")
+    logger.info(f"Output folder path: {process_object.output_folder_path}")
+
    # Import and analysis of model files 
     try:
         process_object.load_model()
@@ -224,7 +212,8 @@ if process_object.netan:
             st.dataframe(process_object.mtf_files["miso"].data, 
                          hide_index=True, 
                          height=400,
-                         width=600)
+                         width=600,
+                         key="dataframe_miso")
 
         with tabs[2]:
             # Display inputs, intermediate and outputs metabolites
@@ -248,7 +237,8 @@ if process_object.netan:
             st.dataframe(process_object.mtf_files["tvar"].data, 
                          hide_index=True, 
                          height=400, 
-                         width=600)
+                         width=600,
+                         key="dataframe_tvar")
 
         with tabs[4]:
             # Display a dataframe with reactions and their names and metabolic pathways  
@@ -268,20 +258,21 @@ if process_object.netan:
             
             netw_dataframe["Pathway"] = pathways
 
-            st.dataframe(netw_dataframe, hide_index=True, height=400, width=600)
+            st.dataframe(netw_dataframe, hide_index=True, height=400, width=600, key="dataframe_netw")
 
         if "Concentrations" in list_tab:
             with tabs[5]:
                 # Display mmet file content
-                st.dataframe(process_object.mtf_files["mmet"].data, hide_index=True, height=400, width=600)
+                st.dataframe(process_object.mtf_files["mmet"].data, hide_index=True, height=400, width=600, key="dataframe_mmet")
 
     next_button = st.button("Next page",
                             key="next_button")
-    if next_button:
-        session.register_widgets({"next_button": next_button})
-        process_object.save_process_to_file()
-        # Go to next page
-        st.switch_page(r"pages/2_Labels_input.py")
+    session.register_widgets({"next_button": next_button})
+
+if session.widget_space["next_button"]:
+    process_object.save_process_to_file()
+    # Go to next page
+    st.switch_page(r"pages/2_Labels_input.py")
 
 
 
