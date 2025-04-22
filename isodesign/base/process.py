@@ -494,7 +494,7 @@ class Process:
         # logger.info(f"Vmtf file has been generated in '{self.tmp_folder_path}.'\n")
 
 
-    def influx_simulation(self, param_list, influx_mode):
+    def influx_simulation(self, param_list):
         """
         Run the simulation using the specified influx_si mode (stationary or instationary).
 
@@ -505,16 +505,16 @@ class Process:
         # Change directory to the folder containing all the file to use for influx_si
         os.chdir(self.tmp_folder_path)
         
-        # Select the correct executable based on the mode
-        if influx_mode == "influx_i":
-            command = ["influx_i"] + param_list
-        if influx_mode == "influx_s":
-            command = ["influx_s"] + param_list
+        # # Select the correct executable based on the mode
+        # if influx_mode == "influx_i":
+        #     command = ["influx_i"] + param_list
+        # if influx_mode == "influx_s":
+        #     command = ["influx_s"] + param_list
         
-        self.command_list = command
+        self.command_list = param_list
         logger.info(f"Command to run: {self.command_list}")
 
-        result = subprocess.Popen(command, 
+        result = subprocess.Popen(self.command_list, 
                                     stderr=subprocess.PIPE,
                                     text=True)
 

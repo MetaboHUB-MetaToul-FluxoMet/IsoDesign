@@ -42,7 +42,7 @@ def execute_simulation():
     if ctx:
         add_script_run_ctx(st.session_state.th) #Thread.current_thread())
     try:
-        subp=process_object.influx_simulation(command_list, mode)
+        subp=process_object.influx_simulation(command_list)
         st.session_state["subprocess"] = subp
         # counter = 0
         # while True:  
@@ -102,9 +102,6 @@ elif not process_object.linp_infos:
     # This warning appears if the user has not submitted the combinations generated on page 2 for simulation. 
     st.warning("Please click on the 'Submit for simulations' button on the previous page.")
 else:
-    # Command to be passed to the simulation
-    # The command is initialized with the prefix and default options
-    command_list = ["--prefix", process_object.model_name, "--noopt"]   
 
     # Select the influx mode
     mode = st.selectbox("Influx mode", 
@@ -112,6 +109,16 @@ else:
                         index=0)
     
     session.register_widgets({"mode": mode})
+
+    # Add the model name to the command list  
+    if mode == "influx_s (stationary)":
+        command_list = ["influx_s"]
+    else:
+        command_list = ["influx_i"] 
+
+    # Command to be passed to the simulation
+    # The command is initialized with the prefix and default options
+    command_list = command_list + ["--prefix", process_object.model_name, "--noopt"]   
 
     with st.container(border=True):
         # Emu option
@@ -178,10 +185,7 @@ else:
                                             args=(option,))
 
     st.info(f"{len(process_object.linp_dataframes)} combinations will be simulated.")
-    if mode == "influx_s (stationary)":
-        st.info(f"Command to run: {["influx_s"] + command_list}")
-    else:
-        st.info(f"Command to run: {["influx_i"] + command_list}")
+    st.info(f"Command to run: {command_list}")
 
     submit, interrupt = st.columns([1, 1])
     with submit:
@@ -201,12 +205,10 @@ else:
                         st.success("Simulation completed.")
                         logger.info(f"Simulation with {mode} has been completed successfully.\n")
                         logger.info(f"Summary dataframe has been generated in {process_object.output_folder_path}.")
-                        st.switch_page(r"pages/4_Results.py")
-        
+                        st.switch_page(r"pages/4_Analyze_results.py")
     # with interrupt:
     #     # Interrupt simulation
     #     if st.button("Interrupt simulation", key="interrupt_button"):
     #         st.session_state.running = False
     #         st.warning("Simulation interrupted.")
            
-        
