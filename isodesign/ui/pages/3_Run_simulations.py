@@ -82,15 +82,15 @@ def start_simulation():
 
 session = SessI(
         session_state=st.session_state,
-        page="3_Simulation_options.py")
+        page="3_Run_simulations.py")
 
 
 st.set_page_config(page_title="IsoDesign")
-st.title("Simulation options")
+st.title("Run simulations")
 
 st.sidebar.markdown("## Influx_si documentation ")
 st.sidebar.link_button("Documentation", 
-                       "https://influx-si.readthedocs.io/en/latest/index.html"
+                       "https://influx-si.readthedocs.io/en/latest/manual.html"
                   )
 
 process_object = session.object_space["process_object"]
@@ -108,20 +108,16 @@ else:
 
     # Select the influx mode
     mode = st.selectbox("Influx mode", 
-                        options=["influx_s", "influx_i"],
-                        index=0,
-                        help="Select the influx mode.\
-                        \ninflux_s: stationary,\
-                        \ninflux_i: instationary")
+                        options=["influx_s (stationary)", "influx_i (instationary)"],
+                        index=0)
     
     session.register_widgets({"mode": mode})
 
     with st.container(border=True):
         # Emu option
-        emu = st.checkbox("Use emu approach", 
+        emu = st.checkbox("Use EMU approach (--emu)", 
                         key="emu", 
-                        value=True,
-                        help="Use Elementary Metabolite Units (EMU) for the simulation")
+                        value=True)
         session.register_widgets({"emu": emu})
         
         if emu == True:
@@ -138,7 +134,7 @@ else:
                 command_list.append("--noscale")
 
         # Least norm solution option
-        ln = st.checkbox("Apply ln step", 
+        ln = st.checkbox("Use least norm (--ln)", 
                         key="--ln", 
                         value=True)
         
@@ -168,7 +164,7 @@ else:
                 session.widget_space["list_added_options"].append(session.widget_space["add_options"])
             
         if session.widget_space["list_added_options"]:
-            st.subheader("Added option")
+            st.subheader("Added option(s)")
             for option in session.widget_space["list_added_options"]:
                 # Add the option to the command list
                 command_list.append(f"{option}")
@@ -182,7 +178,10 @@ else:
                                             args=(option,))
 
     st.info(f"{len(process_object.linp_dataframes)} combinations will be simulated.")
-    st.info(f"Command to run: {[mode] + command_list}")
+    if mode == "influx_s (stationary)":
+        st.info(f"Command to run: {["influx_s"] + command_list}")
+    else:
+        st.info(f"Command to run: {["influx_i"] + command_list}")
 
     submit, interrupt = st.columns([1, 1])
     with submit:

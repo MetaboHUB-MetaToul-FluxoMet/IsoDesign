@@ -232,4 +232,4 @@ else:
 
         process_object.save_process_to_file()
 
-        st.switch_page(r"pages/3_Simulation_options.py")
+        st.switch_page(r"pages/3_Run_simulations.py")
