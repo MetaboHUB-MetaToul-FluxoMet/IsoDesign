@@ -56,11 +56,11 @@ def reintegrate_rows(indexes : list):
 
 st.set_page_config(page_title="IsoDesign", 
                    layout="wide")
-st.title("Labels input")
+st.title("Define label inputs")
 
 session = SessI(
         session_state=st.session_state,
-        page="2_Labels_input.py")
+        page="2_Define_label_inputs.py")
 
 # Retrieving substrates names from sessI
 process_object = session.object_space["process_object"]
@@ -135,7 +135,7 @@ else:
                             key="submit_button")
 
         with configured_substrates:
-            st.header("Configured labels input")
+            st.header("Configured label inputs")
             for substrate_name in process_object.isotopomers.keys():
                 # Create an expander to display the isotopomers for each labels input
                 with st.expander(f"{substrate_name}", expanded=True):
@@ -178,7 +178,7 @@ else:
         
         with go_simulations:
             # Creates a button for submitting simulations and saves it's status in the session
-            simulation_button = st.button("Submit for simulations", key="simulation_button")
+            simulation_button = st.button("Validate inputs", key="simulation_button")
             session.register_widgets({"simulation_button": simulation_button})
 
     # If the show_combinations button is clicked, the combinations are displayed in a dataframe
@@ -195,7 +195,7 @@ else:
                     selection_mode="multi-row",
                     key="df_combinations")
         
-        remove_combination = st.button("Remove selected combination",
+        remove_combination = st.button("Remove selected combination(s)",
                                 on_click=remove_rows,
                                 args=[df_combinations.selection.rows],
                                 key="remove_combination")
@@ -219,7 +219,7 @@ else:
                         on_select="rerun",
                         selection_mode="multi-row")
 
-            reintegrate_combination = st.button("Reintegrate selected combination",
+            reintegrate_combination = st.button("Reintegrate selected combination(s)",
                                             on_click=reintegrate_rows,
                                             args=[df_unused_combs.selection.rows],
                                             key="reintegrate_combination")

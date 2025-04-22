@@ -274,7 +274,7 @@ if process_object.netan:
 if session.widget_space["next_button"]:
     process_object.save_process_to_file()
     # Go to next page
-    st.switch_page(r"pages/2_Labels_input.py")
+    st.switch_page(r"pages/2_Define_label_inputs.py")
 
 
 
