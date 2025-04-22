@@ -85,7 +85,7 @@ def logger_setup(output_path, debug_mode=False):
 
 session = SessI(
     session_state=st.session_state,
-    page="Upload_data"
+    page="Load_data"
 )
 
 st.set_page_config(page_title=f"IsoDesign (v{isodesign.__version__})")
@@ -107,12 +107,13 @@ try:
 except Exception:
     pass
 
-st.sidebar.markdown("## Load a session")
+st.sidebar.markdown("## Load a previous session")
 # Load a pickle file if it exists
 upload_pickle = st.sidebar.file_uploader("Load a previous session file.",
                                          key="upload_pickle",
                                          help = 'File with pickle extension (".pkl").',
-                                         type= ["pkl"])
+                                         type= ["pkl"],
+                                         label_visibility="collapsed")
 if upload_pickle:
     with upload_pickle as session_file:
         process_object = pickle.load(session_file)
@@ -158,7 +159,8 @@ with st.container(border=True):
     output_path_folder = st.text_input("**Folder path** :", 
                         value="No folder selected" if not process_object.output_folder_path
                         else process_object.output_folder_path, 
-                        key="output_folder_path")
+                        key="output_folder_path",
+                        label_visibility="collapsed")
                         
     if "output_folder_path" in st.session_state:
         process_object.output_folder_path = st.session_state["output_folder_path"]
@@ -194,7 +196,7 @@ if process_object.netan:
     with st.container(border=True):
         st.subheader("Network analysis")
         # Tabs for network model analysis
-        list_tab = ["Label input", "Isotopic measurements", "Inputs/Outputs", "Fluxes", "Network"]
+        list_tab = ["Label inputs", "Isotopic measurements", "In/Out", "Fluxes", "Network"]
         # If the mmet file is present in the model files, the concentrations tab is added
         if "mmet" in process_object.mtf_files.keys():
             list_tab.append("Concentrations")
