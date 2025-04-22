@@ -160,11 +160,13 @@ def criteria_block(count):
             if f"operation_{count}" not in st.session_state:
                 st.session_state[f"operation_{count}"] = None if count not in process_object.all_scores \
                     else process_object.all_scores[count]["applied_operations"]
-                
+            st.subheader("Operation")
             operation = st.selectbox("Operations", 
-                                    options=["Addition", "Multiply", "Divide"],
+                                    options=["Add", "Multiplication", "Division"],
                                     key=f"operation_{count}",
-                                    index = None)
+                                    index = None,
+                                    label_visibility="collapsed",
+                                    placeholder="Choose an operation")
         if method_choice:
             process_object.generate_score(method_choice,
                                           operation = operation if len(method_choice) > 1 else None,
@@ -221,7 +223,8 @@ def criteria_block(count):
                                     "#ffd16a",
                                     "#6d3fc0",
                                     "#d5dae5",
-                                ])
+                                ], labels={"index": "Label inputs IDs",
+                                           "value": "Value"},)
                     # Update the legend position
                     fig.update_layout(legend = dict(
                         title="Criteria",
@@ -244,11 +247,11 @@ def criteria_block(count):
 
 
 st.set_page_config(page_title="IsoDesign", layout="wide")
-st.title("Results")
+st.title("Analyze results")
 
 session = SessI(
         session_state=st.session_state,
-        page="4_Results")
+        page="4_Analyze_results")
 
 process_object = session.object_space['process_object']
 
