@@ -213,4 +213,5 @@ else:
     with interrupt:
         # Interrupt simulation
         if st.button("Interrupt simulation", key="interrupt_simulation", on_click=interrupt_simulation) :
+            logger.info("Simulation interrupted.")
             st.warning("Simulation interrupted.")
