@@ -1,5 +1,5 @@
 import streamlit as st
-# import signal, time
+import time
 from sess_i.base.main import SessI
 from threading import Thread
 from streamlit.runtime.scriptrunner import add_script_run_ctx
@@ -35,26 +35,27 @@ if "running" not in st.session_state:
 
 def execute_simulation():
     """
-    Execute the simulation task. 
+    Function to run simulations with influx_si. This function is run in 
+    a separate thread to avoid blocking the Streamlit app.
     """
     # Attach Streamlit's runtime context to ensure thread compatibility
     ctx = st.runtime.scriptrunner.get_script_run_ctx()
     if ctx:
         add_script_run_ctx(st.session_state.th) #Thread.current_thread())
     try:
-        subp=process_object.influx_simulation(command_list)
-        st.session_state["subprocess"] = subp
-        # counter = 0
-        # while True:  
-        #     counter += 1
-        #     if st.session_state.running:
-        #         # print(f"Task interrupted at step {counter}!")
-        #         subp.send_signal(signal.SIGINT)
-        #         return
-        #     if not subp.poll() is None:
-        #         return
-        #     # print(f"Step {counter}")  
-        #     time.sleep(0.2) 
+        st.session_state["subprocess"] = process_object.influx_simulation(command_list)
+        while True:  
+            # Check if the subprocess is still running
+            if st.session_state["subprocess"].poll() is not None:
+                if st.session_state["subprocess"].returncode != 0 :
+                    process_object.check_err_files()
+                    # Read the error message from the stderr file
+                    stderr_output = st.session_state["subprocess"].stderr.read()
+                    # Extract the last line of the error message to display it to the user
+                    error_message = stderr_output.strip().split('\n')[-1]
+                    logger.error(f"An error has occured during the simulation: {stderr_output}")
+                    raise Exception(error_message)
+                return
     except Exception as e:
         st.error(f"An error occured: {e}")
         return
@@ -75,6 +76,13 @@ def start_simulation():
     # Wait for the thread to complete before continuing
     task_thread.join()
 
+def interrupt_simulation():
+    """
+    Interrupt simulations. This function is called when the user
+    clicks the "Interrupt simulation" button.
+    """
+    st.session_state.running = False
+    st.session_state["subprocess"].terminate()
 
 ########
 # MAIN #
@@ -102,7 +110,6 @@ elif not process_object.linp_infos:
     # This warning appears if the user has not submitted the combinations generated on page 2 for simulation. 
     st.warning("Please click on the 'Submit for simulations' button on the previous page.")
 else:
-
     # Select the influx mode
     mode = st.selectbox("Influx mode", 
                         options=["influx_s (stationary)", "influx_i (instationary)"],
@@ -110,15 +117,11 @@ else:
     
     session.register_widgets({"mode": mode})
 
-    # Add the model name to the command list  
-    if mode == "influx_s (stationary)":
-        command_list = ["influx_s"]
-    else:
-        command_list = ["influx_i"] 
+    # Add the selected mode to the command list
+    command_list = ["influx_s" if mode == "influx_s (stationary)" else "influx_i"] 
 
-    # Command to be passed to the simulation
     # The command is initialized with the prefix and default options
-    command_list = command_list + ["--prefix", process_object.model_name, "--noopt"]   
+    command_list += ["--prefix", process_object.model_name, "--noopt"]   
 
     with st.container(border=True):
         # Emu option
@@ -206,9 +209,8 @@ else:
                         logger.info(f"Simulation with {mode} has been completed successfully.\n")
                         logger.info(f"Summary dataframe has been generated in {process_object.output_folder_path}.")
                         st.switch_page(r"pages/4_Analyze_results.py")
-    # with interrupt:
-    #     # Interrupt simulation
-    #     if st.button("Interrupt simulation", key="interrupt_button"):
-    #         st.session_state.running = False
-    #         st.warning("Simulation interrupted.")
-           
+        
+    with interrupt:
+        # Interrupt simulation
+        if st.button("Interrupt simulation", key="interrupt_simulation", on_click=interrupt_simulation) :
+            st.warning("Simulation interrupted.")
