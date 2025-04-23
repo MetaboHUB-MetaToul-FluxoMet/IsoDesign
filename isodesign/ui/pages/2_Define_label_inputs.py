@@ -95,17 +95,22 @@ else:
                         price = st.text_input("Price", 
                                             key=f"price_{substrate_name}", 
                                             value=None,
-                                            help="Price of the substrate")
+                                            help="Price of the substrate.\
+                                                There's no need to add units (e.g. €, $, etc.) - just enter the numerical value.")
 
                     lb, ub, intervals_nb = st.columns(3, gap="medium")
                     with lb:
                         lower_b = st.text_input("Lower bound", 
                                                 key=f"lb_{substrate_name}", 
-                                                value=1)
+                                                value=1,
+                                                help="The lower and upper bounds are expressed as fractions.\
+                                                    For example, a value of 1 corresponds to 100% labeling, and 0.5 corresponds to 50%.")
                     with ub:
                         upper_b = st.text_input("Upper bound", 
                                                 key=f"ub_{substrate_name}", 
-                                                value=1)
+                                                value=1,
+                                                help="The lower and upper bounds are expressed as fractions.\
+                                                    For example, a value of 1 corresponds to 100% labeling, and 0.5 corresponds to 50%.")
                     with intervals_nb:
                         intervals_nb = st.text_input("Number of intervals", 
                                                     key=f"intervals_nb_{substrate_name}", 
