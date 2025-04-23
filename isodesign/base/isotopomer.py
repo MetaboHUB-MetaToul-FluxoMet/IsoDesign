@@ -8,13 +8,13 @@ class Isotopomer:
 
     """
 
-    def __init__(self, name, labelling, intervals_nb=10, lower_bound=100, upper_bound=100, price=None):
+    def __init__(self, name, labelling, intervals_nb=10, lower_bound=1, upper_bound=1, price=None):
         """
         :param name: Isotopomer name
         :param labelling: labelling for isotopomer. 1 denotes heavy isotopes while 0 denotes natural isotope.
-        :param intervals_nb: number of intervals for proportions to test
-        :param lower_bound: minimum proportion to test
-        :param upper_bound: maximum proportion to test 
+        :param intervals_nb: number of intervals for fractions to test
+        :param lower_bound: minimum fraction to test
+        :param upper_bound: maximum fraction to test 
         :param price: isotopomer price
 
         """
@@ -38,10 +38,10 @@ class Isotopomer:
         # Thus, there is no longer any notion of step. 
         # There will be only one value to take into account as a fraction (self.upper_bound or self.lower_bound, since their values are equal).
         if self.step == 0:
-            return np.array([Decimal(self.upper_bound) / Decimal(100)])
+            return np.array([Decimal(self.upper_bound) / Decimal(1)])
 
         # Convert "fraction" to int to avoid type errors when using np.arange
-        return np.array([Decimal(int(fraction)) / Decimal(100) for fraction in
+        return np.array([round(Decimal(float(fraction)), 1) / Decimal(1) for fraction in
                          np.arange(self.lower_bound, self.upper_bound + self.step, self.step)])
 
 
@@ -74,8 +74,8 @@ class Isotopomer:
     def upper_bound(self, value):
         if not isinstance(value, int):
             raise TypeError("Upper bound must be an integer")
-        if value > 100:
-            raise ValueError("Proportions are given as a percentage and thus cannot be higher than 100%")
+        if value > 1:
+            raise ValueError("Values must not exceed 1.")
         if hasattr(self, "lower_bound") and value < self.lower_bound:
             raise ValueError("Upper bound must be greater than lower bound")
         self._upper_bound = value

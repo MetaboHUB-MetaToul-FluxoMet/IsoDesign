@@ -101,11 +101,11 @@ else:
                     with lb:
                         lower_b = st.text_input("Lower bound", 
                                                 key=f"lb_{substrate_name}", 
-                                                value=100)
+                                                value=1)
                     with ub:
                         upper_b = st.text_input("Upper bound", 
                                                 key=f"ub_{substrate_name}", 
-                                                value=100)
+                                                value=1)
                     with intervals_nb:
                         intervals_nb = st.text_input("Number of intervals", 
                                                     key=f"intervals_nb_{substrate_name}", 

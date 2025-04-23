@@ -236,8 +236,8 @@ class Process:
             self.isotopomers[substrates_name] = [Isotopomer(substrates_name, 
                                                        self.netan["Clen"][substrates_name] * "0", 
                                                        intervals_nb=10, 
-                                                       lower_bound=100, 
-                                                       upper_bound=100, 
+                                                       lower_bound=1, 
+                                                       upper_bound=1, 
                                                        price=None)]
 
     
