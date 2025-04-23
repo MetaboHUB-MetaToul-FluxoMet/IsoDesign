@@ -499,17 +499,10 @@ class Process:
         Run the simulation using the specified influx_si mode (stationary or instationary).
 
         :param param_list: List of command-line arguments to pass to influx_si.
-        :param influx_mode: "influx_i" for instationary or "influx_s" for stationary mode.
         :return: A Popen object representing the running subprocess.
         """
         # Change directory to the folder containing all the file to use for influx_si
         os.chdir(self.tmp_folder_path)
-        
-        # # Select the correct executable based on the mode
-        # if influx_mode == "influx_i":
-        #     command = ["influx_i"] + param_list
-        # if influx_mode == "influx_s":
-        #     command = ["influx_s"] + param_list
         
         self.command_list = param_list
         logger.info(f"Command to run: {self.command_list}")
@@ -517,20 +510,10 @@ class Process:
         result = subprocess.Popen(self.command_list, 
                                     stderr=subprocess.PIPE,
                                     text=True)
-
-        stdout, stderr = result.communicate()
-        
-        if result.returncode != 0:
-            self._check_err_files()
-            # Get the last line of the error message
-            error_message = stderr.strip().split('\n')[-1]
-            logger.error(f"An error has occured during the simulation: {stderr}")
-            raise Exception(error_message)
-        
         return result
     
 
-    def _check_err_files(self):
+    def check_err_files(self):
         """ 
         Check if, at the end of calculations with influx_si, ".err" files are 
         empty. If they are not, return the file names and contents.
