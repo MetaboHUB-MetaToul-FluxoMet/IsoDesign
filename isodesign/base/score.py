@@ -146,9 +146,9 @@ class ScoreHandler:
         :param operation: the operation to apply to the score_objects (Addition, Multiply, Divide)
         """
         operations = {
-            "Addition": lambda x, y: x + y,
-            "Multiply": lambda x, y: x * y,
-            "Divide": lambda x, y: x / y
+            "Add": lambda x, y: x + y,
+            "Multiplication": lambda x, y: x * y,
+            "Division": lambda x, y: x / y
         }
         
         for key, score_object in self.columns_scores.items():

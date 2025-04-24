@@ -28,7 +28,7 @@ def main():
         thread = Thread(target=get_last_version)
         thread.start()
         path_to_app = Path(isodesign.__file__).parent
-        path_to_app = path_to_app / "ui/Upload_data.py"
+        path_to_app = path_to_app / "ui/Load_data.py"
         run(["streamlit", "run", str(path_to_app)])
 
 

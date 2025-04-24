@@ -56,11 +56,11 @@ def reintegrate_rows(indexes : list):
 
 st.set_page_config(page_title="IsoDesign", 
                    layout="wide")
-st.title("Labels input")
+st.title("Define label inputs")
 
 session = SessI(
         session_state=st.session_state,
-        page="2_Labels_input.py")
+        page="2_Define_label_inputs.py")
 
 # Retrieving substrates names from sessI
 process_object = session.object_space["process_object"]
@@ -95,17 +95,22 @@ else:
                         price = st.text_input("Price", 
                                             key=f"price_{substrate_name}", 
                                             value=None,
-                                            help="Price of the substrate")
+                                            help="Price of the substrate.\
+                                                There's no need to add units (e.g. €, $, etc.) - just enter the numerical value.")
 
                     lb, ub, intervals_nb = st.columns(3, gap="medium")
                     with lb:
                         lower_b = st.text_input("Lower bound", 
                                                 key=f"lb_{substrate_name}", 
-                                                value=100)
+                                                value=1,
+                                                help="The lower and upper bounds are expressed as fractions.\
+                                                    For example, a value of 1 corresponds to 100% labeling, and 0.5 corresponds to 50%.")
                     with ub:
                         upper_b = st.text_input("Upper bound", 
                                                 key=f"ub_{substrate_name}", 
-                                                value=100)
+                                                value=1,
+                                                help="The lower and upper bounds are expressed as fractions.\
+                                                    For example, a value of 1 corresponds to 100% labeling, and 0.5 corresponds to 50%.")
                     with intervals_nb:
                         intervals_nb = st.text_input("Number of intervals", 
                                                     key=f"intervals_nb_{substrate_name}", 
@@ -135,7 +140,7 @@ else:
                             key="submit_button")
 
         with configured_substrates:
-            st.header("Configured labels input")
+            st.header("Configured label inputs")
             for substrate_name in process_object.isotopomers.keys():
                 # Create an expander to display the isotopomers for each labels input
                 with st.expander(f"{substrate_name}", expanded=True):
@@ -178,7 +183,7 @@ else:
         
         with go_simulations:
             # Creates a button for submitting simulations and saves it's status in the session
-            simulation_button = st.button("Submit for simulations", key="simulation_button")
+            simulation_button = st.button("Validate inputs", key="simulation_button")
             session.register_widgets({"simulation_button": simulation_button})
 
     # If the show_combinations button is clicked, the combinations are displayed in a dataframe
@@ -195,7 +200,7 @@ else:
                     selection_mode="multi-row",
                     key="df_combinations")
         
-        remove_combination = st.button("Remove selected combination",
+        remove_combination = st.button("Remove selected combination(s)",
                                 on_click=remove_rows,
                                 args=[df_combinations.selection.rows],
                                 key="remove_combination")
@@ -219,7 +224,7 @@ else:
                         on_select="rerun",
                         selection_mode="multi-row")
 
-            reintegrate_combination = st.button("Reintegrate selected combination",
+            reintegrate_combination = st.button("Reintegrate selected combination(s)",
                                             on_click=reintegrate_rows,
                                             args=[df_unused_combs.selection.rows],
                                             key="reintegrate_combination")
@@ -232,4 +237,4 @@ else:
 
         process_object.save_process_to_file()
 
-        st.switch_page(r"pages/3_Simulation_options.py")
+        st.switch_page(r"pages/3_Run_simulations.py")
