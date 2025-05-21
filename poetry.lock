@@ -2173,13 +2173,13 @@ test = ["Cython", "array-api-strict (>=2.0,<2.1.1)", "asv", "gmpy2", "hypothesis
 
 [[package]]
 name = "sess-i"
-version = "0.1.0"
+version = "0.2.1"
 description = "A helper package for handling multi-page apps built using Streamlit"
 optional = false
 python-versions = "!=2.7.*,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,!=3.7.*,>=3.8"
 files = [
-    {file = "sess_i-0.1.0-py3-none-any.whl", hash = "sha256:ca2aec565a4a26926b30322d201ec259d8f28ced6e7ba8decd0b5cdcd8522f92"},
-    {file = "sess_i-0.1.0.tar.gz", hash = "sha256:d00efb87b90711360c16977c586330a8ab8d8cd760aa7a06ec303342686b59b0"},
+    {file = "sess_i-0.2.1-py3-none-any.whl", hash = "sha256:fe2e5291d78921f0c78b28013d0c9945338903f02068c208256729d7bc8a5725"},
+    {file = "sess_i-0.2.1.tar.gz", hash = "sha256:3c59317b9e02ebf6c1bd8602bc83a70a0ac3835e4c0f01d19a9de1d452e9cbfd"},
 ]
 
 [package.dependencies]
@@ -2692,4 +2692,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10"
-content-hash = "ecdeb039cf1c66ebf461b145090febc878ea883c6e2cb381455480eb13ab035b"
+content-hash = "ea79a57fd1a73c6348cf0931767f9fcddab4a596e99813a04541dda58b196585"
