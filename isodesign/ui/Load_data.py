@@ -126,13 +126,25 @@ if not session.object_space["process_object"]:
 
 process_object = session.object_space["process_object"]
 
-st.sidebar.divider()
 st.sidebar.markdown("## Debug mode")
 # checkbox to activate the debug mode  
 debug_mode = st.sidebar.checkbox('Verbose logs',
                                   help = "Useful in case of trouble. Join it to the issue on github.",
                                   key="debug_mode")
 
+st.sidebar.divider()
+st.sidebar.link_button("Documentation",
+                        url="https://isodesign.readthedocs.io/en/latest/",
+                        help = "Documentation of IsoDesign.",
+                       )
+with st.sidebar : 
+    with st.expander("Legal information"):
+        st.markdown(f"""
+        **Authors :** Rochelle KOUAKOU, Loic LE GREGAM, Pierre MILLARD, Serguei SOKOL, [INRAE](https://www.inrae.fr/)/ 
+                    [TBI](https://www.toulouse-biotechnology-institute.fr/)/[MetaboHUB](https://www.metabohub.fr/)  
+        **Version :** `{isodesign.__version__}`  
+        **Copyright 2025, [INSA](https://www.insa-toulouse.fr/)/[INRAE](https://www.inrae.fr/)/[CNRS](https://www.cnrs.fr/fr)**
+        """)
 
 with st.container(border=True):
 
