@@ -50,7 +50,7 @@ installation and usage instructions.
 This is the recommended installation procedure. If you have a version of conda (such as miniconda or Anaconda), you can install IsoDesign with the following command:
 
 ```bash
-$ conda install isodesign -c bioconda
+$ conda install isodesign -c conda-forge -c bioconda
 ```
 
 This will install IsoDesign and all its dependencies.
