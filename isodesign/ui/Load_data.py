@@ -143,6 +143,7 @@ with st.sidebar :
         **Authors :** Rochelle KOUAKOU, Loic LE GREGAM, Pierre MILLARD, Serguei SOKOL, [INRAE](https://www.inrae.fr/)/ 
                     [TBI](https://www.toulouse-biotechnology-institute.fr/)/[MetaboHUB](https://www.metabohub.fr/)  
         **Version :** `{isodesign.__version__}`  
+        **License :** [GPLv3](https://www.gnu.org/licenses/)  
         **Copyright 2025, [INSA](https://www.insa-toulouse.fr/)/[INRAE](https://www.inrae.fr/)/[CNRS](https://www.cnrs.fr/fr)**
         """)
 
