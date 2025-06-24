@@ -20,35 +20,38 @@ activate it before starting IsoDesign.
 
 IsoDesign interface will open in a new browser window:
 
-.. image:: _static/interface.JPG
-   :scale: 40%
+.. image:: _static/home_page.jpg
+   :scale: 60%
 
 Select your input network file (which should have a :file:`.netw` extension,
 refer to :ref:`required_input_data_files` for more details).
 By default, an output directory path is pre-configured, but you can modify
 it if needed. Once ready, you click the "Submit" button to load your model
 and explore its structure through a dedicated interface. Afterward, click on
-"Next Page" to go to the next step. This will open the **Labels input** page.
+"Next Page" to go to the next step. This will open the **Define label inputs** page.
 
-[PHOTO LABELS INPUT]
+.. image:: _static/define_label_inputs_page.jpg
+   :scale: 50%
 
-In the page **Labels input**, you can define the available isotopic forms of
+In the page **Define label inputs**, you can define the available isotopic forms of
 the substrate(s) and specify the desired proportions to be tested by setting
 lower and upper bounds along with a number of intervals. Additionally,
 you can preview the generated combinations before proceeding with simulations
 (refer to the :ref:`labels_input` for more details).
 
-[PHOTO SIMULATIONS PAGE]
+.. image:: _static/run_simulations_page.jpg
+   :scale: 60%
 
 In the **Simulation options** page, you can choose your desired simulation
 mode: influx_s (stationary) or influx_i (instationary) (refer to the
 :ref:`simulation_options` for more details).
 Then, configure the simulation options and initiate the simulation. Once the
-calculations are completed, you can proceed to the **Results** page.
+calculations are completed, you can proceed to the **Analyze results** page.
 
-[PHOTO RESULTS PAGE]
+.. image:: _static/analyze_results_page.jpg
+   :scale: 60%
 
-The **Results** page allows you to visualize the results and apply one or
+The **Analyze results** page allows you to visualize the results and apply one or
 more scoring criteria to identify the optimal label input (refer to
 :ref:`results` for more details).
 
@@ -67,4 +70,4 @@ import directly in your Python scripts:
 
   import isodesign
 
-.. seealso::  Have a look at our :ref:`API <Library documentation>` if you are interested in this experimental feature.
+.. .. seealso::  Have a look at our :ref:`API <Library documentation>` if you are interested in this experimental feature.
