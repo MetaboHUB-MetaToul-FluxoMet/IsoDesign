@@ -55,7 +55,7 @@ The **Analyze results** page allows you to visualize the results and apply one o
 more scoring criteria to identify the optimal label input (refer to
 :ref:`results` for more details).
 
-.. note:: The process is continuously and automatically saved as a pickle file (:file:`.pkl`) in the output folder. To reopen the current processing state, just reopen this file by clicking on "Load a session - Browse files" on the “Upload data” page.
+.. note:: The process is continuously and automatically saved as a pickle file (:file:`.pkl`) in the output folder. To reopen the current processing state, just reopen this file by clicking on "Load a previous session" on the “Load data” page.
 
 .. warning:: IsoDesign overwrites (results and processing) files if they already exist. So take care to copy your results elsewhere or to change the output path and/or filename if you want to protect them from overwriting.
 
