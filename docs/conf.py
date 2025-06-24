@@ -15,7 +15,7 @@ from isodesign import __version__
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'IsoDesign'
-copyright = '2024, INRAE'
+copyright = '2024, INSA/INRAE/CNRS'
 author = 'Rochelle Kouakou, Loïc Le Gregam, Serguei Sokol, Pierre Millard'
 
 # The full version, including alpha/beta/rc tags
