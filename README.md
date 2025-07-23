@@ -5,7 +5,7 @@
 
 ## What is IsoDesign ?
 IsoDesign is a scientific tool designed to identify the optimal
-isotopic composition of labeled substrates in :sup:`13`\ C-fluxomics
+isotopic composition of labeled substrates in <sup>13</sup>C-fluxomics
 experiments.
 
 It is one of the routine tools that we use at the [MetaToul platform](https://mth-metatoul.com/) 
@@ -23,7 +23,7 @@ This documentation is available on [Read the Docs](https://isodesign.readthedocs
    * users can **define all isotopic forms to consider for each substrate**,
    * account for the **substrate price** to keep the cost of the experiment
      reasonable,
-   * design of both (isotopic) **stationary and non-stationary** :sup:`13`\ C-fluxomics experiments
+   * design of both (isotopic) **stationary and non-stationary** <sup>13</sup>C-fluxomics experiments
    * **diverse scoring criteria** to finely analyse flux resolution at reaction-, pathway- and
      network-levels to identify the optimal label input
      according to the biological question,
@@ -33,7 +33,7 @@ This documentation is available on [Read the Docs](https://isodesign.readthedocs
    * **visual representation** of the design results to support the
      decision-making process,
    * increased computational performance through **parallel computing**,
-   * shipped as a **library** with a **graphical user interface**,
+   * usable as a **library** with a **graphical user interface**,
    * **open-source, free and easy to install** everywhere where Python and R
      run,
    * **biologist-friendly**.
