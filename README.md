@@ -1,5 +1,5 @@
-<img src="docs/_static/IsoDesign_logo.png" alt="image" width="auto" 
-height="auto">
+<img src="docs/_static/IsoDesign_logo.png" alt="image" width="33%" 
+height="33%">
 
 # IsoDesign
 
