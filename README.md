@@ -1,5 +1,4 @@
-<img align="left" width="80" height="80" src="./docs/_static/IsoDesign_logo.
-png" alt="IsoDesign">
+<img align="left" width="80" height="80" src="./docs/_static/IsoDesign_logo.png" alt="IsoDesign">
 
 # IsoDesign
 
