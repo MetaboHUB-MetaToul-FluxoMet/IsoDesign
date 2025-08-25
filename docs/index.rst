@@ -3,6 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. image:: _static/IsoDesign_logo.png
+   :align: left
+   :scale: 48%
+
 
 Welcome to IsoDesign documentation !
 ====================================

@@ -1,3 +1,6 @@
+<img src="docs/_static/IsoDesign_logo.png" alt="image" width="auto" 
+height="auto">
+
 # IsoDesign
 
 [![PyPI version](https://badge.fury.io/py/isodesign.svg)](https://badge.fury.io/py/isodesign)
