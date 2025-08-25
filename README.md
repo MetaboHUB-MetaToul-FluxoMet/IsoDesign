@@ -1,5 +1,6 @@
-<img src="docs/_static/IsoDesign_logo.png" alt="image" width="33%" 
-height="33%">
+<img align="left" width="30%" height="30%" src="docs/_static/IsoDesign_logo.
+png" 
+alt="IsoDesign">
 
 # IsoDesign
 
