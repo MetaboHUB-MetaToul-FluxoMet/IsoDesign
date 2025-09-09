@@ -693,14 +693,14 @@ class Process:
         :param number: number corresponding to the analysis
         :param figure: plotly figure object
         """
-        res_folder_path = Path(f"{self.output_folder_path}/{self.all_scores[number]["name"]}_res")
+        res_folder_path = Path(f"{self.output_folder_path}/{self.all_scores[number]['name']}_res")
         res_folder_path.mkdir(parents=True, exist_ok=True)
 
         # Export the dataframe and the scores table to tsv files
-        self.all_scores[number]["dataframe"].to_csv(f"{res_folder_path}/{self.all_scores[number]["name"]}_dataframe.tsv", index=False, sep="\t")
-        self.all_scores[number]["columns_scores"].to_csv(f"{res_folder_path}/{self.all_scores[number]["name"]}_scores.tsv", index=True, sep="\t")
+        self.all_scores[number]["dataframe"].to_csv(f"{res_folder_path}/{self.all_scores[number]['name']}_dataframe.tsv", index=False, sep="\t")
+        self.all_scores[number]["columns_scores"].to_csv(f"{res_folder_path}/{self.all_scores[number]['name']}_scores.tsv", index=True, sep="\t")
 
-        figure.write_html(f"{res_folder_path}/{self.all_scores[number]["name"]}_barplot.html")
+        figure.write_html(f"{res_folder_path}/{self.all_scores[number]['name']}_barplot.html")
 
 
 # if __name__ == "__main__":
