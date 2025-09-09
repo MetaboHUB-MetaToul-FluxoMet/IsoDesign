@@ -68,4 +68,5 @@ and can be downloaded as a `PDF file <https://readthedocs
    :maxdepth: 2
    :caption: Miscellaneous
 
+   library_doc.rst
    license.rst
