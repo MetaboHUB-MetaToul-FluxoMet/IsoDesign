@@ -317,10 +317,11 @@ else:
             export_button = st.button("Export", key=f"export_{count}") 
 
         if export_button:
+            header_name = st.session_state[f"header_{count}"]
             with st.spinner("Exporting data ..."):
                 process_object.export_data(count, st.session_state[f"fig_{count}"])
-                st.success(f"'{st.session_state[f"header_{count}"]}' exported successfully in {process_object.output_folder_path}.")
-                logger.info(f"'{st.session_state[f"header_{count}"]}' exported successfully in {process_object.output_folder_path}.")
+                st.success(f"'{header_name}' exported successfully in {process_object.output_folder_path}.")
+                logger.info(f"'{header_name}' exported successfully in {process_object.output_folder_path}.")
         # Save the "score" block to the process_object and save it to a pickle file
         process_object.register_scores(count, block_name=st.session_state[f"header_{count}"])
         process_object.save_process_to_file()
