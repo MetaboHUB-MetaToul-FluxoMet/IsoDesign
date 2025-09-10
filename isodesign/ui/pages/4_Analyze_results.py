@@ -65,7 +65,7 @@ def display_dataframe(count):
     # Display the simulation results dataframe. The table is updated according to the filters used 
     st.dataframe(process_object.filtered_dataframe if process_object.filtered_dataframe is not None 
                     else process_object.summary_dataframe,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 key=f"display_dataframe_{count}")
    
@@ -190,7 +190,7 @@ def criteria_block(count):
                     table = st.dataframe(process_object.scores,
                                 on_select="rerun",
                                 selection_mode="multi-row",
-                                use_container_width=True,
+                                width="stretch",
                                 key=f"table_score_{count}")
                                     
                 with barplot:
@@ -317,10 +317,11 @@ else:
             export_button = st.button("Export", key=f"export_{count}") 
 
         if export_button:
+            header_name = st.session_state[f"header_{count}"]
             with st.spinner("Exporting data ..."):
                 process_object.export_data(count, st.session_state[f"fig_{count}"])
-                st.success(f"'{st.session_state[f"header_{count}"]}' exported successfully in {process_object.output_folder_path}.")
-                logger.info(f"'{st.session_state[f"header_{count}"]}' exported successfully in {process_object.output_folder_path}.")
+                st.success(f"'{header_name}' exported successfully in {process_object.output_folder_path}.")
+                logger.info(f"'{header_name}' exported successfully in {process_object.output_folder_path}.")
         # Save the "score" block to the process_object and save it to a pickle file
         process_object.register_scores(count, block_name=st.session_state[f"header_{count}"])
         process_object.save_process_to_file()
