@@ -65,7 +65,7 @@ def display_dataframe(count):
     # Display the simulation results dataframe. The table is updated according to the filters used 
     st.dataframe(process_object.filtered_dataframe if process_object.filtered_dataframe is not None 
                     else process_object.summary_dataframe,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 key=f"display_dataframe_{count}")
    
@@ -190,7 +190,7 @@ def criteria_block(count):
                     table = st.dataframe(process_object.scores,
                                 on_select="rerun",
                                 selection_mode="multi-row",
-                                use_container_width=True,
+                                width="stretch",
                                 key=f"table_score_{count}")
                                     
                 with barplot:
