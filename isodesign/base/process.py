@@ -21,9 +21,9 @@ logger = logging.getLogger(f"IsoDesign.{__name__}")
 
 # Namedtuples are placed outside the class to avoid pickling issues when saving the Process object
 # namedtuple containing file path and data 
-file_info = namedtuple("file_info", ['path', 'data']) 
+mtf_files_infos = namedtuple("mtf_files_infos", ['path', 'data']) 
 # namedtuple containing the number of labeled inputs and the total price for each linp file
-linp_info = namedtuple("linp_info", ["nb_labeled_inputs", "total_price"])
+linp_files_infos = namedtuple("linp_files_infos", ["nb_labeled_inputs", "total_price"])
 
 class Process:
     """
@@ -49,18 +49,18 @@ class Process:
 
         # Dictionary containing element to build the vmtf file
         self.vmtf_element_dict = {"Id": None, "Comment": None}
-        self.netw_directory_path = None
+        self.netw_file_path = None
         # Path to the folder containing all the model to analyze
-        self.model_directory_path = None
+        self.metabolic_netw_model_dir_path = None
         # Path to the folder containing the results of the analysis
-        self.output_folder_path = None
+        self.results_dir_path = None
         # Path to the folder containing the files created by Isodesign
         self.tmp_folder_path = None
         # Name of the model to analyze
-        self.model_name = None
+        self.metabolic_netw_model_name = None
         # List of paths to tvar.sim files (after simulation with influx_si)
         self.tvar_sim_paths = []
-        # Elements analyzed (substrates, metabolites, etc.) in the network using the analyse_model method
+        # Elements analyzed (substrates, metabolites, etc.) in the network using the model_analysis method
         self.netan = {}
         # summary dataframe generated after simulation with influx_si
         self.summary_dataframe = None
@@ -73,7 +73,7 @@ class Process:
         # self.tvar_def_file = None
         # Dictionary to store the number of labeled inputs and the total isotopomer prices of each linp file 
         # Key : linp file name, value : namedtuple containing the number of labeled inputs and the total price
-        self.linp_infos = {}
+        self.linp_files_infos = {}
         # Dictionary containing the number of structurally identified fluxes (obtained from the ‘tvar.sim’ files) 
         # Key : file name, value : number of structurally identified fluxes
         self.structures_identified = {}
@@ -83,7 +83,7 @@ class Process:
         # List of command line arguments to pass to influx_si
         self.command_list = None
         # List of linp dataframes to remove
-        self.linp_to_remove = {}
+        self.linp_config_deleted = {}
 
         # Stores the scores generated after application of the scoring criteria 
         self.scores : pd.DataFrame = None
@@ -95,51 +95,52 @@ class Process:
         self.criteria_parameters : dict = None
         self.applied_operations = None
 
-    def get_path_input_netw(self, netw_directory_path):
+    def get_netw_file_path(self, netw_file_path):
         """
         Get the directory path of the netw file (essential file containing 
         all reactions and transition labels). From this path, we also store 
         the directory path and the name of the model to be analyzed. 
 
-        :param netw_directory_path: str containing the path to the netw file 
+        :param netw_file_path: str containing the path to the netw file 
         """
         
-        if not isinstance(netw_directory_path, str):
-            msg = (f'"{netw_directory_path}" should be of type string and not {type(netw_directory_path)}.')
+        if not isinstance(netw_file_path, str):
+            msg = (f'"{netw_file_path}" should be of type string and not {type(netw_file_path)}.')
             logger.error(msg)
             raise TypeError(msg)
 
-        self.netw_directory_path = Path(netw_directory_path)
+        self.netw_file_path = Path(netw_file_path)
 
-        if not self.netw_directory_path.exists():
-            msg = f"{self.netw_directory_path} doesn't exist."
+        if not self.netw_file_path.exists():
+            msg = f"{self.netw_file_path} doesn't exist."
             logger.error(msg)
             raise ValueError(msg)
         
-        if self.netw_directory_path.suffix != ".netw":
-            msg = f'{self.netw_directory_path} is invalid. Please provide a file with ".netw" extension.'
+        if self.netw_file_path.suffix != ".netw":
+            msg = f'{self.netw_file_path} is invalid. Please provide a file with ".netw" extension.'
             logger.error(msg)
             raise ValueError(msg)
         
-        # Store the model name 
-        self.model_name = Path(netw_directory_path).stem
+        # Store the metabolic network model name
+        self.metabolic_netw_model_name = Path(netw_file_path).stem
         
         # Store the model directory path 
-        self.model_directory_path = Path(netw_directory_path).parent
-        # Output folder path is the same as the model directory path
+        self.metabolic_netw_model_dir_path = Path(netw_file_path).parent
+        # Results dir path is the same as the model directory path
         # It can be changed by the user 
-        self.output_folder_path=self.model_directory_path
+        self.results_dir_path=self.metabolic_netw_model_dir_path
     
-    def load_model(self):
+    def load_metabolic_netw_model(self):
         """ 
-        Load MTF files depending on the model name.
+        Load the files representing the metabolic network model
+        (MTF format files) based on the model name.
 
         """
         # Reset the dictionary to store imported files
         self.mtf_files = {}
     
-        for file in self.model_directory_path.iterdir():
-            if file.stem == self.model_name and file.suffix in self.FILES_EXTENSION:
+        for file in self.metabolic_netw_model_dir_path.iterdir():
+            if file.stem == self.metabolic_netw_model_name and file.suffix in self.FILES_EXTENSION:
                 # Read the file and store its content in a namedtuple
                 data = pd.read_csv(str(file),
                                     sep="\t",
@@ -148,13 +149,13 @@ class Process:
                                     encoding="utf-8",
                                     on_bad_lines='skip')
                 
-                self.mtf_files.update({file.suffix[1:]: file_info(file, data)})
+                self.mtf_files.update({file.suffix[1:]: mtf_files_infos(file, data)})
 
         logger.debug(f"Imported files = {self.mtf_files}\n")
 
    
 
-    def analyse_model(self):
+    def model_analysis(self):
         """
         Analyze model network to identify substrates, metabolites, etc by using 
         modules from influx_si.
@@ -168,14 +169,14 @@ class Process:
             tmpdir_path = Path(tmpdir)
 
             # Copy all files from model_directory_path to the temporary directory
-            files_to_copy = [f for f in self.model_directory_path.iterdir() if f.is_file()]
+            files_to_copy = [f for f in self.metabolic_netw_model_dir_path.iterdir() if f.is_file()]
             for file in files_to_copy:
                 shutil.copy(file, tmpdir_path)
 
             # will contain the paths to the ftbl files generated by the txt2ftbl module
             li_ftbl = []  
             # convert mtfs to ftbl
-            txt2ftbl.main(["--prefix", os.path.join(str(tmpdir), self.model_name)], li_ftbl)
+            txt2ftbl.main(["--prefix", os.path.join(str(tmpdir), self.metabolic_netw_model_name)], li_ftbl)
 
             # # get the tvar.def file
             # for file in os.listdir(tmpdir):
@@ -215,8 +216,8 @@ class Process:
         Save the Process object to a pickle file in the model directory.
         """
          
-        output_file_tmp = Path(self.output_folder_path, self.model_name + "_tmp.pkl")
-        output_file = Path(self.output_folder_path, self.model_name + ".pkl")
+        output_file_tmp = Path(self.results_dir_path, self.metabolic_netw_model_name + "_tmp.pkl")
+        output_file = Path(self.results_dir_path, self.metabolic_netw_model_name + ".pkl")
 
         try:
             with open(output_file_tmp, 'wb') as file:
@@ -241,7 +242,7 @@ class Process:
                                                        price=None)]
 
     
-    def add_isotopomer(self, substrate_name, labelling, intervals_nb, lower_b, upper_b, price=None):	
+    def add_isotopomer(self, substrate_name:str, labelling:str, intervals_nb:int, lower_b:int, upper_b:int, price:float=None):	
         """
         Add isotopomer to the isotopomers dictionary (self.isotopomers). 
 
@@ -269,7 +270,7 @@ class Process:
             
     
 
-    def remove_isotopomer(self, substrate, labelling):
+    def remove_isotopomer(self, substrate:str, labelling:str):
         """
         Remove isotopomer from the isotopomer dictionary (self.isotopomers) 
         according to the substrate name and labelling.
@@ -313,7 +314,7 @@ class Process:
 
         """
 
-        self.tmp_folder_path = Path(f"{self.output_folder_path}/{self.model_name}_tmp")
+        self.tmp_folder_path = Path(f"{self.results_dir_path}/{self.metabolic_netw_model_name}_tmp")
         self.tmp_folder_path.mkdir(parents=True, exist_ok=True)
 
         # logger.info(f"Results folder path '{tmp_folder_path}'.\n")
@@ -323,7 +324,7 @@ class Process:
         Clear the temp folder containing all the files generated by IsoDesign.
         """
        
-        shutil.rmtree(Path(f"{self.output_folder_path}/{self.model_name}_tmp"))
+        shutil.rmtree(Path(f"{self.results_dir_path}/{self.metabolic_netw_model_name}_tmp"))
         
     def clear_previous_results(self):
         """
@@ -341,7 +342,7 @@ class Process:
             if linp_files.is_file() and linp_files.name.endswith(".linp"):
                 os.remove(linp_files)
                 
-    def get_isotopomer_price(self, isotopomer_labelling, isotopomer_name):
+    def get_isotopomer_price(self, isotopomer_labelling:str, isotopomer_name:str):
         """ 
         Get the price of an isotopomer based on its labelling and name 
         from the isotopomers dictionary.
@@ -379,9 +380,6 @@ class Process:
                                 'Isotopomer': self.label_input.labelling_patterns,
                                 'Value': pair.astype(float)})
 
-            # remove rows with value = 0
-            # df = df.loc[df["Value"] != 0]
-            
             # add a column "Price" containing the price of each isotopomer multiplied by its fraction
             # applies the 'get_isotopomer_price' method to each row (axis=1) in the dataframe 'df'
             df["Price"] = df.apply(lambda x: self.get_isotopomer_price(x["Isotopomer"], x["Specie"]), axis=1) * df["Value"]
@@ -408,7 +406,7 @@ class Process:
                 # Store the linp DataFrames to remove in the linp_to_remove dictionary
                 # key : index, value : dictionary containing the id of the linp DataFrame as key and its content as value
                 # example : {0: {'ID_01': {'Id': None, 'Comment': None, 'Specie': ['Gluc', 'Gluc'], 'Isotopomer': ['111111', '100000'], 'Value': [0.5, 0.5], 'Price': [10.0, 10.0]}}
-                self.linp_to_remove[index] = {key: value}
+                self.linp_config_deleted[index] = {key: value}
                 to_remove.append(key)
             
         for id in to_remove:
@@ -428,13 +426,13 @@ class Process:
         """
         # Get the keys of the linp DataFrames to reintegrate
         for index in index_to_reintegrate:
-            for key, value in self.linp_to_remove[index].items():
-                items = list(self.linp_dataframes.items())
-                items.insert(index, (key, value))
-                self.linp_dataframes = dict(sorted(items))
-                logger.info(f"Combination reintegrated : {key}\n")
-                logger.debug(f"{key} : {value}\n")
-            del self.linp_to_remove[index]
+            for id, value in self.linp_config_deleted[index].items():
+                all_linp_configurations = list(self.linp_dataframes.items())
+                all_linp_configurations.insert(index, (id, value))
+                self.linp_dataframes = dict(sorted(all_linp_configurations))
+                logger.info(f"Combination reintegrated : {id}\n")
+                logger.debug(f"{id} : {value}\n")
+            del self.linp_config_deleted[index]
 
     def generate_linp_files(self):
         """
@@ -447,7 +445,7 @@ class Process:
         """
 
         # create mapping to associate file number with its respective combinations
-        with open(os.path.join(str(self.output_folder_path), f'{self.model_name}_IDs_combinations.tsv'), 'w', encoding="utf-8") as f:
+        with open(os.path.join(str(self.results_dir_path), f'{self.metabolic_netw_model_name}_IDs_combinations.tsv'), 'w', encoding="utf-8") as f:
             # Write file column names
             f.write("ID\t" + 
                     "\t".join([f"{specie}_{isotopomer}" for specie, isotopomer in zip(self.label_input.names, self.label_input.labelling_patterns)]) + 
@@ -462,10 +460,10 @@ class Process:
                 # Remove rows with value = 0 (no values equal to 0 in ".linp" files)
                 df = df.loc[df["Value"] != 0]
                 df.to_csv(os.path.join(str(self.tmp_folder_path), f"{index}.linp"), sep="\t", index=False)
-                # Store the number of labeled inputs and the total price of each linp file in the linp_infos dictionary
+                # Store the number of labeled inputs and the total price of each linp file in the linp_files_infos dictionary
                 # It will be used in the rating criteria.
                 # key : index, value : namedtuple containing the number of labeled inputs and the total price
-                self.linp_infos[f"{index}"] = linp_info(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
+                self.linp_files_infos[f"{index}"] = linp_files_infos(len([isotopomer for isotopomer in df["Isotopomer"] if "1" in isotopomer]), 
                                                                 df["Price"].sum())
              
         self.vmtf_element_dict["linp"] = [f"{index}" for index in self.linp_dataframes.keys()]
@@ -489,12 +487,12 @@ class Process:
         # These values will be the names of the export folders of the results  
         df["ftbl"] = self.vmtf_element_dict["linp"]
         logger.debug(f"Creation of the vmtf file containing these files :\n {df}")
-        df.to_csv(f"{self.tmp_folder_path}/{self.model_name}.vmtf", sep="\t", index=False)
+        df.to_csv(f"{self.tmp_folder_path}/{self.metabolic_netw_model_name}.vmtf", sep="\t", index=False)
 
         # logger.info(f"Vmtf file has been generated in '{self.tmp_folder_path}.'\n")
 
 
-    def influx_simulation(self, param_list):
+    def influx_simulation(self, param_list:list):
         """
         Run the simulation using the specified influx_si mode (stationary or instationary).
 
@@ -582,7 +580,7 @@ class Process:
         # merge the "merged_tvar" dataframe with concatenated dataframes from the "tvar_sim_dataframes" dataframes
         # delete the "Value_tvar_init" column, which is not required 
         self.summary_dataframe = pd.merge(merged_tvar, tvar_sim_dataframes, on=["Name","Kind"]).rename(columns={"Value_init": " Intial flux value"})
-        logger.debug(f"Summary dataframe present in '{self.output_folder_path}' : {self.summary_dataframe}\n")
+        logger.debug(f"Summary dataframe present in '{self.results_dir_path}' : {self.summary_dataframe}\n")
 
         # Creating a Styler object for the summary_dataframe DataFrame
         summary_dataframe_styler=self.summary_dataframe.style.apply(
@@ -591,10 +589,10 @@ class Process:
             lambda row: ['background-color: #fffbcc' if row.isnull().any() else '' for _ in row],
             # Applying the lambda function along the rows of the DataFrame
             axis=1)
-        summary_dataframe_styler.to_excel(f"{self.output_folder_path}/{self.model_name}_summary.xlsx", index=False)
+        summary_dataframe_styler.to_excel(f"{self.results_dir_path}/{self.metabolic_netw_model_name}_summary.xlsx", index=False)
 
 
-    def data_filter(self, fluxes_names:list=None, kind:list=None, pathways:list=None):
+    def filter_data(self, fluxes_names:list=None, kind:list=None, pathways:list=None):
         """
         Filters summary dataframe by fluxes names, kind and/or metabolic pathway 
 
@@ -693,7 +691,7 @@ class Process:
         :param number: number corresponding to the analysis
         :param figure: plotly figure object
         """
-        res_folder_path = Path(f"{self.output_folder_path}/{self.all_scores[number]['name']}_res")
+        res_folder_path = Path(f"{self.results_dir_path}/{self.all_scores[number]['name']}_res")
         res_folder_path.mkdir(parents=True, exist_ok=True)
 
         # Export the dataframe and the scores table to tsv files
@@ -706,15 +704,15 @@ class Process:
 # if __name__ == "__main__":
 
 #     test = Process()
-#     test.get_path_input_netw(r"c:\Users\kouakou\Documents\test_data\design_test_1.netw")
-#     test.output_folder_path = r"c:\Users\kouakou\Documents\test_data"
-#     test.load_model()
-#     test.analyse_model()
+#     test.get_netw_file_path(r"c:\Users\kouakou\Documents\test_data\design_test_1.netw")
+#     test.results_dir_path = r"c:\Users\kouakou\Documents\test_data"
+#     test.load_metabolic_netw_model()
+#     test.model_analysis()
 #     test.create_tmp_folder()
 
 #     test.configure_unlabelled_form()
-#     test.add_isotopomer("Gluc", "100000", 10, 0, 100)
-#     test.add_isotopomer("Gluc", "111111", 10, 0, 100)
+#     test.add_isotopomer("Gluc", "100000", 10, 0, 1)
+#     test.add_isotopomer("Gluc", "111111", 10, 0, 1)
 #     test.generate_combinations()
 
 #     test.configure_linp_files()
@@ -722,13 +720,13 @@ class Process:
 #     test.generate_vmtf_file()
 #     test.copy_files()
     
-#     # test.clear_previous_run()
-#     command_list = ["--prefix", test.model_name, "--emu", "--ln", "--noopt"]
-#     # test.influx_simulation(command_list, influx_mode="influx_s")
+    # test.clear_previous_run()
+    # command_list = ["influx_s","--prefix", test.metabolic_netw_model_name, "--emu", "--ln", "--noopt"]
+    # test.influx_simulation(command_list)
     
 #     test.generate_summary()
 #     # test.save_process_to_file()
-#     test.data_filter(pathways=["GLYCOLYSIS"], kind=["NET"])
+#     test.filter_data(pathways=["GLYCOLYSIS"], kind=["NET"])
 #     test.generate_score(["sum of SDs", "number of fluxes with SDs < threshold"], threshold=1, operation="Multiply")
 # #     # test.draw_barplot(test.scores)
 # #     # test.register_scores(1)
