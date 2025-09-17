@@ -256,6 +256,9 @@ class Process:
         
         isotopomer = Isotopomer(substrate_name, labelling, intervals_nb, lower_b, upper_b, price)
         
+        # Check if the substrate is in the network inputs
+        if substrate_name not in self.netan["input"]:
+            raise ValueError(f"{substrate_name} not found in the network inputs. Please add isotopomers only for the input substrates.")
         # Check if the labelling length is equal to the number of carbons in the substrate
         # by using clen (carbon length) from the netan (network analysis) dictionary
         if len(labelling) != self.netan["Clen"][substrate_name]:
@@ -279,6 +282,12 @@ class Process:
         :param labelling: labelling for isotopomer to remove
 
         """
+
+        if substrate not in self.isotopomers:
+            raise ValueError(f"{substrate} not found in the isotopomers dictionary.")
+
+        if labelling not in [isotopomer.labelling for isotopomer in self.isotopomers[f"{substrate}"]]:
+            raise ValueError(f"Isotopomer {labelling} not found for {substrate}.")
     
         for isotopomer in self.isotopomers[f"{substrate}"]:
             if isotopomer.labelling == labelling and isotopomer.name == substrate:
@@ -400,6 +409,10 @@ class Process:
                                 from linp_dataframes
         """   
         to_remove = []
+
+        for index in index_to_remove:
+            if index >= len(self.linp_dataframes):
+                raise IndexError(f"Index {index} is out of range. Please provide valid indices between 0 and {len(self.linp_dataframes)-1}.")
         
         for index, (key, value) in enumerate(self.linp_dataframes.items()):
             if index in index_to_remove:
