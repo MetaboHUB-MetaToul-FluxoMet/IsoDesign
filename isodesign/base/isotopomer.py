@@ -41,7 +41,7 @@ class Isotopomer:
             return np.array([Decimal(self.upper_bound) / Decimal(1)])
 
         # Convert "fraction" to int to avoid type errors when using np.arange
-        return np.array([round(Decimal(float(fraction)), 1) / Decimal(1) for fraction in
+        return np.array([round(Decimal(float(fraction)), 2) / Decimal(1) for fraction in
                          np.arange(self.lower_bound, self.upper_bound + self.step, self.step)])
 
 
