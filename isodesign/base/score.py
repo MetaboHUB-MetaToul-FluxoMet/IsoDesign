@@ -72,27 +72,27 @@ class Score:
 
         return (self.label_input < threshold).sum() * weight_flux
     
-    def apply_number_labeled_inputs(self, info_linp_files_dict, weight_labeled_input=1):
+    def apply_number_labeled_inputs(self, linp_files_infos, weight_labeled_input=1):
         """
         Returns the number of labelled substrates for each label input.
 
-        :param info_linp_files_dict: dictionary containing namedtuples with 
+        :param linp_files_infos: dictionary containing namedtuples with 
                                     the number of labelled substrates for each label input
         :param weight_labeled_input: the weight to apply to the score
         """
 
-        for file_name, nb_labeled_species in info_linp_files_dict.items():
+        for file_name, nb_labeled_species in linp_files_infos.items():
             if self.label_input.name in file_name:
                 return nb_labeled_species.nb_labeled_inputs * weight_labeled_input
 
-    def apply_price(self, info_linp_files_dict):
+    def apply_price(self, linp_files_infos):
         """
         Returns the price for each label input.
 
-        :param info_linp_files_dict: dictionary containing namedtuples with 
+        :param linp_files_infos: dictionary containing namedtuples with 
                                     the price for each label input
         """
-        for file_name, price in info_linp_files_dict.items():
+        for file_name, price in linp_files_infos.items():
             if self.label_input.name in file_name:
                 return price.total_price
 
@@ -156,3 +156,23 @@ class ScoreHandler:
             score_object.update({operation: functools.reduce(operations[operation], score_object.values())})
         
         return score_object
+    
+# if __name__ == "__main__":
+#     import pandas as pd
+#     from collections import namedtuple
+#     linp_files_infos = {
+#         "ID_1": namedtuple("InfoLinp", ["nb_labeled_inputs", "total_price"])(0, 75.0),
+#         "ID_2": namedtuple("InfoLinp", ["nb_labeled_inputs", "total_price"])(1, 87.5),  
+#         "ID_3": namedtuple("InfoLinp", ["nb_labeled_inputs", "total_price"])(1, 100.0),
+#     }
+#     test = ScoreHandler(pd.DataFrame({
+#             "ID_1": [0.2, 0.2, 0.3],
+#             "ID_2": [0.5, 0.02, 0.1],
+#             "ID_3": [0.8, 0.01, 0.1],
+#         }))
+
+#     print(test.apply_criteria(
+#         ["number of labeled inputs"],
+#         linp_files_infos=linp_files_infos,
+#         weight_labeled_input=1
+#     ))
