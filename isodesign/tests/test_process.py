@@ -156,18 +156,44 @@ def test_get_isotopomer_price(isotopomer_group):
     assert process.get_isotopomer_price("0", "FTHF_in") == 25
 
 
-def test_configure_linp_files(isotopomer_group, linp_dataframes):
+def test_configure_linp_files(isotopomer_group):
     process = Process()
     process.isotopomers = isotopomer_group
     process.generate_combinations()
     process.configure_linp_files()
 
-    assert process.linp_dataframes == linp_dataframes
+    assert np.array_equal(process.linp_dataframes, {
+        "ID_1": {
+            "Id": [None, None, None],
+            "Comment": [None,None, None],
+            "Specie": ["Gluc","Gluc", "FTHF_in"],
+            "Isotopomer": ["000000", "111111",  "0"],
+            "Value": [1.0, 0.0, 1.0],
+            "Price": [50.0, 0.0, 25.0],
+        },
+        "ID_2": {
+            "Id": [None, None, None],
+            "Comment": [None, None, None],
+            "Specie": ["Gluc", "Gluc", "FTHF_in"],
+            "Isotopomer": ["000000", "111111", "0"],
+            "Value": [0.5, 0.5, 1.0],
+            "Price": [25.0, 37.5, 25.0],
+        },
+        "ID_3": {
+            "Id": [None, None, None],
+            "Comment": [None, None, None],
+            "Specie": ["Gluc", "Gluc", "FTHF_in"],
+            "Isotopomer": [ "000000","111111", "0"],
+            "Value": [0.0, 1.0, 1.0],
+            "Price": [0.0, 75.0, 25.0],
+        },
+    })
 
-
-def test_remove_linp_configuration(linp_dataframes):
+def test_remove_linp_configuration(isotopomer_group):
     process = Process()
-    process.linp_dataframes = linp_dataframes
+    process.isotopomers = isotopomer_group
+    process.generate_combinations()
+    process.configure_linp_files()
     process.remove_linp_configuration([0, 2])
 
     assert "ID_1" not in process.linp_dataframes
@@ -230,7 +256,6 @@ def test_generate_score_basic(summary_dataframe):
     process = Process()
     process.summary_dataframe = summary_dataframe
     process.generate_score(method=["sum of SDs"])
-    # Should create scores for columns F and G
     assert process.scores.equals(
         pd.DataFrame({"sum of SDs": [0.70, 0.62, 0.91]}, index=["ID_1", "ID_2", "ID_3"])
     )

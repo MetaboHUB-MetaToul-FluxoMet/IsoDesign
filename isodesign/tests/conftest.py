@@ -57,15 +57,15 @@ def isotopomer_group():
 def linp_dataframes():
     return {
         "ID_1": {
-            "Id": [None, None, None],
-            "Comment": [None, None, None],
-            "Specie": ["Gluc", "Gluc", "FTHF_in"],
-            "Isotopomer": ["000000", "111111", "0"],
-            "Value": [1.0, 0.0, 1.0],
-            "Price": [50.0, 0.0, 25.0],
+            "Id": [None, None],
+            "Comment": [None, None],
+            "Specie": ["Gluc", "FTHF_in"],
+            "Isotopomer": ["000000",  "0"],
+            "Value": [1.0, 1.0],
+            "Price": [50.0, 25.0],
         },
         "ID_2": {
-            "Id": [None, None, None],
+            "Id": [None,None, None],
             "Comment": [None, None, None],
             "Specie": ["Gluc", "Gluc", "FTHF_in"],
             "Isotopomer": ["000000", "111111", "0"],
@@ -73,12 +73,12 @@ def linp_dataframes():
             "Price": [25.0, 37.5, 25.0],
         },
         "ID_3": {
-            "Id": [None, None, None],
-            "Comment": [None, None, None],
-            "Specie": ["Gluc", "Gluc", "FTHF_in"],
-            "Isotopomer": ["000000", "111111", "0"],
-            "Value": [0.0, 1.0, 1.0],
-            "Price": [0.0, 75.0, 25.0],
+            "Id": [None, None],
+            "Comment": [None, None],
+            "Specie": ["Gluc", "FTHF_in"],
+            "Isotopomer": ["111111", "0"],
+            "Value": [1.0, 1.0],
+            "Price": [75.0, 25.0],
         },
     }
 
