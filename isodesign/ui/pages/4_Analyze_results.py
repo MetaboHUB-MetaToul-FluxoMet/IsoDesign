@@ -56,7 +56,7 @@ def display_dataframe(count):
                             key=f"selected_pathway_{count}") 
 
     # Uses the function to filter the table       
-    process_object.data_filter(fluxes_names = st.session_state[f"selected_flux_{count}"], 
+    process_object.filter_data(fluxes_names = st.session_state[f"selected_flux_{count}"], 
                                kind = st.session_state[f"selected_kind_{count}"], 
                                pathways=st.session_state[f"selected_pathway_{count}"])
     # if not "Select" in process_object.filtered_dataframe.columns:
@@ -173,7 +173,7 @@ def criteria_block(count):
                                           weight_sum_sd=float(weight_sd) if "sum of SDs" in method_choice else 1,
                                           threshold=float(input_threshold) if "number of fluxes with SDs < threshold" in method_choice else 1,
                                           weight_flux=float(weight_flux) if "number of fluxes with SDs < threshold" in method_choice else 1,
-                                          info_linp_files_dict=dict(process_object.linp_infos) if "number of labeled inputs" or "price" in method_choice else None,
+                                          info_linp_files_dict=dict(process_object.linp_files_infos) if "number of labeled inputs" or "price" in method_choice else None,
                                           weight_labeled_input=float(input_labeled_input) if "number of labeled inputs" in method_choice else 1,
                                           struct_identif_dict=dict(process_object.structures_identified) if "number of structurally identified fluxes" in method_choice else None,
                                           weight_struct_identif=float(input_struct_identif) if "number of structurally identified fluxes" in method_choice else 1)
@@ -320,8 +320,8 @@ else:
             header_name = st.session_state[f"header_{count}"]
             with st.spinner("Exporting data ..."):
                 process_object.export_data(count, st.session_state[f"fig_{count}"])
-                st.success(f"'{header_name}' exported successfully in {process_object.output_folder_path}.")
-                logger.info(f"'{header_name}' exported successfully in {process_object.output_folder_path}.")
+                st.success(f"'{header_name}' exported successfully in {process_object.results_dir_path}.")
+                logger.info(f"'{header_name}' exported successfully in {process_object.results_dir_path}.")
         # Save the "score" block to the process_object and save it to a pickle file
         process_object.register_scores(count, block_name=st.session_state[f"header_{count}"])
         process_object.save_process_to_file()

@@ -20,7 +20,7 @@ logger.setLevel(logging.DEBUG)
 # FUNCTIONS #
 #############
 
-def get_path_netw():
+def get_netw_path():
     """ 
     Open a file dialog to select a network file.
     """
@@ -31,10 +31,10 @@ def get_path_netw():
     # Make folder picker dialog appear on top of other windows
     root.wm_attributes('-topmost', 1)
 
-    netw_directory_path = filedialog.askopenfilename(master = root,
+    netw_file_path = filedialog.askopenfilename(master = root,
                                                        title = "Select a network file",
                                                        filetypes=[("netw files", "*.netw")])
-    st.session_state["netw_directory_path"] = netw_directory_path
+    st.session_state["netw_file_path"] = netw_file_path
 
 def logger_setup(output_path, debug_mode=False):
     """ 
@@ -71,12 +71,12 @@ def logger_setup(output_path, debug_mode=False):
     logger.addHandler(stream)
     return logger
 
-# def overwrite_output_folder_path():
+# def overwrite_results_dir_path():
 #     """
 #     Overwrite the output folder path.
 #     """
 #     session.register_widgets({"overwrite_button": False})
-#     process_object.clear_tmp_folder(session.widget_space["output_folder_path"])
+#     process_object.clear_tmp_folder(session.widget_space["results_dir_path"])
 #     session.register_widgets({"submit_button": True})
 
 ########
@@ -148,58 +148,51 @@ with st.sidebar :
         """)
 
 with st.container(border=True):
-
     st.subheader('Load your network file',
                 help = 'File with ".netw" extension (containing all reactions and transition labels)')
 
     input_button = st.button(
             label="Browse file",
             key="input_button",
-            on_click=get_path_netw)
+            on_click=get_netw_path)
     
     session.register_widgets({"input_button": input_button})
 
-    if "netw_directory_path" in st.session_state:
-        process_object.get_path_input_netw(st.session_state["netw_directory_path"])
+    if "netw_file_path" in st.session_state:
+        process_object.get_netw_file_path(st.session_state["netw_file_path"])
     
     netw_path = st.text_input("**Netw directory path** :\n", 
-                    "No folder selected" if not process_object.netw_directory_path
-                    else process_object.netw_directory_path, 
+                    "No folder selected" if not process_object.netw_file_path
+                    else process_object.netw_file_path, 
                     key="input_file_path")
     
-
     st.subheader("Output directory path")
     output_path_folder = st.text_input("**Folder path** :", 
-                        value="No folder selected" if not process_object.output_folder_path
-                        else process_object.output_folder_path, 
-                        key="output_folder_path",
+                        value="No folder selected" if not process_object.results_dir_path
+                        else process_object.results_dir_path, 
+                        key="results_dir_path",
                         label_visibility="collapsed")
                         
-    if "output_folder_path" in st.session_state:
-        process_object.output_folder_path = st.session_state["output_folder_path"]
-    
+    if "results_dir_path" in st.session_state:
+        process_object.results_dir_path = st.session_state["results_dir_path"]
 
     submit_button = st.button("Submit",
                        key="submit_button")
     session.register_widgets({"submit_button": submit_button})
-# # Check if the folder already exists
-# if os.path.exists(Path(f"{session.widget_space['output_folder_path']}/{process_object.model_name}_tmp")):
-#     if not session.widget_space["submit_button"]:
-#         st.warning(f"A previous session is already present, previous files will be overwritten.")
 
 if session.widget_space["submit_button"]:
-    process_object.create_tmp_folder()
-    logger_setup(process_object.tmp_folder_path, debug_mode)
-    logger.info(f"IsoDesign version: {process_object.isodesign_version}")
-    logger.info(f"Netw directory path: {process_object.netw_directory_path}")
-    logger.info(f"Output folder path: {process_object.output_folder_path}")
-
    # Import and analysis of model files 
     try:
-        process_object.load_model()
+        process_object.load_metabolic_netw_model()
+        process_object.create_tmp_folder()
+        logger_setup(process_object.tmp_folder_path, debug_mode)
+        logger.info(f"IsoDesign version: {process_object.isodesign_version}")
+        logger.info(f"Netw file path: {process_object.netw_file_path}")
+        logger.info(f"Results directory path: {process_object.results_dir_path}")
+        
         if not process_object.netan:
             with st.spinner("Uploading files..."):
-                process_object.analyse_model()
+                process_object.model_analysis()
     except Exception as e:
         st.error(f"An error occured : {e}")
         st.stop()

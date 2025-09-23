@@ -41,10 +41,10 @@ def reintegrate_rows(indexes : list):
     # Register the widget status
     session.register_widgets({"reintegrate_combination": True})
 
-    # Create a list of keys to reintegrate by getting the keys from linp_to_remove
+    # Create a list of keys to reintegrate by getting the keys from linp_config_deleted
     # corresponding to the selected indexes.
     keys_to_reintegrate = [
-            list(process_object.linp_to_remove.keys())[index] for index in indexes]
+            list(process_object.linp_config_deleted.keys())[index] for index in indexes]
     # Call the reintegrate_linp_configuration method to reintegrate the selected 
     # linp DataFrames back into the linp_dataframes list.
     process_object.reintegrate_linp_configuration(keys_to_reintegrate)
@@ -206,11 +206,11 @@ else:
                                 key="remove_combination")
        
     # If the remove_combination button is clicked, the selected combinations to remove are displayed in a dataframe
-        if process_object.linp_to_remove:
+        if process_object.linp_config_deleted:
             st.header("Removed combinations") 
             # Display the removed combinations in a dataframe
             df_unused = pd.DataFrame()
-            for linp_id in process_object.linp_to_remove.values():
+            for linp_id in process_object.linp_config_deleted.values():
                 df = pd.DataFrame(
                     linp_id.values(),
                     columns=["Specie", "Isotopomer", "Value", "Price"]
@@ -230,11 +230,8 @@ else:
                                             key="reintegrate_combination")
     # If the simulation_button is clicked, the linp files are generated and the user is redirected to the simulation options page
     if session.widget_space["simulation_button"]:  
-        process_object.clear_previous_linp()
         process_object.generate_linp_files()    
         process_object.generate_vmtf_file()
-        process_object.copy_files()
-
         process_object.save_process_to_file()
 
         st.switch_page(r"pages/3_Run_simulations.py")
