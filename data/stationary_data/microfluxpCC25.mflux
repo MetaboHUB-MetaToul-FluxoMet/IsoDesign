@@ -1,0 +1,15 @@
+# Created by 'ftbl2mtf-script.py Supplementary_data_2_Metabolic\\ model\\ considered\\ for\\ flux\\ calculation.ftbl'" at 2022-06-23 14:16:21 Paris, Madrid (heure d?été) +0200
+Id	Comment	Flux	Value	SD
+		Glu_in	1	0.2
+		BM	0.1	0.02
+		Arg_in	0.3	0.05
+		Met_in	0.1	0.03
+		Thr_in	0.02	0.02
+		out_Ala	0.1	0.05
+		out_EtOH	1.5	0.5
+		out_Ac	0.6	0.5
+		out_formate	0.4	0.5
+		out_sperm	0.1	0.03
+		out_Acsperm	0.1	0.03
+		out_putr	0.1	0.03
+		out_cada	0.1	0.03
