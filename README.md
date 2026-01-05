@@ -121,6 +121,6 @@ in the command above. You will need a recent latex installation.
 Rochelle KOUAKOU, Loic LE GREGAM
 
 ## Contacts
-:email: kouakou@insa-toulouse.fr, legregam@insa-toulouse.fr
+:email: kouakou@insa-toulouse.fr, loic.legregam@unige.ch
 
 
