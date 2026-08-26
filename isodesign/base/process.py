@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import subprocess
 import isodesign
+import time 
 
 import pandas as pd
 from influx_si import C13_ftbl, txt2ftbl
@@ -20,44 +21,37 @@ from isodesign.base.score import ScoreHandler
 logger = logging.getLogger(f"IsoDesign.{__name__}")  
 
 # Namedtuples are placed outside the class to avoid pickling issues when saving the Process object
-# namedtuple containing file path and data 
-mtf_files_infos = namedtuple("mtf_files_infos", ['path', 'data']) 
 # namedtuple containing the number of labeled inputs and the total price for each linp file
 linp_files_infos = namedtuple("linp_files_infos", ["nb_labeled_inputs", "total_price"])
 
 class Process:
     """
     The Process class is the main class to organise IsoDesign functionalities.
+    
     Key features:
-    - importing and reading data files
+    - load the files representing the metabolic network model (MTF format files)
     - generating combinations of isotopomers that are stored in influx_si .linp files
-    - runs simulations with influx_s to get predicted fluxes and associated SDs
+    - runs simulations with influx_si to get predicted fluxes and associated SDs
     - generates a summary.
-
     """
-    FILES_EXTENSION = [".netw", ".tvar", ".mflux", ".miso", ".cnstr", ".mmet", ".opt"]
 
-    def __init__(self):
-        # Version of the isodesign package
-        self.isodesign_version = isodesign.__version__
-        # Dictionary to store imported file contents. Key : files extension,
-        # value : namedtuple with file path and contents
-        self.mtf_files = {}
+    def __init__(self, data : dict):
+        """
+        :param data: dictionary containing the imported files as namedtuples 
+                    (file path and data) (e.g. {'netw': namedtuple(path, data), 
+                    'tvar': mnamedtuple(path, data), ...})
+        """
+        self.data = data
+        # # Version of the isodesign package
+        # self.isodesign_version = isodesign.__version__
+
         # LabelInput object
         # To use the generate_labelling_combinations method
         self.label_input = None
 
         # Dictionary containing element to build the vmtf file
         self.vmtf_element_dict = {"Id": None, "Comment": None}
-        self.netw_file_path = None
-        # Path to the folder containing all the model to analyze
-        self.metabolic_netw_model_dir_path = None
-        # Path to the folder containing the results of the analysis
-        self.results_dir_path = None
-        # Path to the folder containing the files created by Isodesign
-        self.tmp_folder_path = None
-        # Name of the model to analyze
-        self.metabolic_netw_model_name = None
+      
         # List of paths to tvar.sim files (after simulation with influx_si)
         self.tvar_sim_paths = []
         # Elements analyzed (substrates, metabolites, etc.) in the network using the model_analysis method
@@ -94,73 +88,16 @@ class Process:
         self.selected_criteria : list = []
         self.criteria_parameters : dict = None
         self.applied_operations = None
-
-    def get_netw_file_path(self, netw_file_path):
-        """
-        Get the directory path of the netw file (essential file containing 
-        all reactions and transition labels). From this path, we also store 
-        the directory path and the name of the model to be analyzed. 
-
-        :param netw_file_path: str containing the path to the netw file 
-        """
-        
-        if not isinstance(netw_file_path, str):
-            msg = (f'"{netw_file_path}" should be of type string and not {type(netw_file_path)}.')
-            logger.error(msg)
-            raise TypeError(msg)
-
-        self.netw_file_path = Path(netw_file_path)
-
-        if not self.netw_file_path.exists():
-            msg = f"{self.netw_file_path} doesn't exist."
-            logger.error(msg)
-            raise ValueError(msg)
-        
-        if self.netw_file_path.suffix != ".netw":
-            msg = f'{self.netw_file_path} is invalid. Please provide a file with ".netw" extension.'
-            logger.error(msg)
-            raise ValueError(msg)
-        
-        # Store the metabolic network model name
-        self.metabolic_netw_model_name = Path(netw_file_path).stem
-        
-        # Store the model directory path 
-        self.metabolic_netw_model_dir_path = Path(netw_file_path).parent
-        # Results dir path is the same as the model directory path
-        # It can be changed by the user 
-        self.results_dir_path=self.metabolic_netw_model_dir_path
-    
-    def load_metabolic_netw_model(self):
-        """ 
-        Load the files representing the metabolic network model
-        (MTF format files) based on the model name.
-
-        """
-        # Reset the dictionary to store imported files
-        self.mtf_files = {}
-    
-        for file in self.metabolic_netw_model_dir_path.iterdir():
-            if file.stem == self.metabolic_netw_model_name and file.suffix in self.FILES_EXTENSION:
-                # Read the file and store its content in a namedtuple
-                data = pd.read_csv(str(file),
-                                    sep="\t",
-                                    comment="#",
-                                    header=None if file.suffix == ".netw" else 'infer',
-                                    encoding="utf-8",
-                                    on_bad_lines='skip')
-                
-                self.mtf_files.update({file.suffix[1:]: mtf_files_infos(file, data)})
-
-        logger.debug(f"Imported files = {self.mtf_files}\n")
-
    
-
-    def model_analysis(self):
+    # @staticmethod
+    def model_analysis(self, model_path, model_name):
         """
         Analyze model network to identify substrates, metabolites, etc by using 
         modules from influx_si.
-        """
 
+        :param model_path: path to the metabolic network model directory
+        :param model_name: name of the metabolic network model
+        """
         # Reset self.netan to a new empty dictionary
         # Useful if you want to reuse the function for another prefix
         self.netan = {}
@@ -169,14 +106,14 @@ class Process:
             tmpdir_path = Path(tmpdir)
 
             # Copy all files from model_directory_path to the temporary directory
-            files_to_copy = [f for f in self.metabolic_netw_model_dir_path.iterdir() if f.is_file()]
+            files_to_copy = [f for f in model_path.iterdir() if f.is_file()]
             for file in files_to_copy:
                 shutil.copy(file, tmpdir_path)
 
             # will contain the paths to the ftbl files generated by the txt2ftbl module
             li_ftbl = []  
             # convert mtfs to ftbl
-            txt2ftbl.main(["--prefix", os.path.join(str(tmpdir), self.metabolic_netw_model_name)], li_ftbl)
+            txt2ftbl.main(["--prefix", os.path.join(str(tmpdir), model_name)], li_ftbl)
 
             # # get the tvar.def file
             # for file in os.listdir(tmpdir):
@@ -196,45 +133,22 @@ class Process:
         logger.debug(f"self.netan dictionary keys : {self.netan.keys()}\n")
         logger.info("Network analysis finished successfully.\n")
 
-    
-    def create_tmp_folder(self):
+    @staticmethod
+    def save_process_to_file(obj, results_dir_path, model_name):
         """
-        Create a temporary folder to store all files generated by IsoDesign during its use.
+        Save the process to a pickle file in the model directory.
 
-        """
-
-        self.tmp_folder_path = Path(
-            f"{self.results_dir_path}/{self.metabolic_netw_model_name}_tmp"
-        )
-        self.tmp_folder_path.mkdir(parents=True, exist_ok=True)
-
-        self._copy_files()
-        # logger.info(f"Results folder path '{tmp_folder_path}'.\n")
-
-    def _copy_files(self):
-        """
-        Copy the imported mtf files to the IsoDesign temp folder.
-        All files that will be sent to influx_si must be located in the same folder.
-        """
-
-        logger.debug(f"Copy of the imported files to '{self.tmp_folder_path}'.\n")
-
-        for file in self.mtf_files.values():
-            # File paths are contained as first elements in the namedtuple
-            # logger.debug(f"File path: {file.path}")
-            shutil.copy(file.path, self.tmp_folder_path)
-
-    def save_process_to_file(self):
-        """
-        Save the Process object to a pickle file in the model directory.
+        :param obj: object to save
+        :param results_dir_path: path to the results directory
+        :param model_name: name of the metabolic network model
         """
          
-        output_file_tmp = Path(self.results_dir_path, self.metabolic_netw_model_name + "_tmp.pkl")
-        output_file = Path(self.results_dir_path, self.metabolic_netw_model_name + ".pkl")
+        output_file_tmp = Path(results_dir_path, model_name + "_tmp.pkl")
+        output_file = Path(results_dir_path, model_name + ".pkl")
 
         try:
             with open(output_file_tmp, 'wb') as file:
-                pickle.dump(self, file)
+                pickle.dump(obj, file)
             output_file.unlink(missing_ok=True)
             output_file_tmp.rename(output_file)
         except Exception as e:
@@ -522,18 +436,30 @@ class Process:
         self.command_list = param_list
         logger.info(f"Command to run: {self.command_list}")
 
+        # result = subprocess.Popen(self.command_list, stderr=subprocess.PIPE, text=True)
+        
+        # stdout, stderr = result.communicate()
+        # if result.returncode != 0:
+        #     self._check_err_files()
+        #     logger.error(f"Error during simulation: {result.stderr}")
+        #     raise RuntimeError(f"Error during simulation: {result.stderr}")
+        
+        # self._get_influx_sim_res_files()
+
+        # logger.info("Simulation finished successfully.\n")
         result = subprocess.Popen(self.command_list, stderr=subprocess.PIPE, text=True)
         
-        stdout, stderr = result.communicate()
-        if result.returncode != 0:
-            self._check_err_files()
-            logger.error(f"Error during simulation: {stderr}")
-            raise RuntimeError(f"Error during simulation: {stderr}")
+        while True:
+            if result.poll() is not None:
+                self._get_influx_sim_res_files()
+                return
+            if result.returncode is not None and result.returncode != 0:
+                self._check_err_files()
+                logger.error(f"Error during simulation: {result.stderr}")
+                raise RuntimeError(f"Error during simulation: {result.stderr}")
+            time.sleep(0.2)
         
-        self._get_influx_sim_res_files()
 
-        logger.info("Simulation finished successfully.\n")
-    
     def _check_err_files(self):
         """ 
         Check if, at the end of calculations with influx_si, ".err" files are 
@@ -733,27 +659,28 @@ class Process:
 
         logger.debug(self.all_scores)             
 
-    def export_data(self, number, figure):
-        """
-        Export the results of the analysis to tsv files and an image file (html format).
+    # def export_data(self, number, figure):
+    #     """
+    #     Export the results of the analysis to tsv files and an image file (html format).
 
-        :param number: number corresponding to the analysis
-        :param figure: plotly figure object
-        """
-        res_folder_path = Path(f"{self.results_dir_path}/{self.all_scores[number]['name']}_res")
-        res_folder_path.mkdir(parents=True, exist_ok=True)
+    #     :param number: number corresponding to the analysis
+    #     :param figure: plotly figure object
+    #     """
+    #     res_folder_path = Path(f"{self.results_dir_path}/{self.all_scores[number]['name']}_res")
+    #     res_folder_path.mkdir(parents=True, exist_ok=True)
 
-        # Export the dataframe and the scores table to tsv files
-        self.all_scores[number]["dataframe"].to_csv(f"{res_folder_path}/{self.all_scores[number]['name']}_dataframe.tsv", index=False, sep="\t")
-        self.all_scores[number]["columns_scores"].to_csv(f"{res_folder_path}/{self.all_scores[number]['name']}_scores.tsv", index=True, sep="\t")
+    #     # Export the dataframe and the scores table to tsv files
+    #     self.all_scores[number]["dataframe"].to_csv(f"{res_folder_path}/{self.all_scores[number]['name']}_dataframe.tsv", index=False, sep="\t")
+    #     self.all_scores[number]["columns_scores"].to_csv(f"{res_folder_path}/{self.all_scores[number]['name']}_scores.tsv", index=True, sep="\t")
 
-        figure.write_html(f"{res_folder_path}/{self.all_scores[number]['name']}_barplot.html")
+    #     figure.write_html(f"{res_folder_path}/{self.all_scores[number]['name']}_barplot.html")
 
 
 # if __name__ == "__main__":
 
 #     test = Process()
-#     test.get_netw_file_path(r"..\..\data\stationary_data\microfluxpCC25.netw")
+#     test.get_netw_file_path(r"C:\Users\kouakou\Documents\data_CBE\020_ok\microfluxpCC25.netw")
+#     test.results_dir_path = r"C:\Users\kouakou\Documents\data_CBE\020_ok"
 #     test.load_metabolic_netw_model()
 #     test.model_analysis()
 #     test.create_tmp_folder()
@@ -761,8 +688,8 @@ class Process:
 #     test.configure_unlabelled_form()
 #     test.add_isotopomer("Gluc_out", "100000", 2, 0, 1)
 #     test.add_isotopomer("Arg_out", "100000", 2, 0, 1)
-    # test.add_isotopomer("Met_out", "10000", 2, 0, 1)
-    # test.add_isotopomer("Thr_out", "1000", 2, 0, 1)
+#     # test.add_isotopomer("Met_out", "10000", 2, 0, 1)
+#     # test.add_isotopomer("Thr_out", "1000", 2, 0, 1)
 #     test.generate_combinations()
 
 #     test.configure_linp_files()
@@ -772,8 +699,9 @@ class Process:
 
 #     command_list = ["influx_s","--prefix", test.metabolic_netw_model_name, "--emu", "--ln", "--noopt"]
 #     test.influx_simulation(command_list)
-    
+#     print(test.tvar_sim_paths)
 #     test.generate_summary()
+#     print(test.summary_dataframe)
 # #     # test.save_process_to_file()
 #     test.filter_data(kind=["NET"])
 #     test.generate_score(["sum of SDs", "number of fluxes with SDs < threshold"], threshold=1)
