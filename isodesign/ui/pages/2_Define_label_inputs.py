@@ -32,7 +32,7 @@ def remove_rows(indexes : list):
  
 def reintegrate_rows(indexes : list):
     """
-    Function for reintegrating undisired rows (i.e. linp file configuration) 
+    Function for reintegrating undesired rows (i.e. linp file configuration) 
     from the linp overview dataframe according to the indexes 
     selected by the user.
 
@@ -62,15 +62,17 @@ session = SessI(
         session_state=st.session_state,
         page="2_Define_label_inputs.py")
 
-# Retrieving substrates names from sessI
+
+# Retrieving the process_object and io_object from the session's object space
 process_object = session.object_space["process_object"]
+io_object = session.object_space["io_object"]
 
 if not process_object or not process_object.netan:
     # Display a warning message if the metabolic network model is not loaded
     st.warning("Please load a metabolic network model in 'Upload data' page.")
 else:
     # Add a space between page title and content 
-    st.write(" ")
+    st.space(size="small")
 
     # Create a container to display the substrates and the configured labels input
     with st.container(border=True):
@@ -136,9 +138,6 @@ else:
                         except ValueError as e:
                             st.error(f"An error occurred: {e}")
             
-            submit = st.button("Submit",
-                            key="submit_button")
-
         with configured_substrates:
             st.header("Configured label inputs")
             for substrate_name in process_object.isotopomers.keys():
@@ -156,7 +155,9 @@ else:
                                                 on_click=process_object.remove_isotopomer,
                                                 args=(isotopomer.name, isotopomer.labelling))
                     
-        
+        submit = st.button("Submit",
+                            key="submit_button")
+
     if submit:
         session.register_widgets({"submit_button": submit})
         # Generate the combinations of isotopomers
@@ -167,8 +168,7 @@ else:
             st.error(f"An error occurred: {e}")
         # This lines are usefull in case of a re-submission
         session.widget_space.widgets["show_combinations"] = False
-        session.widget_space.widgets["remove_combination"] = False
-        
+        session.widget_space.widgets["remove_combination"] = False      
    
     if process_object.linp_dataframes:
         st.info(f"{len(process_object.linp_dataframes)} combinations were generated.")
@@ -228,10 +228,19 @@ else:
                                             on_click=reintegrate_rows,
                                             args=[df_unused_combs.selection.rows],
                                             key="reintegrate_combination")
+    
     # If the simulation_button is clicked, the linp files are generated and the user is redirected to the simulation options page
     if session.widget_space["simulation_button"]:  
-        process_object.generate_linp_files()    
-        process_object.generate_vmtf_file()
-        process_object.save_process_to_file()
+        process_object.get_linp_infos()
+        process_object.configure_vmtf_files()
+        io_object.generate_linp_files(label_inputs = process_object.label_input, 
+                                      linp_dfs = process_object.linp_dataframes)
+        io_object.generate_vmtf_file(process_object.vmtf_dict)
+        to_pickle = {
+                "process_object":process_object,
+                "io_object":io_object,
+            }
 
+        process_object.save_process_to_file(to_pickle, io_object.results_dir_path, io_object.model_name)
+        
         st.switch_page(r"pages/3_Run_simulations.py")
