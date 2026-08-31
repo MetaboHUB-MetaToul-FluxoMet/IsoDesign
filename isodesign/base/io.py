@@ -149,7 +149,15 @@ class IoHandler:
         for linp_files in self.tmp_folder_path.iterdir():
             if linp_files.is_file() and linp_files.name.endswith(".linp"):
                 os.remove(linp_files)
-    
+
+    def clear_previous_results(self):
+        """
+        Clear the "_res" folder containing the results of the previous run.
+        """
+        for folder in self.tmp_folder_path.iterdir():
+            if folder.is_dir() and folder.name.endswith("_res"):
+                shutil.rmtree(folder)
+
     def generate_vmtf_file(self, vmtf_dict):
         """
         Generate the vmtf file (TSV format) in the temp folder (self.tmp_folder_path).
@@ -163,6 +171,28 @@ class IoHandler:
         df.to_csv(f"{self.tmp_folder_path}/{self.model_name}.vmtf", sep="\t", index=False)
 
         # logger.info(f"Vmtf file has been generated in '{self.tmp_folder_path}.'\n")
+
+    def generate_summary(self, summary_df:pd.DataFrame):
+        """
+        Generate a summary dataframe containing the results of the analysis. 
+        
+        :param summary_df: pandas DataFrame containing the results of the analysis
+        """
+        # Creating a Styler object for the summary_dataframe DataFrame
+        summary_dataframe_styler = summary_df.style.apply(
+            # If at least one value is missing in the row, set the style with a pale yellow background color
+            # Repeating the style for each cell in the row
+            lambda row: [
+                "background-color: #fffbcc" if row.isnull().any() else "" for _ in row
+            ],
+            # Applying the lambda function along the rows of the DataFrame
+            axis=1,
+        )
+        summary_dataframe_styler.to_excel(
+            f"{self.results_dir_path}/{self.model_name}_summary.xlsx",
+            index=False)
+        
+        logger.debug(f"Summary dataframe present in '{self.results_dir_path}' : {summary_df}\n")
 
     def export_data(self, number, figure):
         """
