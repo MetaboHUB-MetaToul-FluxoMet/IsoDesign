@@ -1,9 +1,9 @@
 import streamlit as st
-import time
 from sess_i.base.main import SessI
 from threading import Thread
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 import logging
+import os
 
 logger = logging.getLogger("IsoDesign")
 
@@ -27,11 +27,31 @@ def delete_option(option):
     session.widget_space["list_added_options"].remove(option)
     command_list.remove(f"{option}")    
 
-if "suprocess" not in st.session_state:
+if "subprocess" not in st.session_state:
     st.session_state["subprocess"] = None
 
 if "running" not in st.session_state:
     st.session_state.running = False
+
+def check_err_files(tmp_folder):
+    """ 
+    Check if, at the end of calculations with influx_si, ".err" files are 
+    empty. If they are not, return the file names and contents.
+    """
+    err_file_list = []
+    for root, _ , files in os.walk(tmp_folder):
+        for file in files:
+            if file.endswith(".err"):
+                # Check if the file is not empty
+                if os.stat(os.path.join(root, file)).st_size > 0:
+                    err_file_list.append(file)
+
+        if err_file_list:
+            for err_files in err_file_list:
+                with open(os.path.join(root, err_files), 'r') as f:
+                    err_file_content = f.read()
+                    logger.error(f"Error file {err_files} - {err_file_content}")
+                    raise Exception(f"Error file {err_files} - {err_file_content}")
 
 def execute_simulation():
     """
@@ -43,12 +63,14 @@ def execute_simulation():
     if ctx:
         add_script_run_ctx(st.session_state.th) #Thread.current_thread())
     try:
-        st.session_state["subprocess"] = process_object.influx_simulation(command_list)
-        while True:  
-            # Check if the subprocess is still running
-            if st.session_state["subprocess"].poll() is not None:
+        # Run the simulation
+        st.session_state.subprocess = process_object.influx_simulation(param_list = command_list, 
+                                        tmp_folder = io_object.tmp_folder_path)
+        while True: 
+            # Check if the subprocess is still running:
+            if st.session_state.subprocess.poll() is not None :
                 if st.session_state["subprocess"].returncode != 0 :
-                    process_object.check_err_files()
+                    check_err_files(io_object.tmp_folder_path)
                     # Read the error message from the stderr file
                     stderr_output = st.session_state["subprocess"].stderr.read()
                     # Extract the last line of the error message to display it to the user
@@ -57,7 +79,7 @@ def execute_simulation():
                     raise Exception(error_message)
                 return
     except Exception as e:
-        st.error(f"An error occured: {e}")
+        st.error(e)
         return
 
 def start_simulation():
@@ -81,6 +103,7 @@ def interrupt_simulation():
     Interrupt simulations. This function is called when the user
     clicks the "Interrupt simulation" button.
     """
+    #TODO: check the interrupt simulation function
     st.session_state.running = False
     st.session_state["subprocess"].terminate()
 
@@ -96,22 +119,27 @@ session = SessI(
 st.set_page_config(page_title="IsoDesign")
 st.title("Run simulations")
 
-st.sidebar.markdown("## Influx_si documentation ")
+
+####### SIDEBAR ########
+st.sidebar.markdown("## influx_si documentation ")
 st.sidebar.link_button("Documentation", 
                        "https://influx-si.readthedocs.io/en/latest/manual.html"
                   )
+####### SIDEBAR END ########
 
+# Retrieving the process_object and io_object from the session's object space
 process_object = session.object_space["process_object"]
+io_object = session.object_space["io_object"]
 
 if not process_object :
     st.warning("Please load a metabolic network model in 'Upload data' page.")
 
-elif not process_object.linp_infos:
+elif not process_object.linp_files_infos:
     # This warning appears if the user has not submitted the combinations generated on page 2 for simulation. 
-    st.warning("Please click on the 'Submit for simulations' button on the previous page.")
+    st.warning("Please click on the 'Validate inputs' button on the previous page.")
 else:
     # Select the influx mode
-    mode = st.selectbox("Influx mode", 
+    mode = st.selectbox("influx mode", 
                         options=["influx_s (stationary)", "influx_i (instationary)"],
                         index=0)
     
@@ -121,7 +149,7 @@ else:
     command_list = ["influx_s" if mode == "influx_s (stationary)" else "influx_i"] 
 
     # The command is initialized with the prefix and default options
-    command_list += ["--prefix", process_object.model_name, "--noopt"]   
+    command_list += ["--prefix", io_object.model_name, "--noopt"]   
 
     with st.container(border=True):
         # Emu option
@@ -194,24 +222,32 @@ else:
     with submit:
         if st.button("Start simulation", key="start_button"):
             with st.spinner("Simulating..."):
-                # if there is a previous run, clear it
-                process_object.clear_previous_results()
                 # Clear the summary dataframe if it exists
                 if process_object.summary_dataframe is not None:
                     process_object.summary_dataframe = None
+                io_object.clear_previous_results()
                 start_simulation()
+
                 # Check if the subprocess has completed
-                if st.session_state["subprocess"]:
-                    if st.session_state["subprocess"].returncode == 0:
-                        process_object.generate_summary()
-                        process_object.save_process_to_file()
+                if st.session_state["subprocess"] :
+                    if st.session_state["subprocess"].returncode == 0 :
+                        process_object.configurate_summary(io_object.tmp_folder_path)
+                        io_object.generate_summary(process_object.summary_dataframe)
+                        to_pickle = {
+                        "process_object":process_object,
+                        "io_object": io_object}
+
+                        process_object.save_process_to_file(to_pickle, io_object.results_dir_path, io_object.model_name)
+                        # st.success("Simulation completed.")
+        
                         st.success("Simulation completed.")
                         logger.info(f"Simulation with {mode} has been completed successfully.\n")
-                        logger.info(f"Summary dataframe has been generated in {process_object.output_folder_path}.")
+                        logger.info(f"Summary dataframe has been generated in {io_object.results_dir_path}.")
                         st.switch_page(r"pages/4_Analyze_results.py")
-        
+
     with interrupt:
         # Interrupt simulation
         if st.button("Interrupt simulation", key="interrupt_simulation", on_click=interrupt_simulation) :
             logger.info("Simulation interrupted.")
             st.warning("Simulation interrupted.")
+            
